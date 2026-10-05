@@ -767,13 +767,14 @@
 
     /* Галерея Instagram: без обрізання тіней та підйому */
     .insta-gallery-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      width: 100%;
-      padding: 4px 6px 8px; /* Запас для вільного розсіювання тіней */
-      box-sizing: border-box;
-    }
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  padding: 4px 6px 8px; 
+  box-sizing: border-box;
+  dynamic-range: high;
+}
 
     .insta-preview-card {
       position: relative;
