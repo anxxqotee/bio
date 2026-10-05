@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Links</title>
+  
+  <style>
+    /* Підключення шрифту */
+    @font-face {
+      font-family: 'SN Pro';
+      src: url('fonts/sn-pro.ttf') format('truetype');
+      font-weight: 100 900;
+      font-display: block;
+    }
+
+    :root {
+      --bg: #f4f3ef;
+      --text: #23252a;
+      --subtext: #737782;
+      --shadow-light: #ffffff;
+      --shadow-dark: rgba(166, 171, 189, 0.55);
+      --card-border: rgba(255, 255, 255, 0.7);
+      --icon-bg: #eceae3;
+      --icon-fill: #2f3239;
+      --tag-bg: #f4f3ef;
+      --tag-text: #505460;
+      --sub-card-bg: #eceae3;
+      --sub-card-hover: #ffffff;
+      --copied-bg: #2b824c;
+      --copied-text: #ffffff;
+      --copied-badge-bg: rgba(255, 255, 255, 0.25);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]):not([data-theme="aqua"]) {
+        --bg: #141517;
+        --text: #f0f1f4;
+        --subtext: #8d929f;
+        --shadow-light: rgba(255, 255, 255, 0.05);
+        --shadow-dark: rgba(0, 0, 0, 0.85);
+        --card-border: rgba(255, 255, 255, 0.04);
+        --icon-bg: #1a1c1f;
+        --icon-fill: #e6e8ee;
+        --tag-bg: #141517;
+        --tag-text: #a4a9b8;
+        --sub-card-bg: #191b1e;
+        --sub-card-hover: #22252a;
+        --copied-bg: #1e6b3b;
+        --copied-text: #ffffff;
+        --copied-badge-bg: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    [data-theme="dark"] {
+      --bg: #141517;
+      --text: #f0f1f4;
+      --subtext: #8d929f;
+      --shadow-light: rgba(255, 255, 255, 0.05);
+      --shadow-dark: rgba(0, 0, 0, 0.85);
+      --card-border: rgba(255, 255, 255, 0.04);
+      --icon-bg: #1a1c1f;
+      --icon-fill: #e6e8ee;
+      --tag-bg: #141517;
+      --tag-text: #a4a9b8;
+      --sub-card-bg: #191b1e;
+      --sub-card-hover: #22252a;
+      --copied-bg: #1e6b3b;
+      --copied-text: #ffffff;
+      --copied-badge-bg: rgba(255, 255, 255, 0.2);
+    }
+
+    [data-theme="light"] {
+      --bg: #f4f3ef;
+      --text: #23252a;
+      --subtext: #737782;
+      --shadow-light: #ffffff;
+      --shadow-dark: rgba(166, 171, 189, 0.55);
+      --card-border: rgba(255, 255, 255, 0.7);
+      --icon-bg: #eceae3;
+      --icon-fill: #2f3239;
+      --tag-bg: #f4f3ef;
+      --tag-text: #505460;
+      --sub-card-bg: #eceae3;
+      --sub-card-hover: #ffffff;
+      --copied-bg: #2b824c;
+      --copied-text: #ffffff;
+      --copied-badge-bg: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Тема Aqua */
+    [data-theme="aqua"] {
+      --bg: transparent;
+      --text: #ffffff;
+      --subtext: rgba(255, 255, 255, 0.82);
+      --shadow-light: rgba(255, 255, 255, 0.22);
+      --shadow-dark: rgba(10, 32, 45, 0.55);
+      --card-border: rgba(255, 255, 255, 0.35);
+      --icon-bg: rgba(255, 255, 255, 0.16);
+      --icon-fill: #ffffff;
+      --tag-bg: rgba(255, 255, 255, 0.16);
+      --tag-text: #ffffff;
+      --sub-card-bg: rgba(255, 255, 255, 0.12);
+      --sub-card-hover: rgba(255, 255, 255, 0.24);
+      --copied-bg: #197278;
+      --copied-text: #ffffff;
+      --copied-badge-bg: rgba(255, 255, 255, 0.25);
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'SN Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 18px 60px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    [data-theme="aqua"] body {
+      background: linear-gradient(135deg, #16425b 0%, #216383 38%, #3f8f97 70%, #71bfbc 100%);
+      background-size: 260% 260%;
+      animation: aquaGradientFlow 14s ease infinite alternate;
+    }
+
+    [data-theme="aqua"] .link-card,
+    [data-theme="aqua"] .theme-toggle {
+      background-color: rgba(255, 255, 255, 0.12) !important;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    /* Прибираємо підкладку навколо логотипу в темі Aqua */
+    [data-theme="aqua"] .avatar-wrapper {
+      background: transparent !important;
+      box-shadow: none !important;
+      border-color: transparent !important;
+    }
+
+    [data-theme="aqua"] .avatar-inner {
+      background: transparent !important;
+    }
+
+    @keyframes aquaGradientFlow {
+      0% { background-position: 0% 20%; }
+      50% { background-position: 100% 80%; }
+      100% { background-position: 20% 100%; }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body, 
+    .theme-toggle, 
+    .avatar-wrapper, 
+    .avatar-inner, 
+    .profile-title, 
+    .username-badge, 
+    .profile-desc, 
+    .link-card, 
+    .link-icon-box, 
+    .link-icon-masked,
+    .link-title, 
+    .link-subtitle, 
+    .link-arrow, 
+    .nested-btn,
+    .nested-btn-badge,
+    .nested-btn-right,
+    .footer {
+      transition: 
+        color 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+        background-color 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+        outline-color 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+        border-color 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+        box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      body, a, button, [role="button"], input {
+        cursor: none !important;
+      }
+    }
+
+    #rayCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      padding-top: 6px;
+      z-index: 2;
+    }
+
+    /* Поява блоків */
+    .theme-toggle,
+    .avatar-wrapper,
+    .profile-title,
+    .username-badge,
+    .profile-desc,
+    .link-item-wrapper,
+    .footer {
+      opacity: 0;
+    }
+
+    .container.ready .theme-toggle {
+      animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: 0.05s;
+    }
+
+    .container.ready .avatar-wrapper {
+      animation: revealZoom 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: 0.15s;
+    }
+
+    .container.ready .profile-title {
+      animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: 0.28s;
+    }
+
+    .container.ready .username-badge:nth-child(1) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.34s; }
+    .container.ready .username-badge:nth-child(2) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.40s; }
+    .container.ready .username-badge:nth-child(3) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.46s; }
+
+    .container.ready .profile-desc {
+      animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: 0.52s;
+    }
+
+    .container.ready .link-item-wrapper:nth-child(1) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.58s; }
+    .container.ready .link-item-wrapper:nth-child(2) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.65s; }
+    .container.ready .link-item-wrapper:nth-child(3) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.72s; }
+    .container.ready .link-item-wrapper:nth-child(4) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.79s; }
+    .container.ready .link-item-wrapper:nth-child(5) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.86s; }
+    .container.ready .link-item-wrapper:nth-child(6) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.93s; }
+
+    .container.ready .footer {
+      animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: 1.05s;
+    }
+
+    /* Кнопка зміни теми */
+    .theme-toggle {
+      position: absolute;
+      top: 6px;
+      right: 4px;
+      z-index: 10;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      outline: none;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      box-shadow: 
+        5px 5px 12px var(--shadow-dark),
+        -5px -5px 12px var(--shadow-light);
+      transform: scale(1);
+    }
+
+    .theme-toggle:active {
+      box-shadow: 
+        inset 3px 3px 6px var(--shadow-dark),
+        inset -3px -3px 6px var(--shadow-light) !important;
+      transform: scale(0.96);
+    }
+
+    .theme-toggle svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Аватар */
+    .avatar-wrapper {
+      position: relative;
+      width: 146px;
+      height: 146px;
+      border-radius: 50%;
+      background: var(--bg);
+      padding: 7px;
+      box-shadow: 
+        8px 8px 20px var(--shadow-dark),
+        -8px -8px 20px var(--shadow-light);
+      margin-top: 8px;
+      margin-bottom: 18px;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-inner {
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      overflow: hidden;
+      position: relative;
+      background: var(--icon-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: none !important;
+      will-change: opacity;
+      transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .avatar-light { opacity: 1; z-index: 2; }
+    .avatar-dark { opacity: 0; z-index: 1; }
+    .avatar-aqua { opacity: 0; z-index: 1; }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]):not([data-theme="aqua"]) .avatar-light { opacity: 0; z-index: 1; }
+      :root:not([data-theme="light"]):not([data-theme="aqua"]) .avatar-dark { opacity: 1; z-index: 2; }
+    }
+
+    [data-theme="dark"] .avatar-light { opacity: 0 !important; z-index: 1 !important; }
+    [data-theme="dark"] .avatar-dark { opacity: 1 !important; z-index: 2 !important; }
+    [data-theme="dark"] .avatar-aqua { opacity: 0 !important; z-index: 1 !important; }
+
+    [data-theme="aqua"] .avatar-light { opacity: 0 !important; z-index: 1 !important; }
+    [data-theme="aqua"] .avatar-dark { opacity: 0 !important; z-index: 1 !important; }
+    [data-theme="aqua"] .avatar-aqua { opacity: 1 !important; z-index: 3 !important; }
+
+    [data-theme="light"] .avatar-light { opacity: 1 !important; z-index: 2 !important; }
+    [data-theme="light"] .avatar-dark { opacity: 0 !important; z-index: 1 !important; }
+    [data-theme="light"] .avatar-aqua { opacity: 0 !important; z-index: 1 !important; }
+
+    .avatar-placeholder-svg {
+      width: 54px;
+      height: 54px;
+      stroke: var(--subtext);
+      fill: none;
+      stroke-width: 1.6;
+    }
+
+    /* Інфо профілю */
+    .profile-info {
+      text-align: center;
+      margin-bottom: 24px;
+      width: 100%;
+      padding: 0 10px;
+    }
+
+    .profile-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .usernames-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 14px;
+    }
+
+    .username-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--tag-text);
+      background: var(--tag-bg);
+      text-decoration: none;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      border: 1px solid var(--card-border);
+      box-shadow: 
+        3px 3px 7px var(--shadow-dark),
+        -3px -3px 7px var(--shadow-light);
+    }
+
+    .username-badge:active {
+      transform: scale(0.96);
+      box-shadow: 
+        inset 2px 2px 4px var(--shadow-dark),
+        inset -2px -2px 4px var(--shadow-light) !important;
+    }
+
+    .profile-desc {
+      font-size: 0.94rem;
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--subtext);
+      max-width: 360px;
+      margin: 0 auto;
+    }
+
+    /* Список кнопок */
+    .links-list {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .link-item-wrapper {
+      width: 100%;
+    }
+
+    /* ОСНОВНА КНОПКА */
+    .link-card {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 12px 18px;
+      border-radius: 36px;
+      background: var(--bg);
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      border: 1px solid var(--card-border);
+      user-select: none;
+      overflow: hidden;
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+      
+      box-shadow: 
+        2px 2px 6px var(--shadow-dark),
+        -2px -2px 6px var(--shadow-light);
+
+      transition: 
+        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+        background-color 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      will-change: transform, box-shadow;
+    }
+
+    .link-main-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    .link-icon-box {
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      border-radius: 50%;
+      background: var(--icon-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 14px;
+      position: relative;
+      overflow: hidden;
+      transform: translate3d(0, 0, 0) scale(1);
+      
+      box-shadow: 
+        inset 2px 2px 4px var(--shadow-dark),
+        inset -2px -2px 4px var(--shadow-light);
+
+      transition: 
+        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      will-change: transform, box-shadow;
+    }
+
+    .link-icon-masked {
+      width: 24px;
+      height: 24px;
+      background-color: var(--icon-fill);
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-position: center;
+      mask-position: center;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      display: block;
+    }
+
+    .link-content {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      min-width: 0;
+    }
+
+    .link-title {
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.01em;
+    }
+
+    .link-subtitle {
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: var(--subtext);
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .link-arrow {
+      width: 20px;
+      height: 20px;
+      margin-left: 10px;
+      color: var(--subtext);
+      opacity: 0.7;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, color 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      flex-shrink: 0;
+    }
+
+    /* Випуклий стан при скролі */
+    .link-card.is-elevated {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 
+        9px 11px 24px var(--shadow-dark),
+        -9px -11px 24px var(--shadow-light);
+    }
+
+    .link-card.is-elevated .link-icon-box {
+      transform: scale(1.035);
+      box-shadow: 
+        3px 3px 8px var(--shadow-dark),
+        -3px -3px 8px var(--shadow-light);
+    }
+
+    .link-card.is-elevated .link-arrow {
+      opacity: 1;
+      transform: translateX(3px);
+    }
+
+    /* Hover на ПК */
+    @media (hover: hover) and (pointer: fine) {
+      .link-card:not(.is-open):hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.25);
+        box-shadow: 
+          8px 10px 22px var(--shadow-dark),
+          -8px -10px 22px var(--shadow-light);
+      }
+      .link-card:not(.is-open):hover .link-icon-box {
+        transform: scale(1.035);
+        box-shadow: 
+          3px 3px 8px var(--shadow-dark),
+          -3px -3px 8px var(--shadow-light);
+      }
+      .link-card:not(.is-open):hover .link-arrow {
+        opacity: 1;
+        transform: translateX(3px);
+      }
+    }
+
+    /* Стан розкритої кнопки */
+    .link-card.is-open {
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow: 
+        7px 9px 20px var(--shadow-dark),
+        -7px -9px 20px var(--shadow-light);
+      transform: translateY(-1px);
+    }
+
+    .link-card.is-open .link-arrow {
+      transform: rotate(180deg) !important;
+      opacity: 1;
+    }
+
+    /* ВНУТРІШНІЙ БЛОК */
+    .inner-tray {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+      width: 100%;
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+      will-change: grid-template-rows;
+    }
+
+    .link-card.is-open .inner-tray {
+      grid-template-rows: 1fr;
+    }
+
+    .inner-tray-content {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 0 10px;
+      transition: padding-top 0.45s cubic-bezier(0.25, 1, 0.5, 1), padding-bottom 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+    }
+
+    .link-card.is-open .inner-tray-content {
+      padding: 14px 10px 14px;
+    }
+
+    /* МЕНШІ КНОПКИ */
+    .nested-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-radius: 20px;
+      background-color: var(--sub-card-bg);
+      border: none !important;
+      outline: 1px solid var(--card-border);
+      outline-offset: -1px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transform: translate3d(0, -6px, 0);
+      backface-visibility: hidden;
+      will-change: transform, opacity;
+      
+      box-shadow: 
+        2px 2px 5px var(--shadow-dark),
+        -2px -2px 5px var(--shadow-light);
+
+      opacity: 0;
+      transition: 
+        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.35s ease,
+        background-color 0.3s ease,
+        outline-color 0.3s ease,
+        box-shadow 0.3s ease !important;
+    }
+
+    .link-card.is-open .nested-btn {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .nested-btn:hover {
+        transform: translate3d(0, -1.5px, 0) !important;
+        background-color: var(--sub-card-hover) !important;
+        outline-color: rgba(255, 255, 255, 0.45);
+        box-shadow: 
+          3px 4px 10px var(--shadow-dark),
+          -3px -4px 10px var(--shadow-light) !important;
+      }
+      .nested-btn:hover .nested-btn-right {
+        color: var(--text);
+      }
+      .nested-btn:hover .nested-btn-badge {
+        outline-color: rgba(255, 255, 255, 0.5);
+      }
+    }
+
+    .nested-btn:active {
+      transform: translate3d(0, 0, 0) scale(0.98) !important;
+      outline-color: var(--card-border);
+      box-shadow: 
+        inset 2px 2px 5px var(--shadow-dark),
+        inset -2px -2px 5px var(--shadow-light) !important;
+      transition: all 0.15s ease !important;
+    }
+
+    .nested-btn-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nested-btn-badge {
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background-color: var(--tag-bg);
+      color: var(--subtext);
+      font-weight: 500;
+      border: none !important;
+      outline: 1px solid var(--card-border);
+      outline-offset: -1px;
+      transition: outline-color 0.3s ease, color 0.3s ease, background-color 0.3s ease;
+    }
+
+    .nested-btn-right {
+      font-size: 0.78rem;
+      color: var(--subtext);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.3s ease;
+    }
+
+    .nested-action-icon {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+      display: inline-block;
+      vertical-align: middle;
+      transition: stroke 0.3s ease;
+    }
+
+    /* Стан скопійовано */
+    .nested-btn.copied {
+      background-color: var(--copied-bg) !important;
+      color: var(--copied-text) !important;
+      outline-color: transparent !important;
+      box-shadow: 2px 2px 6px var(--shadow-dark) !important;
+    }
+
+    .nested-btn.copied .nested-btn-badge {
+      background-color: var(--copied-badge-bg) !important;
+      color: #ffffff !important;
+      outline-color: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .nested-btn.copied .nested-btn-right {
+      color: #ffffff !important;
+    }
+
+    .nested-btn.copied .nested-action-icon {
+      stroke: #ffffff !important;
+    }
+
+    /* Галерея Instagram: без обрізання тіней та підйому */
+    .insta-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 100%;
+      padding: 4px 6px 8px; /* Запас для вільного розсіювання тіней */
+      box-sizing: border-box;
+    }
+
+    .insta-preview-card {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--sub-card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: 
+        2px 2px 6px var(--shadow-dark),
+        -2px -2px 6px var(--shadow-light);
+      display: block;
+      text-decoration: none;
+      transform: translate3d(0, -6px, 0);
+      opacity: 0;
+      transition: 
+        transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+        border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.35s ease;
+    }
+
+    .link-card.is-open .insta-preview-card {
+      transform: translate3d(0, 0, 0);
+      opacity: 1;
+    }
+
+    .link-card.is-open .insta-preview-card:nth-child(2) { transition-delay: 0.04s; }
+    .link-card.is-open .insta-preview-card:nth-child(3) { transition-delay: 0.08s; }
+
+    .insta-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      color-interpolation-filters: sRGB;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .insta-preview-card:hover {
+        transform: translate3d(0, -2px, 0) !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
+        box-shadow: 
+          3px 5px 12px var(--shadow-dark),
+          -3px -5px 12px var(--shadow-light) !important;
+      }
+      .insta-preview-card:hover .insta-preview-img {
+        transform: scale(1.08);
+      }
+    }
+
+    .insta-profile-btn {
+      width: 100%;
+      margin-top: 2px;
+    }
+
+    .footer {
+      margin-top: 40px;
+      font-size: 0.8rem;
+      color: var(--subtext);
+      letter-spacing: 0.04em;
+    }
+
+    @keyframes revealUp {
+      from {
+        opacity: 0;
+        transform: translateY(22px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes revealZoom {
+      from {
+        opacity: 0;
+        transform: scale(0.88);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="rayCanvas"></canvas>
+
+  <div class="container" id="mainContainer">
+    <!-- Кнопка зміни теми (Light -> Dark -> Aqua) -->
+    <button class="theme-toggle" id="themeBtn" aria-label="Змінити тему">
+      <svg id="themeIcon" viewBox="0 0 24 24"></svg>
+    </button>
+
+    <!-- Аватар -->
+    <div class="avatar-wrapper">
+      <div class="avatar-inner">
+        <img 
+          src="img/logo.png" 
+          alt="Logo Light" 
+          class="avatar-img avatar-light"
+          onerror="if(this.src.indexOf('img/avatar.png') === -1) { this.src='img/avatar.png'; } else { this.style.display='none'; document.getElementById('fallback-avatar').style.display='block'; }"
+        >
+        <img 
+          src="img/logo-dark.png" 
+          alt="Logo Dark" 
+          class="avatar-img avatar-dark"
+          onerror="if(this.src.indexOf('img/logo.png') === -1) { this.src='img/logo.png'; }"
+        >
+        <img 
+          src="img/logo-trn.png" 
+          alt="Logo Aqua Transparent" 
+          class="avatar-img avatar-aqua"
+          onerror="this.src='img/logo-dark.png';"
+        >
+        <svg id="fallback-avatar" class="avatar-placeholder-svg" style="display: none;" viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Блок профілю -->
+    <div class="profile-info">
+      <h1 class="profile-title" id="profileTitle"></h1>
+      <div class="usernames-group" id="usernamesContainer"></div>
+      <p class="profile-desc" id="profileDesc"></p>
+    </div>
+
+    <!-- Список кнопок -->
+    <div class="links-list" id="linksContainer"></div>
+
+    <div class="footer">
+      <span id="footerText"></span>
+    </div>
+  </div>
+
+  <script>
+    // @ts-nocheck
+
+    /* ==========================================================
+       👇 ЄДИНИЙ БЛОК НАЛАШТУВАННЯ ТЕКСТІВ ТА ПОСИЛАНЬ 👇
+    ========================================================== */
+    const PAGE_DATA = {
+      name: "Артем Гай",
+      description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
+      footer: "Vibecodded with Gemini ©2026",
+      
+      usernames: [
+        { label: "@artem_haiduk", url: "https://youtube.com/@artem_haiduk" },
+        { label: "@anxxqotee",    url: "https://t.me/anxxqotee" },
+        { label: "@kunark1337",   url: "https://t.me/kunark1337" }
+      ],
+
+      cardNumber: "4874 1000 3829 6284",
+
+      buttons: [
+        // 1. ПІДТРИМАТИ
+        {
+          type: "expandable",
+          title: "Підтримати",
+          subtitle: "monoБанка або картка",
+          icon: "img/donate.svg",
+          nestedButtons: [
+            {
+              title: "monoБанка",
+              badge: "Збір",
+              url: "https://send.monobank.ua/jar/8DMBWmamae",
+              actionText: "Відкрити",
+              actionType: "external"
+            },
+            {
+              title: "Карта",
+              badge: "Номер",
+              copyAction: true,
+              actionText: "Скопіювати",
+              actionType: "copy"
+            }
+          ]
+        },
+
+        // 2. Telegram-канал
+        {
+          type: "link",
+          title: "Telegram-канал",
+          subtitle: "Новини, бекстейдж та анонси",
+          url: "https://t.me/kunark1337",
+          icon: "img/telegram.svg"
+        },
+
+        // 3. YOUTUBE
+        {
+          type: "expandable",
+          title: "YouTube",
+          subtitle: "Основний та ігровий канали",
+          icon: "img/youtube.svg",
+          nestedButtons: [
+            {
+              title: "Основний канал",
+              badge: "Великі відео",
+              url: "http://youtube.com/@artem_haiduk",
+              actionText: "Перейти",
+              actionType: "external"
+            },
+            {
+              title: "Ігровий канал",
+              badge: "Кунарк",
+              url: "https://youtube.com/@Кунарк",
+              actionText: "Перейти",
+              actionType: "external"
+            }
+          ]
+        },
+
+        // 4. Twitch
+        {
+          type: "link",
+          title: "Twitch",
+          subtitle: "Прямі трансляції ігор і не тільки",
+          url: "https://twitch.tv/kunark1337",
+          icon: "img/twitch.svg"
+        },
+
+        // 5. INSTAGRAM (з трьома HDR-прев'ю)
+        {
+          type: "instagram-gallery",
+          title: "Instagram",
+          subtitle: "Фотографії та сторіс з життя",
+          icon: "img/instagram.svg",
+          profileUrl: "https://instagram.com/anxxqotee999",
+          photos: [
+            { 
+              image: "img/instagram/post1.jpg", 
+              url: "https://instagram.com/anxxqotee999" 
+            },
+            { 
+              image: "img/instagram/post2.jpg", 
+              url: "https://instagram.com/anxxqotee999" 
+            },
+            { 
+              image: "img/instagram/post3.jpg", 
+              url: "https://instagram.com/anxxqotee999" 
+            }
+          ]
+        },
+
+        // 6. ІГРИ
+        {
+          type: "expandable",
+          title: "Вайбкодинг",
+          subtitle: "Веб-ігри та проекти",
+          icon: "img/star-collector.svg",
+          nestedButtons: [
+            {
+              title: "Star Collector 2025",
+              badge: "Стара гра",
+              url: "https://anxkdqote.itch.io/star-collector",
+              actionText: "Грати",
+              actionType: "external"
+            },
+            {
+              title: "Star Collector",
+              badge: "Нова гра",
+              url: "https://anxkdqote.itch.io/star-collector-2",
+              actionText: "Грати",
+              actionType: "external"
+            }
+          ]
+        }
+      ]
+    };
+    /* ========================================================== */
+
+    const copySVG = `
+      <svg class="nested-action-icon" viewBox="0 0 24 24">
+        <rect x="9" y="9" width="12" height="12" rx="3.5"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    `;
+
+    const checkSVG = `
+      <svg class="nested-action-icon" viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    `;
+
+    const externalSVG = `
+      <svg class="nested-action-icon" viewBox="0 0 24 24">
+        <path d="M7 17L17 7"></path>
+        <path d="M7 7h10v10"></path>
+      </svg>
+    `;
+
+    // 1. Генерація DOM з PAGE_DATA
+    document.getElementById('profileTitle').textContent = PAGE_DATA.name;
+    document.getElementById('profileDesc').textContent = PAGE_DATA.description;
+    document.getElementById('footerText').textContent = PAGE_DATA.footer;
+
+    const usernamesBox = document.getElementById('usernamesContainer');
+    PAGE_DATA.usernames.forEach(item => {
+      const a = document.createElement('a');
+      a.className = 'username-badge';
+      a.href = item.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.innerHTML = `<span>${item.label}</span>`;
+      usernamesBox.appendChild(a);
+    });
+
+    const linksBox = document.getElementById('linksContainer');
+
+    PAGE_DATA.buttons.forEach((btn) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'link-item-wrapper';
+
+      const isExpandable = btn.type === 'expandable' || btn.type === 'instagram-gallery';
+
+      const arrowIcon = isExpandable
+        ? `<svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="6 9 12 15 18 9"></polyline>
+           </svg>`
+        : `<svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <line x1="5" y1="12" x2="19" y2="12"></line>
+             <polyline points="12 5 19 12 12 19"></polyline>
+           </svg>`;
+
+      if (btn.type === 'instagram-gallery') {
+        let photosHTML = '';
+        btn.photos.forEach(p => {
+          photosHTML += `
+            <a href="${p.url}" target="_blank" rel="noopener noreferrer" class="insta-preview-card">
+              <img src="${p.image}" alt="Instagram Post" class="insta-preview-img" loading="lazy" onerror="this.src='img/avatar.png';">
+            </a>
+          `;
+        });
+
+        const card = document.createElement('div');
+        card.className = 'link-card expandable-card';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+
+        card.innerHTML = `
+          <div class="link-main-row">
+            <div class="link-icon-box">
+              <span class="link-icon-masked" style="-webkit-mask-image: url('${btn.icon}'); mask-image: url('${btn.icon}');"></span>
+            </div>
+            <div class="link-content">
+              <span class="link-title">${btn.title}</span>
+              <span class="link-subtitle">${btn.subtitle}</span>
+            </div>
+            ${arrowIcon}
+          </div>
+          <div class="inner-tray">
+            <div class="inner-tray-content">
+              <div class="insta-gallery-grid">
+                ${photosHTML}
+              </div>
+              <a href="${btn.profileUrl}" target="_blank" rel="noopener noreferrer" class="nested-btn insta-profile-btn">
+                <div class="nested-btn-left">
+                  <span>Перейти до профілю</span>
+                  <span class="nested-btn-badge">Instagram</span>
+                </div>
+                <span class="nested-btn-right">
+                  <span class="nested-btn-text">Відкрити</span>
+                  <span class="nested-btn-icon-box">${externalSVG}</span>
+                </span>
+              </a>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('.link-main-row').addEventListener('click', () => {
+          const isCurrentlyOpen = card.classList.contains('is-open');
+          document.querySelectorAll('.expandable-card.is-open').forEach(other => {
+            if (other !== card) other.classList.remove('is-open');
+          });
+          card.classList.toggle('is-open', !isCurrentlyOpen);
+        });
+
+        wrapper.appendChild(card);
+      } else if (btn.type === 'expandable') {
+        let nestedHTML = '';
+        btn.nestedButtons.forEach((sub) => {
+          const icon = sub.actionType === 'copy' ? copySVG : externalSVG;
+
+          if (sub.copyAction) {
+            nestedHTML += `
+              <button type="button" class="nested-btn copy-card-btn" data-copy="${PAGE_DATA.cardNumber}">
+                <div class="nested-btn-left">
+                  <span>${sub.title}</span>
+                  <span class="nested-btn-badge">${sub.badge}</span>
+                </div>
+                <span class="nested-btn-right">
+                  <span class="nested-btn-text">${sub.actionText}</span>
+                  <span class="nested-btn-icon-box">${icon}</span>
+                </span>
+              </button>
+            `;
+          } else {
+            nestedHTML += `
+              <a href="${sub.url}" target="_blank" rel="noopener noreferrer" class="nested-btn">
+                <div class="nested-btn-left">
+                  <span>${sub.title}</span>
+                  <span class="nested-btn-badge">${sub.badge}</span>
+                </div>
+                <span class="nested-btn-right">
+                  <span class="nested-btn-text">${sub.actionText}</span>
+                  <span class="nested-btn-icon-box">${icon}</span>
+                </span>
+              </a>
+            `;
+          }
+        });
+
+        const card = document.createElement('div');
+        card.className = 'link-card expandable-card';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+
+        card.innerHTML = `
+          <div class="link-main-row">
+            <div class="link-icon-box">
+              <span class="link-icon-masked" style="-webkit-mask-image: url('${btn.icon}'); mask-image: url('${btn.icon}');"></span>
+            </div>
+            <div class="link-content">
+              <span class="link-title">${btn.title}</span>
+              <span class="link-subtitle">${btn.subtitle}</span>
+            </div>
+            ${arrowIcon}
+          </div>
+          <div class="inner-tray">
+            <div class="inner-tray-content">
+              ${nestedHTML}
+            </div>
+          </div>
+        `;
+
+        card.querySelector('.link-main-row').addEventListener('click', () => {
+          const isCurrentlyOpen = card.classList.contains('is-open');
+          document.querySelectorAll('.expandable-card.is-open').forEach(other => {
+            if (other !== card) other.classList.remove('is-open');
+          });
+          card.classList.toggle('is-open', !isCurrentlyOpen);
+        });
+
+        wrapper.appendChild(card);
+      } else {
+        wrapper.innerHTML = `
+          <a href="${btn.url}" target="_blank" rel="noopener noreferrer" class="link-card">
+            <div class="link-main-row">
+              <div class="link-icon-box">
+                <span class="link-icon-masked" style="-webkit-mask-image: url('${btn.icon}'); mask-image: url('${btn.icon}');"></span>
+              </div>
+              <div class="link-content">
+                <span class="link-title">${btn.title}</span>
+                <span class="link-subtitle">${btn.subtitle}</span>
+              </div>
+              ${arrowIcon}
+            </div>
+          </a>
+        `;
+      }
+
+      linksBox.appendChild(wrapper);
+    });
+
+    // Копіювання картки
+    document.addEventListener('click', (e) => {
+      const copyBtn = e.target.closest('.copy-card-btn');
+      if (!copyBtn) return;
+      e.stopPropagation();
+
+      const text = copyBtn.getAttribute('data-copy');
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.classList.add('copied');
+        const textSpan = copyBtn.querySelector('.nested-btn-text');
+        const iconBox = copyBtn.querySelector('.nested-btn-icon-box');
+        const originalText = textSpan.textContent;
+
+        textSpan.textContent = 'Скопійовано!';
+        if (iconBox) iconBox.innerHTML = checkSVG;
+
+        setTimeout(() => {
+          copyBtn.classList.remove('copied');
+          textSpan.textContent = originalText;
+          if (iconBox) iconBox.innerHTML = copySVG;
+        }, 2000);
+      });
+    });
+
+    // 2. Старт анімацій після завантаження шрифту
+    const mainContainer = document.getElementById('mainContainer');
+    function startAnimations() {
+      mainContainer.classList.add('ready');
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(startAnimations).catch(startAnimations);
+    } else {
+      window.addEventListener('load', startAnimations);
+    }
+
+    // 3. Тема: 3 режими
+    const themeBtn = document.getElementById('themeBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const htmlEl = document.documentElement;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const sunIconSVG = `
+      <circle cx="12" cy="12" r="4.2"></circle>
+      <line x1="12" y1="2" x2="12" y2="4.5"></line>
+      <line x1="12" y1="19.5" x2="12" y2="22"></line>
+      <line x1="4.93" y1="4.93" x2="6.7" y2="6.7"></line>
+      <line x1="17.3" y1="17.3" x2="19.07" y2="19.07"></line>
+      <line x1="2" y1="12" x2="4.5" y2="12"></line>
+      <line x1="19.5" y1="12" x2="22" y2="12"></line>
+      <line x1="4.93" y1="19.07" x2="6.7" y2="17.3"></line>
+      <line x1="17.3" y1="6.7" x2="19.07" y2="4.93"></line>
+    `;
+
+    const moonIconSVG = `
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    `;
+
+    const aquaIconSVG = `
+      <path d="M12 2l2.4 5.2L20 8.5l-4 3.9.9 5.6-4.9-2.6-4.9 2.6.9-5.6-4-3.9 5.6-1.3L12 2z"></path>
+    `;
+
+    localStorage.removeItem('theme');
+
+    function getSystemTheme() {
+      return mediaQuery.matches ? 'dark' : 'light';
+    }
+
+    function syncTheme() {
+      const manual = sessionStorage.getItem('user_manual_theme');
+      const activeTheme = manual || getSystemTheme();
+
+      htmlEl.setAttribute('data-theme', activeTheme);
+      
+      if (themeIcon) {
+        if (activeTheme === 'dark') {
+          themeIcon.innerHTML = aquaIconSVG;
+          themeBtn.setAttribute('title', 'Увімкнути тему Aqua');
+        } else if (activeTheme === 'aqua') {
+          themeIcon.innerHTML = sunIconSVG;
+          themeBtn.setAttribute('title', 'Увімкнути світлу тему');
+        } else {
+          themeIcon.innerHTML = moonIconSVG;
+          themeBtn.setAttribute('title', 'Увімкнути темну тему');
+        }
+      }
+    }
+
+    mediaQuery.addEventListener('change', () => {
+      sessionStorage.removeItem('user_manual_theme');
+      syncTheme();
+    });
+
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const current = htmlEl.getAttribute('data-theme') || getSystemTheme();
+        let next = 'light';
+        
+        if (current === 'light') next = 'dark';
+        else if (current === 'dark') next = 'aqua';
+        else next = 'light';
+
+        sessionStorage.setItem('user_manual_theme', next);
+        syncTheme();
+      });
+    }
+
+    syncTheme();
+
+    // 4. Анімація за скролом (мобільні)
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    if (isTouchDevice) {
+      const cards = Array.from(document.querySelectorAll('.link-card'));
+      let ticking = false;
+
+      function updateActiveCardOnScroll() {
+        const totalCards = cards.length;
+        if (totalCards === 0) return;
+
+        const scrollY = window.scrollY || window.pageYOffset;
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+
+        let activeIndex = 0;
+
+        if (maxScroll > 15) {
+          const scrollProgress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
+          activeIndex = Math.floor(scrollProgress * totalCards);
+          if (activeIndex >= totalCards) {
+            activeIndex = totalCards - 1;
+          }
+        }
+
+        cards.forEach((card, idx) => {
+          if (idx === activeIndex && !card.classList.contains('is-open')) {
+            card.classList.add('is-elevated');
+          } else {
+            card.classList.remove('is-elevated');
+          }
+        });
+
+        ticking = false;
+      }
+
+      window.addEventListener('scroll', () => {
+        if (!ticking) {
+          window.requestAnimationFrame(updateActiveCardOnScroll);
+          ticking = true;
+        }
+      }, { passive: true });
+
+      setTimeout(updateActiveCardOnScroll, 350);
+      window.addEventListener('resize', updateActiveCardOnScroll);
+    }
+
+    // 5. Курсор
+    const isDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    if (isDesktopPointer) {
+      const canvas = document.getElementById('rayCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let cssWidth = window.innerWidth;
+      let cssHeight = window.innerHeight;
+      let dpr = window.devicePixelRatio || 1;
+
+      function resizeCanvas() {
+        dpr = window.devicePixelRatio || 1;
+        cssWidth = window.innerWidth;
+        cssHeight = window.innerHeight;
+
+        canvas.width = Math.round(cssWidth * dpr);
+        canvas.height = Math.round(cssHeight * dpr);
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+      }
+
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      let mouse = { x: -200, y: -200, active: false, clicking: false, hovering: false };
+      let cursorDot = { x: -200, y: -200 };
+      let cursorRing = { x: -200, y: -200, size: 24 };
+
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        mouse.active = true;
+
+        const target = e.target.closest('a, button, [role="button"], .username-badge, .nested-btn, .link-main-row, .insta-preview-card');
+        mouse.hovering = !!target;
+      });
+
+      window.addEventListener('mousedown', () => { mouse.clicking = true; });
+      window.addEventListener('mouseup', () => { mouse.clicking = false; });
+      document.addEventListener('mouseleave', () => { mouse.active = false; });
+      document.addEventListener('mouseenter', () => { mouse.active = true; });
+
+      function renderFrame() {
+        ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+        if (mouse.active) {
+          cursorDot.x += (mouse.x - cursorDot.x) * 0.8;
+          cursorDot.y += (mouse.y - cursorDot.y) * 0.8;
+
+          cursorRing.x += (mouse.x - cursorRing.x) * 0.28;
+          cursorRing.y += (mouse.y - cursorRing.y) * 0.28;
+
+          let targetSize = mouse.clicking ? 18 : (mouse.hovering ? 38 : 24);
+          cursorRing.size += (targetSize - cursorRing.size) * 0.25;
+
+          const currentTheme = htmlEl.getAttribute('data-theme') || getSystemTheme();
+
+          let ringColor = 'rgba(35, 37, 42, 0.35)';
+          let dotColor = '#23252a';
+
+          if (currentTheme === 'dark') {
+            ringColor = mouse.hovering ? 'rgba(255, 255, 255, 0.85)' : 'rgba(240, 241, 244, 0.38)';
+            dotColor = '#ffffff';
+          } else if (currentTheme === 'aqua') {
+            ringColor = mouse.hovering ? '#ffffff' : 'rgba(255, 255, 255, 0.6)';
+            dotColor = '#ffffff';
+          } else {
+            ringColor = mouse.hovering ? 'rgba(0, 0, 0, 0.75)' : 'rgba(35, 37, 42, 0.35)';
+            dotColor = '#23252a';
+          }
+
+          ctx.beginPath();
+          ctx.arc(cursorRing.x, cursorRing.y, cursorRing.size / 2, 0, Math.PI * 2);
+          ctx.strokeStyle = ringColor;
+          ctx.lineWidth = mouse.hovering ? 1.5 : 1.1;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(cursorDot.x, cursorDot.y, mouse.hovering ? 3.5 : 3, 0, Math.PI * 2);
+          ctx.fillStyle = dotColor;
+          ctx.fill();
+        }
+
+        requestAnimationFrame(renderFrame);
+      }
+
+      renderFrame();
+    }
+  </script>
+</body>
+</html>
