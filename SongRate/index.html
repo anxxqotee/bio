@@ -2,8 +2,8 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SongRate</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SongRate — Оцінка Музики</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -14,7 +14,7 @@
     <img id="ambient-blur-cover" src="" alt="">
   </div>
 
-  <!-- Анімовані градієнтні плями -->
+  <!-- Градієнтні плями -->
   <div class="ambient-glow glow-1"></div>
   <div class="ambient-glow glow-2"></div>
   <div class="ambient-glow glow-3"></div>
@@ -32,7 +32,6 @@
         <img src="icons/search.svg" alt="Пошук" class="svg-icon">
       </button>
 
-      <!-- Випадаючий контекстний пошук -->
       <div id="search-dropdown" class="search-dropdown frosted hidden"></div>
     </div>
 
@@ -45,21 +44,74 @@
 
   <main class="app-container">
 
-    <!-- 1. Головна сторінка з кнопкою оновлення рекомендацій -->
+    <!-- 1. Головна сторінка: Рекомендації + Топ активних користувачів -->
     <section id="view-home" class="view active">
-      <div class="view-header row-between">
-        <div>
-          <h1 class="view-title">Рекомендовані релізи</h1>
-          <p class="view-subtitle" id="home-subtitle">Підібрано для тебе</p>
+      <div class="home-two-col-layout">
+        
+        <!-- Ліва частина: Рекомендації -->
+        <div class="home-main-col">
+          <div class="view-header row-between">
+            <div>
+              <h1 class="view-title">Рекомендовані релізи</h1>
+              <p class="view-subtitle" id="home-subtitle">Підібрано для тебе</p>
+            </div>
+            <button id="btn-refresh-recommendations" class="action-round-btn" aria-label="Згенерувати нові альбоми" title="Згенерувати нові альбоми">
+              <img id="refresh-icon-img" src="icons/replay.svg" alt="Оновити" class="svg-icon">
+            </button>
+          </div>
+          <div class="grid-cards" id="recommendations-grid"></div>
         </div>
-        <button id="btn-refresh-recommendations" class="action-round-btn" aria-label="Згенерувати нові альбоми" title="Згенерувати нові альбоми">
-          <img id="refresh-icon-img" src="icons/replay.svg" alt="Оновити" class="svg-icon">
-        </button>
+
+        <!-- Права частина: Найактивніші юзери -->
+        <aside class="home-sidebar-col">
+          <div class="leaderboard-card frosted">
+            <div class="sidebar-header">
+              <h2 class="sidebar-title">Топ користувачів</h2>
+              <span class="sidebar-badge">Активність</span>
+            </div>
+            <div class="leaderboard-list" id="home-leaderboard-list">
+              <p class="item-sub">Завантаження лідерів...</p>
+            </div>
+          </div>
+        </aside>
+
       </div>
-      <div class="grid-cards" id="recommendations-grid"></div>
     </section>
 
-    <!-- 2. Сторінка розширеного пошуку -->
+    <!-- 2. Окрема сторінка конкретного альбому (з постійним посиланням) -->
+    <section id="view-album-details" class="view hidden">
+      <div class="wide-page-card frosted">
+        <div class="view-header row-between">
+          <button class="btn btn-inactive btn-back">
+            <img src="icons/back.svg" alt="Назад" class="svg-icon btn-icon">
+            Назад
+          </button>
+          <button id="btn-share-album" class="btn btn-inactive">
+            <img src="icons/check.svg" alt="Поділитися" class="svg-icon btn-icon">
+            Поділитися альбомом
+          </button>
+        </div>
+
+        <div class="album-details-hero">
+          <img id="album-page-cover" src="" alt="Обкладинка" class="album-page-cover" onerror="this.src='icons/album-placeholder.svg'">
+          <div class="album-page-meta">
+            <span class="badge-tag" id="album-page-genre">Жанр</span>
+            <h1 id="album-page-title" class="view-title">Назва Альбому</h1>
+            <p id="album-page-artist" class="view-subtitle" style="font-size: 1.2rem; cursor: pointer; color: var(--color-purple-light);"></p>
+            <div style="margin-top: 18px;">
+              <button id="btn-start-album-rating" class="btn btn-primary">Оцінити цей альбом</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tracks-summary-container">
+          <h3 class="section-title">Треклист альбому</h3>
+          <div class="album-tracks-list" id="album-page-tracks"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Пошук -->
     <section id="view-search" class="view hidden">
       <div class="view-header row-between">
         <div>
@@ -80,7 +132,7 @@
       <div class="search-results-list" id="search-full-results"></div>
     </section>
 
-    <!-- 3. Сторінка артиста -->
+    <!-- 4. Сторінка артиста -->
     <section id="view-artist" class="view hidden">
       <div class="view-header row-between">
         <div>
@@ -105,7 +157,7 @@
       </div>
     </section>
 
-    <!-- 4. Студійний екран оцінювання -->
+    <!-- 5. Студійний екран оцінювання -->
     <section id="view-rating" class="view hidden">
       <div class="rating-layout-card frosted">
         
@@ -148,7 +200,6 @@
               <p id="rating-album-title" class="album-sub">Назва Альбому / Синглу</p>
             </div>
 
-            <!-- Магнітний Liquid Slider -->
             <div class="slider-block" id="slider-block-wrap">
               <div class="slider-bubble-track">
                 <div class="liquid-score-bubble unrated" id="score-display-wrap">
@@ -181,7 +232,6 @@
               </div>
             </div>
 
-            <!-- Нижня панель: лаконічні круглі кнопки в єдиному стилі -->
             <div class="rating-controls-row">
               <button id="btn-prev-track" class="action-round-btn" aria-label="Попередній трек">
                 <img src="icons/prev.svg" alt="Попередній" class="svg-icon">
@@ -219,9 +269,15 @@
       </div>
     </section>
 
-    <!-- 5. Підсумки -->
+    <!-- 6. Підсумки / Перегляд відповідей користувача за посиланням -->
     <section id="view-summary" class="view hidden">
       <div class="wide-page-card frosted">
+        
+        <div id="shared-review-banner" class="shared-review-banner hidden">
+          <span>Оцінка користувача: <strong id="shared-user-name">@user</strong></span>
+          <button id="btn-view-reviewer-profile" class="btn btn-inactive" style="padding: 4px 12px; font-size: 0.8rem;">Профіль</button>
+        </div>
+
         <div class="summary-hero-bar">
           <img id="summary-album-cover" src="" alt="Обкладинка" class="summary-cover" onerror="this.src='icons/album-placeholder.svg'">
           <div class="summary-hero-meta">
@@ -251,20 +307,23 @@
           <div class="summary-tracks-scroll" id="summary-tracks-list"></div>
         </div>
 
-        <div class="summary-actions" style="display: flex; gap: 14px; width: 100%;">
-          <button id="btn-re-rate" class="btn btn-inactive" style="flex: 1;">
+        <div class="summary-actions-grid">
+          <button id="btn-share-review" class="btn btn-inactive">
+            <img src="icons/check.svg" alt="Поділитися" class="svg-icon btn-icon">
+            Поділитися результатом
+          </button>
+          <button id="btn-re-rate" class="btn btn-inactive">
             <img src="icons/replay.svg" alt="Повторити" class="svg-icon btn-icon">
             Оцінити знову
           </button>
-          <button id="btn-save-summary" class="btn btn-primary" style="flex: 2;">
-            <img src="icons/check.svg" alt="Зберегти" class="svg-icon btn-icon">
+          <button id="btn-save-summary" class="btn btn-primary">
             Зберегти в історію
           </button>
         </div>
       </div>
     </section>
 
-    <!-- 6. Профіль -->
+    <!-- 7. Власний профіль з налаштуванням юзернейму -->
     <section id="view-profile" class="view hidden">
       <div class="wide-page-card frosted">
         <div class="profile-top">
@@ -272,7 +331,10 @@
             <img id="profile-avatar-img" src="avatar.png" alt="Аватарка" onerror="this.src='icons/artist-placeholder.svg'">
           </div>
           <div class="profile-info">
-            <h2 id="profile-username" class="user-name">Гість</h2>
+            <div class="username-edit-row">
+              <input type="text" id="profile-username-input" class="username-input" placeholder="Введіть юзернейм" maxlength="24">
+              <button id="btn-save-username" class="btn btn-inactive" style="padding: 6px 14px; font-size: 0.82rem;">Зберегти</button>
+            </div>
             <p id="profile-email" class="user-email">Локальний профіль</p>
           </div>
           <button id="btn-auth-action" class="btn btn-inactive">Увійти / Реєстрація</button>
@@ -303,7 +365,53 @@
       </div>
     </section>
 
+    <!-- 8. Публічний профіль будь-якого юзера (за посиланням або кліком з топу) -->
+    <section id="view-public-profile" class="view hidden">
+      <div class="wide-page-card frosted">
+        <div class="view-header row-between">
+          <button class="btn btn-inactive btn-back">
+            <img src="icons/back.svg" alt="Назад" class="svg-icon btn-icon">
+            Назад
+          </button>
+          <button id="btn-share-user-profile" class="btn btn-inactive">
+            Поділитися профілем
+          </button>
+        </div>
+
+        <div class="profile-top">
+          <div class="avatar-wrap">
+            <img id="pub-avatar-img" src="avatar.png" alt="Аватар" onerror="this.src='icons/artist-placeholder.svg'">
+          </div>
+          <div class="profile-info">
+            <h2 id="pub-username" class="user-name">Користувач</h2>
+            <p class="user-email">Публічний профіль</p>
+          </div>
+        </div>
+
+        <div class="profile-stats-grid">
+          <div class="stat-card frosted">
+            <span class="stat-num" id="pub-stat-avg">0.0</span>
+            <span class="stat-desc">Середній бал</span>
+          </div>
+          <div class="stat-card frosted">
+            <span class="stat-num" id="pub-stat-count">0</span>
+            <span class="stat-desc">Оцінених альбомів</span>
+          </div>
+        </div>
+
+        <div class="profile-history-block">
+          <h3 class="section-title">Оцінки користувача</h3>
+          <div class="history-list" id="pub-history-list"></div>
+        </div>
+      </div>
+    </section>
+
   </main>
+
+  <!-- Модальне вікно сповіщення копіювання посилання -->
+  <div id="toast-notify" class="toast-notify hidden">
+    Посилання скопійовано в буфер обміну!
+  </div>
 
   <!-- Модальне вікно авторизації -->
   <div id="modal-auth" class="modal-backdrop hidden">
