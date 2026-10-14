@@ -263,7 +263,7 @@ body {
   box-shadow: 0 0 16px rgba(139, 92, 246, 0.4);
 }
 
-/* ІДЕАЛЬНЕ ВИРІВНЮВАННЯ РЯДКІВ ПОШУКУ */
+/* Пошук */
 .search-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -343,9 +343,7 @@ body {
   transition: color 0.8s ease;
 }
 
-/* ========================================================
-   КНОПКИ ТА КАРТКИ В МАТОВОМУ СКЛІ
-   ======================================================== */
+/* Кнопки */
 .btn {
   font-family: inherit;
   font-size: 0.95rem;
@@ -416,7 +414,6 @@ body {
   pointer-events: none;
 }
 
-/* Обертання проти годинникової стрілки (в бік самої стрілки) */
 .action-round-btn.is-refreshing img {
   animation: spinOnce 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -424,50 +421,6 @@ body {
 @keyframes spinOnce {
   from { transform: rotate(0deg); }
   to { transform: rotate(-360deg); }
-}
-
-.score-badge-val {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95rem;
-  font-weight: 800;
-  padding: 4px 10px;
-  border-radius: 10px;
-  border: 1px solid currentColor;
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-
-.history-item-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  margin-bottom: 10px;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: transform 0.2s, background 0.2s, border-color 0.2s;
-}
-
-.history-item-card:hover {
-  transform: translateX(4px);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.history-thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.history-date {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin-top: 2px;
 }
 
 .w-full { width: 100%; }
@@ -494,7 +447,7 @@ body {
 .view-header { margin-bottom: 28px; }
 .view-title { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
 .view-subtitle { color: var(--color-text-muted); font-size: 1rem; margin-top: 4px; }
-.row-between { display: flex; align-items: center; justify-content: space-between; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 .badge-tag {
   display: inline-block;
@@ -511,10 +464,91 @@ body {
   transition: all 0.8s ease;
 }
 
+/* ДВОКОЛОНКОВА СІТКА ГОЛОВНОЇ З САЙДБАРОМ */
+.home-two-col-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 32px;
+  align-items: start;
+}
+
+.home-main-col {
+  min-width: 0;
+}
+
+.leaderboard-card {
+  padding: 24px;
+  border-radius: 26px;
+  position: sticky;
+  top: 96px;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-gray-border);
+}
+
+.sidebar-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.sidebar-badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-purple-light);
+  font-weight: 700;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.15s;
+}
+
+.leaderboard-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(4px);
+}
+
+.leaderboard-rank {
+  font-size: 1rem;
+  font-weight: 800;
+  width: 22px;
+  color: var(--color-purple-light);
+}
+
+.leaderboard-user {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboard-count {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+/* КАРТКИ РЕЛІЗІВ */
 .grid-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
 }
 
 .music-card {
@@ -538,6 +572,7 @@ body {
   object-fit: cover;
   margin-bottom: 14px;
   background-color: #12101a;
+  cursor: pointer;
 }
 
 .music-card .card-title {
@@ -547,6 +582,11 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.music-card .card-title:hover {
+  color: var(--color-purple-light);
 }
 
 .music-card .card-artist {
@@ -556,11 +596,54 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.music-card .card-artist:hover {
+  color: #fff;
 }
 
 .music-card .btn {
   margin-top: auto;
   width: 100%;
+}
+
+/* ОКРЕМА СТОРІНКА АЛЬБОМУ */
+.album-details-hero {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 36px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--color-gray-border);
+}
+
+.album-page-cover {
+  width: 180px;
+  height: 180px;
+  border-radius: 24px;
+  object-fit: cover;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8);
+}
+
+.album-page-meta {
+  flex: 1;
+}
+
+.album-tracks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.album-track-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .search-tabs {
@@ -786,7 +869,7 @@ body {
 }
 
 .track-title {
-  font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+  font-size: clamp(1.4rem, 2.5vw, 2.2rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -794,7 +877,6 @@ body {
   word-break: break-word;
   overflow-wrap: anywhere;
   display: -webkit-box;
-  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -808,7 +890,6 @@ body {
   text-overflow: ellipsis;
 }
 
-/* ФІКСОВАНА ПЛАШКА: СТАБІЛЬНА ШИРИНА 140PX БЕЗ ДЬОРГАНЬ */
 .slider-block {
   width: 100%;
   margin-bottom: 30px;
@@ -1021,7 +1102,7 @@ body {
   opacity: 1;
 }
 
-/* ПАНЕЛЬ КНОПОК ПЛЕЄРА ТА ГУЧНІСТЬ */
+/* Кнопки плеєра */
 .rating-controls-row {
   display: flex;
   align-items: center;
@@ -1153,13 +1234,26 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Сторінки підсумків та профілю */
+/* Підсумки та Профіль */
 .wide-page-card {
   width: 100%;
   max-width: 1140px;
   margin: 0 auto;
   padding: 36px 44px;
   border-radius: 32px;
+}
+
+.shared-review-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  margin-bottom: 24px;
+  color: #f8fafc;
+  font-size: 0.95rem;
 }
 
 .summary-hero-bar {
@@ -1256,6 +1350,58 @@ body {
   background: rgba(255, 255, 255, 0.02);
 }
 
+.summary-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.score-badge-val {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid currentColor;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.history-item-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.history-item-card:hover {
+  transform: translateX(4px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.history-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.history-date {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ПРОФІЛЬ ТА ЮЗЕРНЕЙМ */
 .profile-top {
   display: flex;
   align-items: center;
@@ -1275,9 +1421,34 @@ body {
   background-color: #12101a;
 }
 
-.profile-info { flex: 1; }
+.profile-info { flex: 1; min-width: 0; }
 .user-name { font-size: 1.6rem; font-weight: 800; }
 .user-email { font-size: 0.95rem; color: var(--color-text-muted); }
+
+.username-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.username-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-gray-border);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 12px;
+  outline: none;
+  max-width: 240px;
+}
+
+.username-input:focus {
+  border-color: var(--color-purple);
+  background: rgba(255, 255, 255, 0.1);
+}
 
 .profile-stats-grid {
   display: grid;
@@ -1324,6 +1495,30 @@ body {
   overflow-y: auto;
 }
 
+/* ВСПЛИВАЮЧЕ ПОВІДОМЛЕННЯ (TOAST) */
+.toast-notify {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 16, 26, 0.95);
+  border: 1px solid var(--color-purple);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  z-index: 999;
+  animation: toastFade 0.3s ease;
+}
+
+@keyframes toastFade {
+  from { opacity: 0; transform: translate(-50%, 15px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Модалка авторизації */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1395,28 +1590,115 @@ body {
   border-color: var(--color-purple);
 }
 
-@media (max-width: 860px) {
-  .rating-main-grid {
+/* ========================================================
+   МОБІЛЬНА АДАПТАЦІЯ ДЛЯ ВЕРТИКАЛЬНИХ СМАРТФОНІВ (PORTRAIT)
+   ======================================================== */
+@media (max-width: 900px) {
+  .home-two-col-layout {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 36px;
   }
-  .track-meta {
-    text-align: center;
-  }
-  .rating-layout-card, .wide-page-card {
-    padding: 24px 20px;
-  }
-  .summary-hero-bar {
-    flex-direction: column;
-    text-align: center;
+  .leaderboard-card {
+    position: static;
   }
 }
 
-@media (max-width: 640px) {
-  .header { padding: 12px 16px; }
-  .brand-name { display: none; }
-  .search-box { max-width: 220px; }
-  .grid-cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .cover-player-container { width: 260px; height: 260px; }
-  .summary-highlights { grid-template-columns: 1fr; }
+@media (max-width: 768px) {
+  .header {
+    padding: 12px 16px;
+    border-radius: 0 0 18px 18px;
+  }
+  .brand-name {
+    display: none;
+  }
+  .search-box {
+    max-width: 220px;
+  }
+  .app-container {
+    padding: 16px 14px 40px;
+  }
+  
+  .rating-layout-card, .wide-page-card {
+    padding: 22px 16px;
+    border-radius: 24px;
+  }
+  
+  .rating-main-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .cover-player-container {
+    width: 240px;
+    height: 240px;
+  }
+  
+  .track-meta {
+    text-align: center;
+  }
+  
+  .slider-bubble-track {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .summary-hero-bar {
+    flex-direction: column;
+    text-align: center;
+    gap: 18px;
+  }
+  
+  .summary-cover {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .summary-highlights {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .album-details-hero {
+    flex-direction: column;
+    text-align: center;
+    gap: 20px;
+  }
+  
+  .album-page-cover {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .profile-top {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+  
+  .username-edit-row {
+    justify-content: center;
+  }
+  
+  .grid-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .music-card {
+    padding: 12px;
+    border-radius: 18px;
+  }
+  
+  .music-card .card-title {
+    font-size: 0.95rem;
+  }
+  
+  .music-card .card-artist {
+    font-size: 0.8rem;
+  }
+  
+  .music-card .btn {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
 }
