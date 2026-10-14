@@ -1,4 +1,3 @@
-// Встав свої ключі від Supabase, якщо користуєшся хмарою
 const SUPABASE_URL = 'https://uldidiwmyhojyjatpwud.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_92VCW9pqVze2MfwF3tRHIA_Bu5tYUto';
 
@@ -6,7 +5,6 @@ const supabaseClient = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
-// БАЗОВІ КОЛЬОРИ
 const DEFAULT_BRAND_COLORS = {
   purple: '#8b5cf6',
   purpleLight: '#a78bfa',
@@ -15,18 +13,17 @@ const DEFAULT_BRAND_COLORS = {
   glow3: '#1e1b4b'
 };
 
-// ПУЛ АРТИСТІВ ДЛЯ РІЗНОМАНІТНИХ РЕКОМЕНДАЦІЙ
 const GENRE_ARTIST_MAP = {
-  'Hip-Hop': ['Metro Boomin', 'Kendrick Lamar', 'Travis Scott', 'Playboi Carti', 'J. Cole', 'Future', 'A\$AP Rocky', '21 Savage', 'Don Toliver', 'Lil Uzi Vert'],
+  'Hip-Hop': ['Metro Boomin', 'Kendrick Lamar', 'Travis Scott', 'Playboi Carti', 'J. Cole', 'Future', 'A$AP Rocky', '21 Savage', 'Don Toliver', 'Lil Uzi Vert'],
   'Alternative': ['Tame Impala', 'Gorillaz', 'Radiohead', 'The Neighbourhood', 'Arctic Monkeys', 'Deftones', 'Slowdive', 'Beach House', 'Mac DeMarco'],
   'R&B/Soul': ['The Weeknd', 'Frank Ocean', 'Brent Faiyaz', 'Steve Lacy', 'SZA', 'Daniel Caesar', 'Joji', 'Childish Gambino', 'Giveon'],
   'Electronic': ['Daft Punk', 'Justice', 'Kavinsky', 'Kaytranada', 'Disclosure', 'Flume', 'Aphex Twin', 'Fred again..'],
   'Rock': ['Smashing Pumpkins', 'Nirvana', 'Linkin Park', 'The Strokes', 'Foo Fighters', 'Red Hot Chili Peppers']
 };
 
-// СТАН ДОДАТКУ
 const State = {
   user: null,
+  username: localStorage.getItem('songrate_username') || 'Користувач',
   ratingsHistory: JSON.parse(localStorage.getItem('songrate_history')) || [],
   currentAlbum: null,
   isSingleTrackMode: false,
@@ -41,7 +38,8 @@ const State = {
   authMode: 'login',
   lastSearchResults: [],
   previousView: 'view-home',
-  volume: 0.8
+  volume: 0.8,
+  activeReviewId: null
 };
 
 State.audio.preload = 'auto';
@@ -56,18 +54,20 @@ document.addEventListener('DOMContentLoaded', () => {
   initAudioEvents();
   initAuth();
   initRecommendationsRefresh();
-  loadHomeRecommendations();
+  initProfileSettings();
+  initSharingButtons();
   checkInitialSession();
+  handleUrlRouting(); // Перевіряємо посилання ?album=, ?review= або ?user=
 });
 
-// 1. КОЛЬОРИ ОЦІНОК ТА ТЕМА САЙТУ
+// 1. УНІВЕРСАЛЬНИЙ КОЛІР ОЦІНКИ
 function getScoreColor(val) {
-  if (val >= 9.9) return '#fbbf24'; // Золото 10
-  if (val >= 9.0) return '#a855f7'; // Фіолетовий
-  if (val >= 7.0) return '#10b981'; // Смарагдовий
-  if (val >= 5.0) return '#eab308'; // Бурштиновий
-  if (val >= 2.5) return '#f97316'; // Помаранчевий
-  return '#ef4444';                // Червоний
+  if (val >= 9.9) return '#fbbf24';
+  if (val >= 9.0) return '#a855f7';
+  if (val >= 7.0) return '#10b981';
+  if (val >= 5.0) return '#eab308';
+  if (val >= 2.5) return '#f97316';
+  return '#ef4444';
 }
 
 function applyDynamicSiteTheme(theme) {
@@ -92,8 +92,8 @@ function resetSiteTheme() {
   if (ambientWrap) ambientWrap.classList.remove('active');
 }
 
-// 2. НАВІГАЦІЯ
-function showView(viewId) {
+// 2. НАВІГАЦІЯ ТА РОУТЕР
+function showView(viewId, pushHistory = true) {
   const currentActive = document.querySelector('.view:not(.hidden)');
   if (currentActive && currentActive.id !== 'view-rating' && currentActive.id !== viewId) {
     State.previousView = currentActive.id;
@@ -107,6 +107,10 @@ function showView(viewId) {
   const target = document.getElementById(viewId);
   if (target) target.classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (pushHistory && viewId === 'view-home') {
+    history.pushState(null, '', window.location.pathname);
+  }
 }
 
 function initRouter() {
@@ -118,7 +122,7 @@ function initRouter() {
   document.querySelectorAll('.btn-back').forEach(btn => {
     btn.addEventListener('click', () => {
       stopTrackAudio();
-      showView('view-home');
+      showView(State.previousView || 'view-home');
     });
   });
 
@@ -132,9 +136,304 @@ function initRouter() {
     stopTrackAudio();
     showView(State.previousView || 'view-home');
   });
+
+  window.addEventListener('popstate', handleUrlRouting);
 }
 
-// 3. РІЗНОМАНІТНІ РЕКОМЕНДАЦІЇ (1 АРТИСТ = РІВНО 1 АЛЬБОМ)
+// 3. РОЗУМНЕ ЧИТАННЯ ПОСИЛАНЬ (?album=, ?review=, ?user=)
+async function handleUrlRouting() {
+  const params = new URLSearchParams(window.location.search);
+  const albumId = params.get('album');
+  const reviewId = params.get('review');
+  const userId = params.get('user');
+
+  if (albumId) {
+    await openAlbumPage(albumId, false);
+  } else if (reviewId) {
+    await openSharedReview(reviewId);
+  } else if (userId) {
+    await openPublicProfile(userId);
+  } else {
+    showView('view-home', false);
+    loadHomeRecommendations();
+    loadLeaderboard();
+  }
+}
+
+function showToast(text) {
+  const toast = document.getElementById('toast-notify');
+  toast.textContent = text;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 2500);
+}
+
+function copyToClipboard(url, message = 'Посилання скопійовано!') {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => showToast(message));
+  } else {
+    const input = document.createElement('input');
+    input.value = url;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    showToast(message);
+  }
+}
+
+// 4. ОКРЕМА СТОРІНКА АЛЬБОМУ З ПОСИЛАННЯМ
+async function openAlbumPage(albumId, updateUrl = true) {
+  stopTrackAudio();
+  showView('view-album-details', false);
+  if (updateUrl) {
+    history.pushState(null, '', `?album=${albumId}`);
+  }
+
+  const container = document.getElementById('album-page-tracks');
+  container.innerHTML = '<p class="item-sub">Завантаження треклісту...</p>';
+
+  const album = await MusicAPI.getAlbumWithTracks(albumId);
+  if (!album) {
+    container.innerHTML = '<p class="item-sub">Не вдалося знайти альбом.</p>';
+    return;
+  }
+
+  document.getElementById('album-page-cover').src = album.artwork;
+  document.getElementById('album-page-title').textContent = album.title;
+  const artistEl = document.getElementById('album-page-artist');
+  artistEl.textContent = album.artist;
+  artistEl.onclick = () => openFullSearch(album.artist);
+  document.getElementById('album-page-genre').textContent = album.genre;
+
+  document.getElementById('btn-start-album-rating').onclick = () => {
+    startAlbumRating(album.id);
+  };
+
+  document.getElementById('btn-share-album').onclick = () => {
+    const url = `${window.location.origin}${window.location.pathname}?album=${album.id}`;
+    copyToClipboard(url, 'Посилання на альбом скопійовано!');
+  };
+
+  container.innerHTML = '';
+  album.tracks.forEach((t, idx) => {
+    const row = document.createElement('div');
+    row.className = 'album-track-row';
+    row.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="color: var(--color-text-muted); font-weight: 700; width: 20px;">${idx + 1}</span>
+        <span style="font-weight: 600;">${t.title}</span>
+      </div>
+      <button class="btn btn-inactive" style="padding: 6px 14px; font-size: 0.82rem;">Оцінити трек</button>
+    `;
+    row.querySelector('button').onclick = () => {
+      startSingleTrackRating({
+        id: t.id,
+        title: t.title,
+        artist: album.artist,
+        albumTitle: album.title,
+        genre: album.genre,
+        artwork: album.artwork,
+        previewUrl: t.previewUrl
+      });
+    };
+    container.appendChild(row);
+  });
+}
+
+// 5. ВІДКРИТТЯ ВІДПОВІДЕЙ КОРИСТУВАЧА ЗА ПОСИЛАННЯМ (?review=)
+async function openSharedReview(reviewId) {
+  stopTrackAudio();
+  State.activeReviewId = reviewId;
+
+  // Шукаємо в локальній історії або в базі
+  let review = State.ratingsHistory.find(h => String(h.id || h.albumId) === String(reviewId));
+
+  if (!review && supabaseClient) {
+    const { data } = await supabaseClient.from('ratings').select('*').eq('id', reviewId).maybeSingle();
+    if (data) {
+      review = {
+        id: data.id,
+        albumId: data.album_id,
+        title: data.title,
+        artist: data.artist,
+        genre: data.genre,
+        artwork: data.artwork,
+        avgScore: Number(data.avg_score),
+        date: new Date(data.created_at).toLocaleDateString('uk-UA'),
+        username: data.username || 'Користувач',
+        userId: data.user_id,
+        isSingleTrack: data.is_single_track,
+        tracks: data.tracks || []
+      };
+    }
+  }
+
+  if (review) {
+    renderSummaryView(review, true, true);
+  } else {
+    showView('view-home');
+    showToast('Оцінку не знайдено.');
+  }
+}
+
+// 6. ПУБЛІЧНИЙ ПРОФІЛЬ ЮЗЕРА (?user=)
+async function openPublicProfile(userId) {
+  stopTrackAudio();
+  showView('view-public-profile', false);
+  history.pushState(null, '', `?user=${userId}`);
+
+  const list = document.getElementById('pub-history-list');
+  list.innerHTML = '<p class="item-sub">Завантаження оцінок...</p>';
+
+  let userRatings = [];
+  let username = 'Користувач';
+
+  if (supabaseClient) {
+    const { data } = await supabaseClient
+      .from('ratings')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (data && data.length) {
+      userRatings = data;
+      username = data[0].username || 'Користувач';
+    }
+  }
+
+  document.getElementById('pub-username').textContent = `@${username}`;
+  document.getElementById('pub-stat-count').textContent = userRatings.length;
+
+  if (userRatings.length) {
+    const avg = (userRatings.reduce((acc, r) => acc + Number(r.avg_score), 0) / userRatings.length).toFixed(1);
+    const avgEl = document.getElementById('pub-stat-avg');
+    avgEl.textContent = (avg === '10.0' ? '10' : avg);
+    avgEl.style.color = getScoreColor(Number(avg));
+  } else {
+    document.getElementById('pub-stat-avg').textContent = '0.0';
+  }
+
+  document.getElementById('btn-share-user-profile').onclick = () => {
+    const url = `${window.location.origin}${window.location.pathname}?user=${userId}`;
+    copyToClipboard(url, 'Посилання на профіль скопійовано!');
+  };
+
+  list.innerHTML = '';
+  if (!userRatings.length) {
+    list.innerHTML = '<p class="item-sub">Цей користувач ще не зробив оцінок.</p>';
+    return;
+  }
+
+  userRatings.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'history-item-card frosted';
+    const scoreColor = getScoreColor(item.avg_score);
+    const scoreText = (item.avg_score === 10) ? '10' : Number(item.avg_score).toFixed(1);
+
+    card.innerHTML = `
+      <img src="${item.artwork || 'icons/album-placeholder.svg'}" class="history-thumb" alt="" onerror="this.src='icons/album-placeholder.svg'">
+      <div class="item-info">
+        <span class="item-title">${item.title}</span>
+        <span class="item-sub">${item.artist}</span>
+        <span class="history-date">${new Date(item.created_at).toLocaleDateString('uk-UA')}</span>
+      </div>
+      <span class="score-badge-val" style="color: ${scoreColor}; background: ${scoreColor}18;">${scoreText}</span>
+    `;
+
+    card.addEventListener('click', () => {
+      openSharedReview(item.id);
+    });
+
+    list.appendChild(card);
+  });
+}
+
+// 7. ЛІДЕРБОРД АКТИВНОСТІ НА ГОЛОВНІЙ
+async function loadLeaderboard() {
+  const container = document.getElementById('home-leaderboard-list');
+  if (!supabaseClient) {
+    container.innerHTML = '<p class="item-sub">Топ доступний при підключенні бази.</p>';
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('ratings')
+      .select('user_id, username');
+
+    if (error || !data || !data.length) {
+      container.innerHTML = '<p class="item-sub">Поки немає активних оцінювачів.</p>';
+      return;
+    }
+
+    const counts = {};
+    const names = {};
+
+    data.forEach(r => {
+      counts[r.user_id] = (counts[r.user_id] || 0) + 1;
+      names[r.user_id] = r.username || 'Користувач';
+    });
+
+    const sortedUsers = Object.keys(counts)
+      .map(uid => ({ userId: uid, username: names[uid], count: counts[uid] }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    container.innerHTML = '';
+    sortedUsers.forEach((u, idx) => {
+      const row = document.createElement('div');
+      row.className = 'leaderboard-row';
+      row.innerHTML = `
+        <span class="leaderboard-rank">#${idx + 1}</span>
+        <span class="leaderboard-user">@${u.username}</span>
+        <span class="leaderboard-count">${u.count} оцінок</span>
+      `;
+      row.onclick = () => openPublicProfile(u.userId);
+      container.appendChild(row);
+    });
+  } catch (err) {
+    container.innerHTML = '<p class="item-sub">Помилка завантаження топу.</p>';
+  }
+}
+
+// 8. НАЛАШТУВАННЯ ТА ЗБЕРЕЖЕННЯ ЮЗЕРНЕЙМУ
+function initProfileSettings() {
+  const input = document.getElementById('profile-username-input');
+  const saveBtn = document.getElementById('btn-save-username');
+
+  input.value = State.username;
+
+  saveBtn.addEventListener('click', async () => {
+    const newName = input.value.trim() || 'Користувач';
+    State.username = newName;
+    localStorage.setItem('songrate_username', newName);
+
+    if (supabaseClient && State.user) {
+      await supabaseClient.auth.updateUser({
+        data: { username: newName }
+      });
+      // Оновлюємо в останніх оцінках
+      await supabaseClient
+        .from('ratings')
+        .update({ username: newName })
+        .eq('user_id', State.user.id);
+    }
+
+    showToast('Юзернейм збережено!');
+    loadLeaderboard();
+  });
+}
+
+function initSharingButtons() {
+  document.getElementById('btn-share-review').addEventListener('click', () => {
+    if (!State.lastSummaryResult) return;
+    const revId = State.lastSummaryResult.id || State.lastSummaryResult.albumId;
+    const url = `${window.location.origin}${window.location.pathname}?review=${revId}`;
+    copyToClipboard(url, 'Посилання на твій результат скопійовано!');
+  });
+}
+
+// 9. РЕКОМЕНДАЦІЇ НА ГОЛОВНІЙ
 function initRecommendationsRefresh() {
   const refreshBtn = document.getElementById('btn-refresh-recommendations');
   if (!refreshBtn) return;
@@ -142,9 +441,7 @@ function initRecommendationsRefresh() {
   refreshBtn.addEventListener('click', async () => {
     refreshBtn.classList.add('is-refreshing');
     await loadHomeRecommendations();
-    setTimeout(() => {
-      refreshBtn.classList.remove('is-refreshing');
-    }, 600);
+    setTimeout(() => refreshBtn.classList.remove('is-refreshing'), 600);
   });
 }
 
@@ -217,7 +514,7 @@ async function loadHomeRecommendations() {
     grid.innerHTML = '';
 
     if (!albums.length) {
-      grid.innerHTML = '<p style="color: var(--color-text-muted); grid-column: 1 / -1;">Не вдалося отримати релізи. Натисни кнопку оновлення.</p>';
+      grid.innerHTML = '<p style="color: var(--color-text-muted); grid-column: 1 / -1;">Не вдалося отримати релізи. Спробуй ще раз.</p>';
       return;
     }
 
@@ -230,6 +527,11 @@ async function loadHomeRecommendations() {
         <div class="card-artist">${album.artist}</div>
         <button class="btn btn-inactive btn-rate-album">Оцінити альбом</button>
       `;
+
+      card.querySelector('.card-thumb').onclick = () => openAlbumPage(album.id);
+      card.querySelector('.card-title').onclick = () => openAlbumPage(album.id);
+      card.querySelector('.card-artist').onclick = () => openFullSearch(album.artist);
+
       card.querySelector('.btn-rate-album').addEventListener('click', (e) => {
         e.stopPropagation();
         startAlbumRating(album.id);
@@ -238,12 +540,11 @@ async function loadHomeRecommendations() {
     });
 
   } catch (err) {
-    console.error('Помилка завантаження рекомендацій:', err);
-    grid.innerHTML = '<p style="color: var(--color-text-muted); grid-column: 1 / -1;">Помилка завантаження. Спробуй ще раз.</p>';
+    grid.innerHTML = '<p style="color: var(--color-text-muted); grid-column: 1 / -1;">Помилка завантаження.</p>';
   }
 }
 
-// 4. ПОШУК ТА ТАБИ
+// 10. ПОШУК ТА ТАБИ
 function initSearch() {
   const input = document.getElementById('search-input');
   const dropdown = document.getElementById('search-dropdown');
@@ -405,11 +706,11 @@ function handleSearchItemClick(it, type) {
       previewUrl: it.previewUrl
     });
   } else {
-    startAlbumRating(it.collectionId);
+    openAlbumPage(it.collectionId);
   }
 }
 
-// 5. ДИСКОГРАФІЯ АРТИСТА
+// 11. СТОРІНКА АРТИСТА
 async function openArtistView(artistId, name, genre) {
   showView('view-artist');
   document.getElementById('artist-name').textContent = name;
@@ -441,6 +742,10 @@ function renderReleaseList(containerId, list, kind) {
       <div class="card-artist">${rel.artist}</div>
       <button class="btn btn-inactive">${kind === 'single' ? 'Оцінити трек' : 'Оцінити альбом'}</button>
     `;
+
+    card.querySelector('.card-thumb').onclick = () => openAlbumPage(rel.id);
+    card.querySelector('.card-title').onclick = () => openAlbumPage(rel.id);
+
     card.querySelector('button').addEventListener('click', (e) => {
       e.stopPropagation();
       if (kind === 'single') {
@@ -461,7 +766,7 @@ function renderReleaseList(containerId, list, kind) {
   });
 }
 
-// 6. ОЦІНЮВАННЯ ТА ДИНАМІЧНА ТЕМА
+// 12. СТАРТ ОЦІНЮВАННЯ
 async function startAlbumRating(albumId) {
   stopTrackAudio();
   const albumData = await MusicAPI.getAlbumWithTracks(albumId);
@@ -565,7 +870,7 @@ function loadTrackForRating(idx) {
   playTrackAudio(track.previewUrl);
 }
 
-// 7. МАГНІТНИЙ РІДКИЙ СЛАЙДЕР
+// 13. МАГНІТНИЙ РІДКИЙ СЛАЙДЕР
 function initMagneticLiquidSlider() {
   const container = document.getElementById('liquid-slider-container');
   const track = document.getElementById('liquid-slider-track');
@@ -587,10 +892,7 @@ function initMagneticLiquidSlider() {
 
   function handleMove(e) {
     if (!isDragging) return;
-    
-    if (window.getSelection) {
-      window.getSelection().removeAllRanges();
-    }
+    if (window.getSelection) window.getSelection().removeAllRanges();
 
     const clientX = e.clientX ?? (e.touches ? e.touches[0].clientX : 0);
     const deltaX = clientX - lastX;
@@ -598,9 +900,7 @@ function initMagneticLiquidSlider() {
 
     const stretch = Math.min(Math.abs(deltaX) * 0.04, 0.45);
     const core = thumb.querySelector('.liquid-thumb-core');
-    if (core) {
-      core.style.transform = `scale(${1.25 + stretch}, ${1.25 - stretch * 0.6})`;
-    }
+    if (core) core.style.transform = `scale(${1.25 + stretch}, ${1.25 - stretch * 0.6})`;
 
     currentContinuousVal = getRawValFromEvent(e);
     State.isUnrated = false;
@@ -685,13 +985,11 @@ function updateLiquidSliderPosition(val, withSnapAnimation = false) {
       const minLeft = 0;
       const maxLeft = Math.max(0, trackWidth - BUBBLE_WIDTH);
       targetLeft = Math.max(minLeft, Math.min(maxLeft, targetLeft));
-
       bubble.style.left = `${targetLeft}px`;
     }
   }
 }
 
-// 8. РОЗРАХУНОК ОЦІНКИ ТА ВІДОБРАЖЕННЯ 10 БЕЗ .0
 function setRollerValue(val, isUnrated = false) {
   const displayWrap = document.getElementById('score-display-wrap');
   const odometerBox = document.getElementById('odometer-roller-box');
@@ -745,7 +1043,7 @@ function setRollerValue(val, isUnrated = false) {
   }
 }
 
-// 9. ПОВЗУНОК ГУЧНОСТІ
+// 14. ГУЧНІСТЬ
 function initVolumeControls() {
   const wrap = document.getElementById('volume-control-wrap');
   const toggleBtn = document.getElementById('btn-volume-toggle');
@@ -805,7 +1103,7 @@ function initVolumeControls() {
   applyVolume(State.volume);
 }
 
-// 10. КНОПКИ НАВІГАЦІЇ ТРЕКІВ ТА ПОВТОР (REPLAY)
+// 15. КНОПКИ ПЛЕЄРА
 function initRatingNavButtons() {
   const playbackBtn = document.getElementById('btn-playback-toggle');
 
@@ -814,18 +1112,14 @@ function initRatingNavButtons() {
       State.isEnded = false;
       document.getElementById('cover-image-box').classList.remove('is-ended');
       State.audio.currentTime = 0;
-      State.audio.play().then(() => {
-        trackPlaybackProgress();
-      }).catch(() => {});
+      State.audio.play().then(() => trackPlaybackProgress()).catch(() => {});
       return;
     }
 
     if (State.isPlaying) {
       State.audio.pause();
     } else {
-      State.audio.play().then(() => {
-        trackPlaybackProgress();
-      }).catch(() => {});
+      State.audio.play().then(() => trackPlaybackProgress()).catch(() => {});
     }
   });
 
@@ -853,7 +1147,6 @@ function initRatingNavButtons() {
   });
 }
 
-// 11. ПЛЕЄР
 function initAudioEvents() {
   const loader = document.getElementById('track-loader');
   const coverBox = document.getElementById('cover-image-box');
@@ -875,9 +1168,7 @@ function initAudioEvents() {
   State.audio.addEventListener('pause', () => {
     coverBox.classList.remove('is-playing');
     State.isPlaying = false;
-    if (!State.isEnded) {
-      playIcon.src = 'icons/play.svg';
-    }
+    if (!State.isEnded) playIcon.src = 'icons/play.svg';
   });
 
   State.audio.addEventListener('ended', () => {
@@ -898,11 +1189,8 @@ function playTrackAudio(url) {
     document.getElementById('track-loader').classList.add('hidden');
     return;
   }
-
   State.audio.src = url;
-  State.audio.play().then(() => {
-    trackPlaybackProgress();
-  }).catch(() => {});
+  State.audio.play().then(() => trackPlaybackProgress()).catch(() => {});
 }
 
 function stopTrackAudio() {
@@ -942,10 +1230,21 @@ function trackPlaybackProgress() {
   State.animFrameId = requestAnimationFrame(loop);
 }
 
-// 12. ЕКРАН ПІДСУМКІВ З АВТО-ВІДНОВЛЕННЯМ ДАНИХ ТРЕКІВ
-async function renderSummaryView(data, isHistoryMode = false) {
+// 16. ЕКРАН ПІДСУМКІВ
+async function renderSummaryView(data, isHistoryMode = false, isExternalReview = false) {
   stopTrackAudio();
-  showView('view-summary');
+  showView('view-summary', false);
+
+  const banner = document.getElementById('shared-review-banner');
+  if (isExternalReview && data.username) {
+    banner.classList.remove('hidden');
+    document.getElementById('shared-user-name').textContent = `@${data.username}`;
+    document.getElementById('btn-view-reviewer-profile').onclick = () => {
+      openPublicProfile(data.userId || data.user_id);
+    };
+  } else {
+    banner.classList.add('hidden');
+  }
 
   document.getElementById('summary-album-cover').src = data.artwork || 'icons/album-placeholder.svg';
   document.getElementById('summary-album-title').textContent = data.title;
@@ -956,7 +1255,6 @@ async function renderSummaryView(data, isHistoryMode = false) {
   finalScoreEl.textContent = avgFmt;
   finalScoreEl.style.color = getScoreColor(data.avgScore);
 
-  // РОЗУМНЕ ВІДНОВЛЕННЯ СТАРИХ ДАНИХ (Fallback)
   let tracksList = data.tracks;
   if (!tracksList || !tracksList.length) {
     if (data.isSingleTrack || data.title === data.albumTitle) {
@@ -1048,9 +1346,9 @@ async function renderSummaryView(data, isHistoryMode = false) {
   const saveBtn = document.getElementById('btn-save-summary');
   if (isHistoryMode) {
     saveBtn.innerHTML = `<img src="icons/check.svg" class="svg-icon btn-icon"> Закрити перегляд`;
-    saveBtn.onclick = () => showView('view-profile');
+    saveBtn.onclick = () => showView(State.previousView || 'view-profile');
   } else {
-    saveBtn.innerHTML = `<img src="icons/check.svg" class="svg-icon btn-icon"> Зберегти в історію`;
+    saveBtn.innerHTML = `Зберегти в історію`;
     saveBtn.onclick = async () => {
       await saveRatingToStorage();
       showView('view-home');
@@ -1082,7 +1380,11 @@ function finishRating() {
     minute: '2-digit' 
   });
 
+  // Локальний ID для швидкого шерингу
+  const localId = 'rev_' + Date.now();
+
   State.lastSummaryResult = {
+    id: localId,
     albumId: State.currentAlbum.id,
     title: State.currentAlbum.title,
     artist: State.currentAlbum.artist,
@@ -1090,6 +1392,7 @@ function finishRating() {
     artwork: State.currentAlbum.artwork,
     avgScore: avg,
     date: dateFormatted,
+    username: State.username,
     isSingleTrack: State.isSingleTrackMode,
     previewUrl: tracks[0]?.previewUrl || null,
     tracks: ratedTracks
@@ -1105,7 +1408,7 @@ async function saveRatingToStorage() {
 
   if (supabaseClient && State.user) {
     try {
-      await supabaseClient.from('ratings').insert({
+      const { data } = await supabaseClient.from('ratings').insert({
         user_id: State.user.id,
         album_id: State.lastSummaryResult.albumId,
         title: State.lastSummaryResult.title,
@@ -1113,9 +1416,16 @@ async function saveRatingToStorage() {
         genre: State.lastSummaryResult.genre,
         artwork: State.lastSummaryResult.artwork,
         avg_score: State.lastSummaryResult.avgScore,
+        username: State.username,
         tracks: State.lastSummaryResult.tracks,
         is_single_track: State.lastSummaryResult.isSingleTrack
-      });
+      }).select().single();
+
+      if (data) {
+        State.lastSummaryResult.id = data.id;
+        localStorage.setItem('songrate_history', JSON.stringify(State.ratingsHistory));
+      }
+      loadLeaderboard();
     } catch (err) {
       console.error('Помилка запису в Supabase:', err);
     }
@@ -1124,7 +1434,7 @@ async function saveRatingToStorage() {
   updateProfileView();
 }
 
-// 13. ПРОФІЛЬ ТА ІСТОРІЯ З ДАТОЮ
+// 17. ПРОФІЛЬ ТА ІСТОРІЯ
 function getTopGenres() {
   const genreCount = {};
   State.ratingsHistory.forEach(h => {
@@ -1175,7 +1485,7 @@ function updateProfileView() {
     card.className = 'history-item-card frosted';
     
     const scoreColor = getScoreColor(item.avgScore);
-    const scoreText = (item.avgScore === 10) ? '10' : item.avgScore.toFixed(1);
+    const scoreText = (item.avgScore === 10) ? '10' : Number(item.avgScore).toFixed(1);
 
     card.innerHTML = `
       <img src="${item.artwork || 'icons/album-placeholder.svg'}" class="history-thumb" alt="" onerror="this.src='icons/album-placeholder.svg'">
@@ -1195,6 +1505,7 @@ function updateProfileView() {
   });
 }
 
+// 18. СЕСІЯ ТА АВТОРИЗАЦІЯ
 async function checkInitialSession() {
   if (!supabaseClient) return;
   const { data: { session } } = await supabaseClient.auth.getSession();
@@ -1206,13 +1517,17 @@ async function checkInitialSession() {
 
 function applyUserSession(user) {
   State.user = user;
-  const name = user.email.split('@')[0];
-  document.getElementById('profile-username').textContent = name;
+  const metaName = user.user_metadata?.username;
+  if (metaName) {
+    State.username = metaName;
+    localStorage.setItem('songrate_username', metaName);
+    const input = document.getElementById('profile-username-input');
+    if (input) input.value = metaName;
+  }
   document.getElementById('profile-email').textContent = user.email;
   document.getElementById('btn-auth-action').textContent = 'Вийти';
 }
 
-// Захист: хмара зливається з локальними треками, щоб не втрачати деталізацію
 async function loadUserCloudRatings(userId) {
   if (!supabaseClient) return;
   const { data, error } = await supabaseClient
@@ -1226,6 +1541,7 @@ async function loadUserCloudRatings(userId) {
     State.ratingsHistory = data.map(d => {
       const localItem = localMap.get(d.album_id);
       return {
+        id: d.id,
         albumId: d.album_id,
         title: d.title,
         artist: d.artist,
@@ -1233,6 +1549,7 @@ async function loadUserCloudRatings(userId) {
         artwork: d.artwork,
         avgScore: Number(d.avg_score),
         date: localItem?.date || new Date(d.created_at || Date.now()).toLocaleDateString('uk-UA'),
+        username: d.username || State.username,
         isSingleTrack: d.is_single_track ?? localItem?.isSingleTrack ?? false,
         tracks: d.tracks || localItem?.tracks || []
       };
@@ -1257,7 +1574,6 @@ function initAuth() {
     if (State.user) {
       if (supabaseClient) await supabaseClient.auth.signOut();
       State.user = null;
-      document.getElementById('profile-username').textContent = 'Гість';
       document.getElementById('profile-email').textContent = 'Локальний профіль';
       btnOpen.textContent = 'Увійти / Реєстрація';
     } else {
@@ -1303,7 +1619,11 @@ function initAuth() {
     submitBtn.textContent = 'Зачекайте...';
 
     if (State.authMode === 'register') {
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
+      const { data, error } = await supabaseClient.auth.signUp({
+        email, 
+        password,
+        options: { data: { username: State.username } }
+      });
       submitBtn.disabled = false;
       submitBtn.textContent = 'Створити акаунт';
 
