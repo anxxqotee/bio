@@ -401,6 +401,7 @@ body {
   color: #f8fafc;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
 }
 
 .action-round-btn:hover {
@@ -556,6 +557,7 @@ body {
   border-radius: 22px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
 }
 
@@ -628,6 +630,7 @@ body {
 
 .album-page-meta {
   flex: 1;
+  min-width: 0;
 }
 
 .album-tracks-list {
@@ -640,6 +643,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 12px 18px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
@@ -1341,6 +1345,8 @@ body {
 .summary-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   padding: 10px 16px;
   font-size: 0.95rem;
   border-radius: 10px;
@@ -1592,11 +1598,12 @@ body {
 
 /* ========================================================
    МОБІЛЬНА АДАПТАЦІЯ ДЛЯ ВЕРТИКАЛЬНИХ СМАРТФОНІВ (PORTRAIT)
+   Не зачіпає ПК-версію (працює тільки на екранах <= 900px)
    ======================================================== */
 @media (max-width: 900px) {
   .home-two-col-layout {
-    grid-template-columns: 1fr;
-    gap: 36px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
   }
   .leaderboard-card {
     position: static;
@@ -1605,100 +1612,223 @@ body {
 
 @media (max-width: 768px) {
   .header {
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-radius: 0 0 18px 18px;
+    gap: 8px;
   }
+
   .brand-name {
     display: none;
   }
+
+  .brand-logo {
+    height: 30px;
+  }
+
   .search-box {
-    max-width: 220px;
+    flex: 1;
+    max-width: none;
+    margin: 0 4px;
   }
+
+  .search-box input {
+    font-size: 0.88rem;
+    padding: 9px 36px 9px 14px;
+  }
+
+  .profile-btn {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
   .app-container {
-    padding: 16px 14px 40px;
+    padding: 16px 12px 48px;
+    width: 100%;
+    overflow-x: hidden;
   }
-  
+
+  .view-header {
+    margin-bottom: 18px;
+  }
+
+  .view-title {
+    font-size: 1.45rem;
+  }
+
+  .view-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .action-round-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* 2 рівні колонки без вильоту за правий край */
+  .home-main-col {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .grid-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+  }
+
+  .music-card {
+    padding: 10px;
+    border-radius: 16px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .music-card .card-thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 11px;
+    margin-bottom: 8px;
+  }
+
+  .music-card .card-title {
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+  }
+
+  .music-card .card-artist {
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+  }
+
+  .music-card .btn {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    border-radius: 20px;
+  }
+
+  /* Таби пошуку */
+  .search-tabs {
+    overflow-x: auto;
+    padding-bottom: 4px;
+    gap: 8px;
+  }
+
+  .tab-btn {
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .dropdown-item {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .dropdown-item .type-pill {
+    display: none;
+  }
+
+  /* Екран оцінювання */
   .rating-layout-card, .wide-page-card {
-    padding: 22px 16px;
+    padding: 20px 16px;
     border-radius: 24px;
   }
-  
+
+  .rating-top-bar {
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+  }
+
   .rating-main-grid {
-    grid-template-columns: 1fr;
-    gap: 24px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
   }
-  
+
   .cover-player-container {
-    width: 240px;
-    height: 240px;
+    width: 230px;
+    height: 230px;
   }
-  
+
   .track-meta {
     text-align: center;
+    margin-bottom: 16px;
   }
-  
-  .slider-bubble-track {
-    display: flex;
-    justify-content: center;
+
+  .track-title {
+    font-size: 1.35rem;
   }
-  
-  .summary-hero-bar {
-    flex-direction: column;
-    text-align: center;
-    gap: 18px;
+
+  .album-sub {
+    font-size: 0.92rem;
   }
-  
-  .summary-cover {
-    width: 100px;
-    height: 100px;
+
+  /* Слайдер оцінки на мобільному */
+  .slider-block {
+    margin-bottom: 22px;
   }
-  
-  .summary-highlights {
-    grid-template-columns: 1fr;
-    gap: 12px;
+
+  .rating-controls-row .action-round-btn {
+    width: 50px;
+    height: 50px;
   }
-  
-  .album-details-hero {
-    flex-direction: column;
-    text-align: center;
-    gap: 20px;
-  }
-  
-  .album-page-cover {
-    width: 150px;
-    height: 150px;
-  }
-  
+
+  /* Сторінка альбому та підсумків */
+  .summary-hero-bar,
+  .album-details-hero,
   .profile-top {
     flex-direction: column;
     text-align: center;
     gap: 16px;
   }
-  
+
+  .summary-cover {
+    width: 110px;
+    height: 110px;
+  }
+
+  .album-page-cover {
+    width: 150px;
+    height: 150px;
+  }
+
+  .summary-highlights {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .summary-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
   .username-edit-row {
     justify-content: center;
+    flex-wrap: wrap;
   }
-  
-  .grid-cards {
-    grid-template-columns: repeat(2, 1fr);
+
+  .username-input {
+    font-size: 1.1rem;
+    max-width: 190px;
+  }
+
+  .profile-stats-grid {
     gap: 12px;
   }
-  
-  .music-card {
-    padding: 12px;
-    border-radius: 18px;
+
+  .stat-card {
+    padding: 16px 12px;
   }
-  
-  .music-card .card-title {
-    font-size: 0.95rem;
+
+  .stat-num {
+    font-size: 1.9rem;
   }
-  
-  .music-card .card-artist {
-    font-size: 0.8rem;
-  }
-  
-  .music-card .btn {
-    padding: 8px 14px;
+
+  .toast-notify {
+    width: 90%;
+    text-align: center;
     font-size: 0.85rem;
+    padding: 10px 16px;
   }
 }
