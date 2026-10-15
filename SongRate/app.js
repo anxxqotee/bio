@@ -62,10 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function getScoreColor(val) {
   if (val === 0.0) return '#64748b'; // Сірий колір для скіпу
-  if (val >= 9.9) return '#fbbf24'; // Золото 10
+  if (val >= 9.9) return '#fbbf24'; // Сяюче золото для 10
   if (val >= 9.0) return '#a855f7'; // Фіолетовий
   if (val >= 7.0) return '#10b981'; // Смарагдовий
-  if (val >= 5.0) return '#eab308'; // Бурштиновий
+  if (val >= 4.0) return '#eab308'; // Чистий жовтий
   if (val >= 2.5) return '#f97316'; // Помаранчевий
   return '#ef4444';                // Червоний
 }
@@ -1258,6 +1258,13 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
   finalScoreEl.textContent = avgFmt;
   finalScoreEl.style.color = getScoreColor(data.avgScore);
 
+  // Світіння для фінального бала (тільки для десятки або високих оцінок)
+  if (data.avgScore >= 9.9) {
+    finalScoreEl.style.textShadow = '0 0 25px rgba(251, 191, 36, 0.8), 0 0 40px rgba(251, 191, 36, 0.4)';
+  } else {
+    finalScoreEl.style.textShadow = 'none';
+  }
+
   let tracksList = data.tracks;
   if (!tracksList || !tracksList.length) {
     if (data.isSingleTrack || data.title === data.albumTitle) {
@@ -1346,17 +1353,16 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
   if (tracksList && tracksList.length) {
     tracksList.forEach(t => {
       const s = t.score ?? data.avgScore;
-      const isSkipped = (s === 0.0);
-      
-      const scoreColor = isSkipped ? '#64748b' : getScoreColor(s);
-      const scoreText = isSkipped ? 'Скіп' : ((s === 10) ? '10' : Number(s).toFixed(1));
+    const scoreColor = getScoreColor(s);
+    const scoreText = (s === 10) ? '10' : Number(s).toFixed(1);
+    const isTen = (s >= 9.9);
 
-      const row = document.createElement('div');
-      row.className = 'summary-row';
-      row.innerHTML = `
-        <span style="${isSkipped ? 'color: var(--color-text-muted);' : ''}">${t.title}</span>
-        <span class="score-badge-val" style="color: ${scoreColor}; background: ${scoreColor}18; border-color: ${scoreColor}40;">${scoreText}</span>
-      `;
+    const row = document.createElement('div');
+    row.className = 'summary-row';
+    row.innerHTML = `
+      <span>${t.title}</span>
+      <span class="score-badge-val" style="color: ${scoreColor}; background: ${scoreColor}18; border-color: ${scoreColor}40; ${isTen ? 'box-shadow: 0 0 16px rgba(251, 191, 36, 0.5); text-shadow: 0 0 10px rgba(251, 191, 36, 0.7);' : ''}">${scoreText}</span>
+    `;
       listContainer.appendChild(row);
     });
   }
