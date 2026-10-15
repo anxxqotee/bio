@@ -60,14 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
   handleUrlRouting(); // Перевіряємо посилання ?album=, ?review= або ?user=
 });
 
-// 1. УНІВЕРСАЛЬНИЙ КОЛІР ОЦІНКИ
 function getScoreColor(val) {
-  if (val >= 9.9) return '#fbbf24';
-  if (val >= 9.0) return '#a855f7';
-  if (val >= 7.0) return '#10b981';
-  if (val >= 5.0) return '#eab308';
-  if (val >= 2.5) return '#f97316';
-  return '#ef4444';
+  if (val === 0.0) return '#64748b'; // Сірий колір для скіпу
+  if (val >= 9.9) return '#fbbf24'; // Золото 10
+  if (val >= 9.0) return '#a855f7'; // Фіолетовий
+  if (val >= 7.0) return '#10b981'; // Смарагдовий
+  if (val >= 5.0) return '#eab308'; // Бурштиновий
+  if (val >= 2.5) return '#f97316'; // Помаранчевий
+  return '#ef4444';                // Червоний
 }
 
 function applyDynamicSiteTheme(theme) {
@@ -1316,14 +1316,16 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
   if (tracksList && tracksList.length) {
     tracksList.forEach(t => {
       const s = t.score ?? data.avgScore;
-      const scoreColor = getScoreColor(s);
-      const scoreText = (s === 10) ? '10' : Number(s).toFixed(1);
+      const isSkipped = (s === 0.0);
+      
+      const scoreColor = isSkipped ? '#64748b' : getScoreColor(s);
+      const scoreText = isSkipped ? 'Скіп' : ((s === 10) ? '10' : Number(s).toFixed(1));
 
       const row = document.createElement('div');
       row.className = 'summary-row';
       row.innerHTML = `
-        <span>${t.title}</span>
-        <span class="score-badge-val" style="color: ${scoreColor}; background: ${scoreColor}18;">${scoreText}</span>
+        <span style="${isSkipped ? 'color: var(--color-text-muted);' : ''}">${t.title}</span>
+        <span class="score-badge-val" style="color: ${scoreColor}; background: ${scoreColor}18; border-color: ${scoreColor}40;">${scoreText}</span>
       `;
       listContainer.appendChild(row);
     });
@@ -1363,32 +1365,32 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
 function finishRating() {
   const tracks = State.currentAlbum.tracks;
   let sum = 0;
+  let count = 0; // Рахуємо лише оцінені треки (не скіпнуті)
 
   const ratedTracks = tracks.map(t => {
     const s = State.currentTrackRatings[t.id] ?? 0.0;
-    sum += s;
+    if (s > 0.0) {
+      sum += s;
+      count++;
+    }
     return { id: t.id, title: t.title, score: s };
   });
 
-  const avgRaw = sum / tracks.length;
+  // Якщо всі треки скіпнуті (0.0), середній бал стає 0.0, інакше рахуємо середнє лише по оцінених
+  const avgRaw = count > 0 ? (sum / count) : 0.0;
   const avg = parseFloat(avgRaw.toFixed(1));
 
   const now = new Date();
   const dateFormatted = now.toLocaleDateString('uk-UA', { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric' 
-  }) + ' ' + now.toLocaleTimeString('uk-UA', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
+    day: '2-digit', month: '2-digit', year: 'numeric' 
+  }) + ' ' + now.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
 
-  // Локальний ID для швидкого шерингу
   const localId = 'rev_' + Date.now();
+  const numericAlbumId = typeof State.currentAlbum.id === 'number' ? State.currentAlbum.id : Date.now();
 
   State.lastSummaryResult = {
     id: localId,
-    albumId: State.currentAlbum.id,
+    albumId: numericAlbumId,
     title: State.currentAlbum.title,
     artist: State.currentAlbum.artist,
     genre: State.currentAlbum.genre,
