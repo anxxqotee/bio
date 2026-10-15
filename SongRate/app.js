@@ -469,12 +469,14 @@ async function loadHomeRecommendations() {
     subtitle.textContent = 'Підібрано для тебе';
   }
 
-  if (selectedPool.length < 10) {
+  // Запас артистів для 12 плиток
+  if (selectedPool.length < 15) {
     const all = Object.values(GENRE_ARTIST_MAP).flat();
     selectedPool = [...selectedPool, ...all];
   }
 
-  const shuffledQueries = [...new Set(selectedPool)].sort(() => Math.random() - 0.5).slice(0, 8);
+  // Беремо 12 різних запитів
+  const shuffledQueries = [...new Set(selectedPool)].sort(() => Math.random() - 0.5).slice(0, 12);
 
   try {
     const searchPromises = shuffledQueries.map(term => MusicAPI.search(term, 8));
@@ -518,7 +520,8 @@ async function loadHomeRecommendations() {
       return;
     }
 
-    albums.slice(0, 8).forEach(album => {
+    // Рендеримо 12 карток
+    albums.slice(0, 12).forEach(album => {
       const card = document.createElement('div');
       card.className = 'music-card frosted';
       card.innerHTML = `
