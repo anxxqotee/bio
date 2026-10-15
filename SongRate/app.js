@@ -1294,19 +1294,49 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
     if (tracksTitleEl) tracksTitleEl.textContent = 'Оцінки всіх треків';
 
     if (tracksList && tracksList.length > 0) {
-      let highest = tracksList.reduce((max, t) => t.score > max.score ? t : max, tracksList[0]);
-      let lowest = tracksList.reduce((min, t) => t.score < min.score ? t : min, tracksList[0]);
-
-      const hiFmt = (highest.score === 10) ? '10' : Number(highest.score).toFixed(1);
-      const lowFmt = (lowest.score === 10) ? '10' : Number(lowest.score).toFixed(1);
+      // Фільтруємо скіпи (0.0), щоб вони не ставали "найнижчими"
+      const validTracks = tracksList.filter(t => (t.score ?? 0) > 0.0);
 
       const hiEl = document.getElementById('summary-best-track');
-      hiEl.textContent = `${highest.title} (${hiFmt})`;
-      hiEl.style.color = getScoreColor(highest.score);
-
       const lowEl = document.getElementById('summary-lowest-track');
-      lowEl.textContent = `${lowest.title} (${lowFmt})`;
-      lowEl.style.color = getScoreColor(lowest.score);
+      const bestLabelEl = hBox.querySelector('.highlight-item.best .hl-label');
+      const lowLabelEl = hBox.querySelector('.highlight-item.lowest .hl-label');
+
+      if (validTracks.length > 0) {
+        // Знаходимо максимальний і мінімальний бал серед не-скіпнутих
+        const maxScore = Math.max(...validTracks.map(t => t.score));
+        const minScore = Math.min(...validTracks.map(t => t.score));
+
+        // Збираємо всі треки з макс. балом
+        const bestTracks = validTracks.filter(t => t.score === maxScore);
+        // Збираємо всі треки з мін. балом
+        const lowestTracks = validTracks.filter(t => t.score === minScore);
+
+        // Множина найкращих
+        if (bestTracks.length > 1) {
+          bestLabelEl.textContent = 'Найкращі треки';
+          hiEl.textContent = `${bestTracks.map(t => t.title).join(', ')} (${(maxScore === 10) ? '10' : maxScore.toFixed(1)})`;
+        } else {
+          bestLabelEl.textContent = 'Найкращий трек';
+          hiEl.textContent = `${bestTracks[0].title} (${(maxScore === 10) ? '10' : maxScore.toFixed(1)})`;
+        }
+        hiEl.style.color = getScoreColor(maxScore);
+
+        // Множина найнижчих
+        if (lowestTracks.length > 1) {
+          lowLabelEl.textContent = 'Найнижчі бали';
+          lowEl.textContent = `${lowestTracks.map(t => t.title).join(', ')} (${(minScore === 10) ? '10' : minScore.toFixed(1)})`;
+        } else {
+          lowLabelEl.textContent = 'Найнижчий бал';
+          lowEl.textContent = `${lowestTracks[0].title} (${(minScore === 10) ? '10' : minScore.toFixed(1)})`;
+        }
+        lowEl.style.color = getScoreColor(minScore);
+      } else {
+        bestLabelEl.textContent = 'Найкращий трек';
+        lowLabelEl.textContent = 'Найнижчий бал';
+        hiEl.textContent = 'Всі треки скіпнуті';
+        lowEl.textContent = 'Всі треки скіпнуті';
+      }
     }
   }
 
