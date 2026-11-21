@@ -7,6 +7,18 @@
   <!-- Іконка на вкладці браузера (Favicon) -->
   <link rel="icon" type="image/png" href="img/logo-circle.png">
 
+  <!-- Застосовуємо збережену тему ще до відмальовки, щоб не було "блимання" -->
+  <script>
+    (function () {
+      try {
+        var saved = sessionStorage.getItem('user_manual_theme');
+        if (saved === 'light' || saved === 'dark' || saved === 'aqua') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (e) {}
+    })();
+  </script>
+
   <style>
     /* Підключення шрифту */
     @font-face {
@@ -241,25 +253,31 @@
       animation-delay: 0.28s;
     }
 
-    .container.ready .username-badge:nth-child(1) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.34s; }
-    .container.ready .username-badge:nth-child(2) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.40s; }
-    .container.ready .username-badge:nth-child(3) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.46s; }
+    .container.ready .username-badge {
+      animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: calc(0.34s + var(--i, 0) * 0.06s);
+    }
 
     .container.ready .profile-desc {
       animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       animation-delay: 0.52s;
     }
 
-    .container.ready .link-item-wrapper:nth-child(1) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.58s; }
-    .container.ready .link-item-wrapper:nth-child(2) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.65s; }
-    .container.ready .link-item-wrapper:nth-child(3) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.72s; }
-    .container.ready .link-item-wrapper:nth-child(4) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.79s; }
-    .container.ready .link-item-wrapper:nth-child(5) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.86s; }
-    .container.ready .link-item-wrapper:nth-child(6) { animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.93s; }
+    .container.ready .link-item-wrapper {
+      animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: calc(0.58s + var(--i, 0) * 0.07s);
+    }
 
     .container.ready .footer {
       animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       animation-delay: 1.05s;
+    }
+
+    /* Після появи знімаємо анімацію, інакше вона "з'їдає" transform
+       і ефект натискання (scale) на кнопках не працює */
+    .container .is-revealed {
+      opacity: 1 !important;
+      animation: none !important;
     }
 
     /* Кнопка зміни теми */
@@ -476,6 +494,17 @@
       width: 100%;
       display: flex;
       align-items: center;
+      outline: none;
+    }
+
+    .link-card:focus-visible,
+    .link-main-row:focus-visible,
+    .nested-btn:focus-visible,
+    .username-badge:focus-visible,
+    .theme-toggle:focus-visible,
+    .insta-preview-card:focus-visible {
+      outline: 2px solid var(--subtext);
+      outline-offset: 3px;
     }
 
     .link-icon-box {
@@ -838,6 +867,7 @@
       font-size: 0.8rem;
       color: var(--subtext);
       letter-spacing: 0.04em;
+      text-align: center;
     }
 
     @keyframes revealUp {
@@ -880,19 +910,19 @@
           src="img/logo.png" 
           alt="Logo Light" 
           class="avatar-img avatar-light"
-          onerror="if(this.src.indexOf('img/avatar.png') === -1) { this.src='img/avatar.png'; } else { this.style.display='none'; document.getElementById('fallback-avatar').style.display='block'; }"
+          onerror="this.onerror=null; this.style.display='none'; document.getElementById('fallback-avatar').style.display='block';"
         >
         <img 
           src="img/logo-dark.png" 
           alt="Logo Dark" 
           class="avatar-img avatar-dark"
-          onerror="if(this.src.indexOf('img/logo.png') === -1) { this.src='img/logo.png'; }"
+          onerror="this.onerror=null; this.src='img/logo.png';"
         >
         <img 
           src="img/logo-trn.png" 
           alt="Logo Aqua Transparent" 
           class="avatar-img avatar-aqua"
-          onerror="this.src='img/logo-dark.png';"
+          onerror="this.onerror=null; this.src='img/logo-dark.png';"
         >
         <svg id="fallback-avatar" class="avatar-placeholder-svg" style="display: none;" viewBox="0 0 24 24">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -925,7 +955,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Vibecodded with Gemini ©2026",
+      footer: "Artem High · 2026 · v2.0",
       
       usernames: [
         { label: "@artem_haiduk", url: "https://youtube.com/@artem_haiduk" },
@@ -979,7 +1009,7 @@
             {
               title: "Основний канал",
               badge: "Великі відео",
-              url: "http://youtube.com/@artem_haiduk",
+              url: "https://youtube.com/@artem_haiduk",
               actionText: "Перейти",
               actionType: "external"
             },
@@ -1048,12 +1078,12 @@
             },
             // SONG RATE (Оцінка музики)
             {
-            title: "SongRate",
-            badge: "Оцінка треків",
-            url: "/SongRate/",
-            actionText: "Відкрити",
-            actionType: "external"
-          },
+              title: "SongRate",
+              badge: "Оцінка треків",
+              url: "SongRate/",
+              actionText: "Відкрити",
+              actionType: "external"
+            }
           ]
         }
       ]
@@ -1086,9 +1116,10 @@
     document.getElementById('footerText').textContent = PAGE_DATA.footer;
 
     const usernamesBox = document.getElementById('usernamesContainer');
-    PAGE_DATA.usernames.forEach(item => {
+    PAGE_DATA.usernames.forEach((item, idx) => {
       const a = document.createElement('a');
       a.className = 'username-badge';
+      a.style.setProperty('--i', idx);
       a.href = item.url;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
@@ -1098,9 +1129,44 @@
 
     const linksBox = document.getElementById('linksContainer');
 
-    PAGE_DATA.buttons.forEach((btn) => {
+    // Розкриття / закриття картки (лише одна відкрита одночасно)
+    function setCardOpen(card, open) {
+      card.classList.toggle('is-open', open);
+      if (open) card.classList.remove('is-elevated');
+      const row = card.querySelector('.link-main-row');
+      if (row) row.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const tray = card.querySelector('.inner-tray');
+      // Закритий блок не повинен ловити фокус клавіатури
+      if (tray) tray.inert = !open;
+    }
+
+    function initExpandableCard(card) {
+      const row = card.querySelector('.link-main-row');
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+      setCardOpen(card, false);
+
+      const toggle = () => {
+        const willOpen = !card.classList.contains('is-open');
+        document.querySelectorAll('.expandable-card.is-open').forEach(other => {
+          if (other !== card) setCardOpen(other, false);
+        });
+        setCardOpen(card, willOpen);
+      };
+
+      row.addEventListener('click', toggle);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    }
+
+    PAGE_DATA.buttons.forEach((btn, btnIdx) => {
       const wrapper = document.createElement('div');
       wrapper.className = 'link-item-wrapper';
+      wrapper.style.setProperty('--i', btnIdx);
 
       const isExpandable = btn.type === 'expandable' || btn.type === 'instagram-gallery';
 
@@ -1118,15 +1184,13 @@
         btn.photos.forEach(p => {
           photosHTML += `
             <a href="${p.url}" target="_blank" rel="noopener noreferrer" class="insta-preview-card">
-              <img src="${p.image}" alt="Instagram Post" class="insta-preview-img" loading="lazy" onerror="this.src='img/avatar.png';">
+              <img src="${p.image}" alt="Instagram Post" class="insta-preview-img" loading="lazy" onerror="this.onerror=null; this.src='img/logo.png';">
             </a>
           `;
         });
 
         const card = document.createElement('div');
         card.className = 'link-card expandable-card';
-        card.setAttribute('role', 'button');
-        card.setAttribute('tabindex', '0');
 
         card.innerHTML = `
           <div class="link-main-row">
@@ -1158,13 +1222,7 @@
           </div>
         `;
 
-        card.querySelector('.link-main-row').addEventListener('click', () => {
-          const isCurrentlyOpen = card.classList.contains('is-open');
-          document.querySelectorAll('.expandable-card.is-open').forEach(other => {
-            if (other !== card) other.classList.remove('is-open');
-          });
-          card.classList.toggle('is-open', !isCurrentlyOpen);
-        });
+        initExpandableCard(card);
 
         wrapper.appendChild(card);
       } else if (btn.type === 'expandable') {
@@ -1203,8 +1261,6 @@
 
         const card = document.createElement('div');
         card.className = 'link-card expandable-card';
-        card.setAttribute('role', 'button');
-        card.setAttribute('tabindex', '0');
 
         card.innerHTML = `
           <div class="link-main-row">
@@ -1224,13 +1280,7 @@
           </div>
         `;
 
-        card.querySelector('.link-main-row').addEventListener('click', () => {
-          const isCurrentlyOpen = card.classList.contains('is-open');
-          document.querySelectorAll('.expandable-card.is-open').forEach(other => {
-            if (other !== card) other.classList.remove('is-open');
-          });
-          card.classList.toggle('is-open', !isCurrentlyOpen);
-        });
+        initExpandableCard(card);
 
         wrapper.appendChild(card);
       } else {
@@ -1254,26 +1304,63 @@
     });
 
     // Копіювання картки
+    function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+      }
+      return legacyCopy(text);
+    }
+
+    function legacyCopy(text) {
+      return new Promise((resolve, reject) => {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.top = '-1000px';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        area.setSelectionRange(0, text.length);
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+        document.body.removeChild(area);
+        ok ? resolve() : reject(new Error('copy failed'));
+      });
+    }
+
     document.addEventListener('click', (e) => {
       const copyBtn = e.target.closest('.copy-card-btn');
       if (!copyBtn) return;
       e.stopPropagation();
 
       const text = copyBtn.getAttribute('data-copy');
-      navigator.clipboard.writeText(text).then(() => {
-        copyBtn.classList.add('copied');
-        const textSpan = copyBtn.querySelector('.nested-btn-text');
-        const iconBox = copyBtn.querySelector('.nested-btn-icon-box');
-        const originalText = textSpan.textContent;
+      const textSpan = copyBtn.querySelector('.nested-btn-text');
+      const iconBox = copyBtn.querySelector('.nested-btn-icon-box');
 
+      // Запам'ятовуємо оригінальний текст лише один раз,
+      // щоб повторний клік не "заморожував" напис «Скопійовано!»
+      if (!copyBtn.dataset.originalText) {
+        copyBtn.dataset.originalText = textSpan.textContent;
+      }
+
+      copyText(text).then(() => {
+        clearTimeout(copyBtn._resetTimer);
+        copyBtn.classList.add('copied');
         textSpan.textContent = 'Скопійовано!';
         if (iconBox) iconBox.innerHTML = checkSVG;
 
-        setTimeout(() => {
+        copyBtn._resetTimer = setTimeout(() => {
           copyBtn.classList.remove('copied');
-          textSpan.textContent = originalText;
+          textSpan.textContent = copyBtn.dataset.originalText;
           if (iconBox) iconBox.innerHTML = copySVG;
         }, 2000);
+      }).catch(() => {
+        clearTimeout(copyBtn._resetTimer);
+        textSpan.textContent = text;
+        copyBtn._resetTimer = setTimeout(() => {
+          textSpan.textContent = copyBtn.dataset.originalText;
+        }, 4000);
       });
     });
 
@@ -1283,11 +1370,19 @@
       mainContainer.classList.add('ready');
     }
 
+    mainContainer.addEventListener('animationend', (e) => {
+      if (e.animationName === 'revealUp' || e.animationName === 'revealZoom') {
+        e.target.classList.add('is-revealed');
+      }
+    });
+
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(startAnimations).catch(startAnimations);
     } else {
       window.addEventListener('load', startAnimations);
     }
+    // Запобіжник: якщо шрифт вантажиться надто довго — все одно показуємо сторінку
+    setTimeout(startAnimations, 3000);
 
     // 3. Тема: 3 режими
     const themeBtn = document.getElementById('themeBtn');
@@ -1315,14 +1410,33 @@
       <path d="M12 2l2.4 5.2L20 8.5l-4 3.9.9 5.6-4.9-2.6-4.9 2.6.9-5.6-4-3.9 5.6-1.3L12 2z"></path>
     `;
 
-    localStorage.removeItem('theme');
+    const THEME_KEY = 'user_manual_theme';
+    const VALID_THEMES = ['light', 'dark', 'aqua'];
+
+    function readManualTheme() {
+      try {
+        const value = sessionStorage.getItem(THEME_KEY);
+        return VALID_THEMES.includes(value) ? value : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function writeManualTheme(value) {
+      try {
+        if (value) sessionStorage.setItem(THEME_KEY, value);
+        else sessionStorage.removeItem(THEME_KEY);
+      } catch (e) {}
+    }
+
+    try { localStorage.removeItem('theme'); } catch (e) {}
 
     function getSystemTheme() {
       return mediaQuery.matches ? 'dark' : 'light';
     }
 
     function syncTheme() {
-      const manual = sessionStorage.getItem('user_manual_theme');
+      const manual = readManualTheme();
       const activeTheme = manual || getSystemTheme();
 
       htmlEl.setAttribute('data-theme', activeTheme);
@@ -1341,10 +1455,15 @@
       }
     }
 
-    mediaQuery.addEventListener('change', () => {
-      sessionStorage.removeItem('user_manual_theme');
+    const onSystemThemeChange = () => {
+      writeManualTheme(null);
       syncTheme();
-    });
+    };
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', onSystemThemeChange);
+    } else if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(onSystemThemeChange); // старий Safari
+    }
 
     if (themeBtn) {
       themeBtn.addEventListener('click', () => {
@@ -1355,7 +1474,7 @@
         else if (current === 'dark') next = 'aqua';
         else next = 'light';
 
-        sessionStorage.setItem('user_manual_theme', next);
+        writeManualTheme(next);
         syncTheme();
       });
     }
@@ -1449,8 +1568,10 @@
 
       window.addEventListener('mousedown', () => { mouse.clicking = true; });
       window.addEventListener('mouseup', () => { mouse.clicking = false; });
-      document.addEventListener('mouseleave', () => { mouse.active = false; });
-      document.addEventListener('mouseenter', () => { mouse.active = true; });
+      document.addEventListener('mouseout', (e) => {
+        if (!e.relatedTarget) mouse.active = false; // курсор пішов за межі вікна
+      });
+      window.addEventListener('blur', () => { mouse.active = false; mouse.clicking = false; });
 
       function renderFrame() {
         ctx.clearRect(0, 0, cssWidth, cssHeight);
