@@ -1,0 +1,49 @@
+name: SongRate — Supabase keep-alive
+
+# Безкоштовний Supabase ставить проєкт на паузу після 7 днів без запитів до бази.
+# Цей workflow щодня робить один легкий запит, щоб база SongRate не "засинала".
+# Якщо запит не вдасться (наприклад, проєкт уже на паузі), GitHub надішле лист про помилку.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # щодня о 06:17 UTC
+  workflow_dispatch:        # ручний запуск: вкладка Actions → Run workflow
+
+permissions:
+  actions: write   # щоб workflow міг сам себе тримати увімкненим (див. останній крок)
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: https://uldidiwmyhojyjatpwud.supabase.co
+      # Публічний (publishable) ключ — той самий, що вже є в SongRate/app.js
+      SUPABASE_KEY: sb_publishable_92VCW9pqVze2MfwF3tRHIA_Bu5tYUto
+    steps:
+      - name: Ping Supabase database
+        run: |
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o response.json -w '%{http_code}' \
+              "$SUPABASE_URL/rest/v1/ratings?select=id&limit=1" \
+              -H "apikey: $SUPABASE_KEY") || code=000
+            echo "Attempt $attempt: HTTP $code"
+            if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+              echo "База активна ✅"
+              exit 0
+            fi
+            sleep 20
+          done
+          cat response.json 2>/dev/null || true
+          echo "::error::Supabase не відповідає. Якщо проєкт на паузі — відкрий supabase.com/dashboard і натисни Restore project."
+          exit 1
+
+      # GitHub вимикає розклад у публічних репозиторіях після 60 днів без комітів.
+      # Повторне "увімкнення" через API скидає цей лічильник.
+      - name: Keep this schedule enabled
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/supabase-keepalive.yml/enable"
