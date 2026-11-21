@@ -1,13 +1,13 @@
 @font-face {
   font-family: 'Medeo Sans';
-  src: url('medeo.woff2') format('truetype');
+  src: url('medeo.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
 
 :root {
-  --font-main: 'SN Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-main: 'Medeo Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --bg-black: #050508;
   
   --color-purple: #8b5cf6;
@@ -1569,6 +1569,12 @@ body {
   margin-bottom: 14px;
 }
 
+.auth-error.is-info {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
 .form-group {
   margin-bottom: 16px;
 }
@@ -1594,6 +1600,18 @@ body {
 
 .form-group input:focus {
   border-color: var(--color-purple);
+}
+
+/* Футер */
+.site-footer {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 0 16px 28px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  opacity: 0.7;
 }
 
 /* ========================================================

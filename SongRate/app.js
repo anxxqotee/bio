@@ -21,10 +21,55 @@ const GENRE_ARTIST_MAP = {
   'Rock': ['Smashing Pumpkins', 'Nirvana', 'Linkin Park', 'The Strokes', 'Foo Fighters', 'Red Hot Chili Peppers']
 };
 
+// Екранування тексту перед вставкою в innerHTML (назви з iTunes та юзернейми з бази)
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function loadStoredHistory() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('songrate_history'));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveStoredHistory() {
+  try {
+    saveStoredHistory();
+  } catch (e) {}
+}
+
+function isLocalReviewId(id) {
+  return !id || String(id).startsWith('rev_');
+}
+
+function getReviewTimestamp(h) {
+  if (h.ts) return h.ts;
+  if (h.id && String(h.id).startsWith('rev_')) return Number(String(h.id).slice(4)) || 0;
+  return 0;
+}
+
+function pluralizeRatings(n) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'оцінка';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'оцінки';
+  return 'оцінок';
+}
+
+function isViewVisible(viewId) {
+  const el = document.getElementById(viewId);
+  return !!el && !el.classList.contains('hidden');
+}
+
 const State = {
   user: null,
   username: localStorage.getItem('songrate_username') || 'Користувач',
-  ratingsHistory: JSON.parse(localStorage.getItem('songrate_history')) || [],
+  ratingsHistory: loadStoredHistory(),
   currentAlbum: null,
   isSingleTrackMode: false,
   currentTrackIndex: 0,
@@ -39,7 +84,11 @@ const State = {
   lastSearchResults: [],
   previousView: 'view-home',
   volume: 0.8,
-  activeReviewId: null
+  activeReviewId: null,
+  lastSummaryResult: null,
+  displayedSummary: null,
+  homeLoaded: false,
+  themeToken: 0
 };
 
 State.audio.preload = 'auto';
@@ -108,8 +157,16 @@ function showView(viewId, pushHistory = true) {
   if (target) target.classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  if (pushHistory && viewId === 'view-home') {
+  if (pushHistory && viewId === 'view-home' && window.location.search) {
     history.pushState(null, '', window.location.pathname);
+  }
+
+  // Якщо сайт відкрили за прямим посиланням (?album=...), головна ще не завантажувалась —
+  // підвантажуємо рекомендації та топ при першому переході на неї
+  if (viewId === 'view-home' && !State.homeLoaded) {
+    State.homeLoaded = true;
+    loadHomeRecommendations();
+    loadLeaderboard();
   }
 }
 
@@ -150,34 +207,51 @@ async function handleUrlRouting() {
   if (albumId) {
     await openAlbumPage(albumId, false);
   } else if (reviewId) {
-    await openSharedReview(reviewId);
+    await openSharedReview(reviewId, false);
   } else if (userId) {
-    await openPublicProfile(userId);
+    await openPublicProfile(userId, false);
   } else {
+    stopTrackAudio();
     showView('view-home', false);
-    loadHomeRecommendations();
-    loadLeaderboard();
   }
 }
 
+let toastTimer = null;
 function showToast(text) {
   const toast = document.getElementById('toast-notify');
   toast.textContent = text;
+  clearTimeout(toastTimer);
+  // Перезапускаємо анімацію, якщо тост уже показано
+  toast.classList.add('hidden');
+  void toast.offsetWidth;
   toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 2500);
+  toastTimer = setTimeout(() => toast.classList.add('hidden'), 2500);
 }
 
 function copyToClipboard(url, message = 'Посилання скопійовано!') {
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(url).then(() => showToast(message));
+  const legacyCopy = () => {
+    let ok = false;
+    try {
+      const area = document.createElement('textarea');
+      area.value = url;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.top = '-1000px';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      ok = document.execCommand('copy');
+      document.body.removeChild(area);
+    } catch (e) {
+      ok = false;
+    }
+    showToast(ok ? message : 'Не вдалося скопіювати посилання');
+  };
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url).then(() => showToast(message), legacyCopy);
   } else {
-    const input = document.createElement('input');
-    input.value = url;
-    document.body.appendChild(input);
-    input.select();
-    document.execCommand('copy');
-    document.body.removeChild(input);
-    showToast(message);
+    legacyCopy();
   }
 }
 
@@ -186,7 +260,7 @@ async function openAlbumPage(albumId, updateUrl = true) {
   stopTrackAudio();
   showView('view-album-details', false);
   if (updateUrl) {
-    history.pushState(null, '', `?album=${albumId}`);
+    history.pushState(null, '', `?album=${encodeURIComponent(albumId)}`);
   }
 
   const container = document.getElementById('album-page-tracks');
@@ -206,7 +280,7 @@ async function openAlbumPage(albumId, updateUrl = true) {
   document.getElementById('album-page-genre').textContent = album.genre;
 
   document.getElementById('btn-start-album-rating').onclick = () => {
-    startAlbumRating(album.id);
+    startAlbumRating(album.id, album);
   };
 
   document.getElementById('btn-share-album').onclick = () => {
@@ -221,7 +295,7 @@ async function openAlbumPage(albumId, updateUrl = true) {
     row.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="color: var(--color-text-muted); font-weight: 700; width: 20px;">${idx + 1}</span>
-        <span style="font-weight: 600;">${t.title}</span>
+        <span style="font-weight: 600;">${escapeHTML(t.title)}</span>
       </div>
       <button class="btn btn-inactive" style="padding: 6px 14px; font-size: 0.82rem;">Оцінити трек</button>
     `;
@@ -241,14 +315,17 @@ async function openAlbumPage(albumId, updateUrl = true) {
 }
 
 // 5. ВІДКРИТТЯ ВІДПОВІДЕЙ КОРИСТУВАЧА ЗА ПОСИЛАННЯМ (?review=)
-async function openSharedReview(reviewId) {
+async function openSharedReview(reviewId, updateUrl = false) {
   stopTrackAudio();
   State.activeReviewId = reviewId;
+  if (updateUrl) {
+    history.pushState(null, '', `?review=${encodeURIComponent(reviewId)}`);
+  }
 
   // Шукаємо в локальній історії або в базі
   let review = State.ratingsHistory.find(h => String(h.id || h.albumId) === String(reviewId));
 
-  if (!review && supabaseClient) {
+  if (!review && supabaseClient && !isLocalReviewId(reviewId)) {
     const { data } = await supabaseClient.from('ratings').select('*').eq('id', reviewId).maybeSingle();
     if (data) {
       review = {
@@ -277,10 +354,16 @@ async function openSharedReview(reviewId) {
 }
 
 // 6. ПУБЛІЧНИЙ ПРОФІЛЬ ЮЗЕРА (?user=)
-async function openPublicProfile(userId) {
+async function openPublicProfile(userId, updateUrl = true) {
+  if (!userId) {
+    showToast('Профіль користувача недоступний');
+    return;
+  }
   stopTrackAudio();
   showView('view-public-profile', false);
-  history.pushState(null, '', `?user=${userId}`);
+  if (updateUrl) {
+    history.pushState(null, '', `?user=${encodeURIComponent(userId)}`);
+  }
 
   const list = document.getElementById('pub-history-list');
   list.innerHTML = '<p class="item-sub">Завантаження оцінок...</p>';
@@ -327,21 +410,22 @@ async function openPublicProfile(userId) {
   userRatings.forEach(item => {
     const card = document.createElement('div');
     card.className = 'history-item-card frosted';
-    const scoreColor = getScoreColor(item.avg_score);
-    const scoreText = (item.avg_score === 10) ? '10' : Number(item.avg_score).toFixed(1);
+    const score = Number(item.avg_score);
+    const scoreColor = getScoreColor(score);
+    const scoreText = (score === 10) ? '10' : score.toFixed(1);
 
     card.innerHTML = `
-      <img src="${item.artwork || 'icons/album-placeholder.svg'}" class="history-thumb" alt="" onerror="this.src='icons/album-placeholder.svg'">
+      <img src="${escapeHTML(item.artwork || 'icons/album-placeholder.svg')}" class="history-thumb" alt="" onerror="this.onerror=null; this.src='icons/album-placeholder.svg'">
       <div class="item-info">
-        <span class="item-title">${item.title}</span>
-        <span class="item-sub">${item.artist}</span>
+        <span class="item-title">${escapeHTML(item.title)}</span>
+        <span class="item-sub">${escapeHTML(item.artist)}</span>
         <span class="history-date">${new Date(item.created_at).toLocaleDateString('uk-UA')}</span>
       </div>
       <span class="score-badge-val" style="color: ${scoreColor}; background: ${scoreColor}18;">${scoreText}</span>
     `;
 
     card.addEventListener('click', () => {
-      openSharedReview(item.id);
+      openSharedReview(item.id, true);
     });
 
     list.appendChild(card);
@@ -385,8 +469,8 @@ async function loadLeaderboard() {
       row.className = 'leaderboard-row';
       row.innerHTML = `
         <span class="leaderboard-rank">#${idx + 1}</span>
-        <span class="leaderboard-user">@${u.username}</span>
-        <span class="leaderboard-count">${u.count} оцінок</span>
+        <span class="leaderboard-user">@${escapeHTML(u.username)}</span>
+        <span class="leaderboard-count">${u.count} ${pluralizeRatings(u.count)}</span>
       `;
       row.onclick = () => openPublicProfile(u.userId);
       container.appendChild(row);
@@ -404,7 +488,8 @@ function initProfileSettings() {
   input.value = State.username;
 
   saveBtn.addEventListener('click', async () => {
-    const newName = input.value.trim() || 'Користувач';
+    const newName = input.value.trim().replace(/^@+/, '').trim() || 'Користувач';
+    input.value = newName;
     State.username = newName;
     localStorage.setItem('songrate_username', newName);
 
@@ -426,10 +511,17 @@ function initProfileSettings() {
 
 function initSharingButtons() {
   document.getElementById('btn-share-review').addEventListener('click', () => {
-    if (!State.lastSummaryResult) return;
-    const revId = State.lastSummaryResult.id || State.lastSummaryResult.albumId;
-    const url = `${window.location.origin}${window.location.pathname}?review=${revId}`;
-    copyToClipboard(url, 'Посилання на твій результат скопійовано!');
+    const review = State.displayedSummary;
+    if (!review) return;
+    // Локальна оцінка (rev_...) не існує в базі — за таким посиланням її ніхто не відкриє
+    if (isLocalReviewId(review.id)) {
+      showToast(State.user
+        ? 'Спершу збережи оцінку в історію, щоб нею поділитися'
+        : 'Увійди в акаунт і збережи оцінку, щоб нею поділитися');
+      return;
+    }
+    const url = `${window.location.origin}${window.location.pathname}?review=${encodeURIComponent(review.id)}`;
+    copyToClipboard(url, 'Посилання на результат скопійовано!');
   });
 }
 
@@ -445,7 +537,9 @@ function initRecommendationsRefresh() {
   });
 }
 
+let recommendationsSeq = 0;
 async function loadHomeRecommendations() {
+  const seq = ++recommendationsSeq;
   const grid = document.getElementById('recommendations-grid');
   const subtitle = document.getElementById('home-subtitle');
   grid.innerHTML = '<p style="color: var(--color-text-muted); grid-column: 1 / -1;">Завантаження нових релізів...</p>';
@@ -479,8 +573,9 @@ async function loadHomeRecommendations() {
   const shuffledQueries = [...new Set(selectedPool)].sort(() => Math.random() - 0.5).slice(0, 12);
 
   try {
-    const searchPromises = shuffledQueries.map(term => MusicAPI.search(term, 8));
+    const searchPromises = shuffledQueries.map(term => MusicAPI.searchAlbums(term, 8));
     const resultsArray = await Promise.all(searchPromises);
+    if (seq !== recommendationsSeq) return; // вже запущено новіше оновлення
 
     const albums = [];
     const seenAlbumIds = new Set();
@@ -525,9 +620,9 @@ async function loadHomeRecommendations() {
       const card = document.createElement('div');
       card.className = 'music-card frosted';
       card.innerHTML = `
-        <img src="${album.artwork}" alt="${album.title}" class="card-thumb" onerror="this.src='icons/album-placeholder.svg'">
-        <div class="card-title">${album.title}</div>
-        <div class="card-artist">${album.artist}</div>
+        <img src="${escapeHTML(album.artwork)}" alt="${escapeHTML(album.title)}" class="card-thumb" onerror="this.onerror=null; this.src='icons/album-placeholder.svg'">
+        <div class="card-title">${escapeHTML(album.title)}</div>
+        <div class="card-artist">${escapeHTML(album.artist)}</div>
         <button class="btn btn-inactive btn-rate-album">Оцінити альбом</button>
       `;
 
@@ -543,31 +638,49 @@ async function loadHomeRecommendations() {
     });
 
   } catch (err) {
+    if (seq !== recommendationsSeq) return;
     grid.innerHTML = '<p style="color: var(--color-text-muted); grid-column: 1 / -1;">Помилка завантаження.</p>';
   }
 }
 
 // 10. ПОШУК ТА ТАБИ
+let searchDebounceTimeout = null;
+let dropdownSeq = 0;
+let fullSearchSeq = 0;
+
+function cancelDropdownSearch() {
+  clearTimeout(searchDebounceTimeout);
+  dropdownSeq++;
+  document.getElementById('search-dropdown').classList.add('hidden');
+}
+
 function initSearch() {
   const input = document.getElementById('search-input');
   const dropdown = document.getElementById('search-dropdown');
-  let debounceTimeout;
 
   input.addEventListener('input', () => {
-    clearTimeout(debounceTimeout);
+    clearTimeout(searchDebounceTimeout);
+    const seq = ++dropdownSeq;
     const q = input.value.trim();
     if (q.length < 2) {
       dropdown.classList.add('hidden');
       return;
     }
-    debounceTimeout = setTimeout(async () => {
+    searchDebounceTimeout = setTimeout(async () => {
       const results = await MusicAPI.search(q, 8);
+      // Відповідь на старіший запит прийшла пізніше — ігноруємо її
+      if (seq !== dropdownSeq) return;
       renderDropdown(results);
-    }, 280);
+    }, 350);
   });
 
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') openFullSearch(input.value.trim());
+    if (e.key === 'Enter' && !e.isComposing) {
+      openFullSearch(input.value.trim());
+      input.blur();
+    } else if (e.key === 'Escape') {
+      cancelDropdownSearch();
+    }
   });
 
   document.getElementById('btn-search-submit').addEventListener('click', () => {
@@ -609,16 +722,16 @@ function renderDropdown(items) {
     el.className = 'dropdown-item';
 
     const title = it.trackName || it.collectionName || it.artistName;
-    const sub = it.artistName || 'Артист';
+    const sub = type === 'artist' ? (it.primaryGenreName || 'Артист') : (it.artistName || 'Артист');
     const fallback = type === 'artist' ? 'icons/artist-placeholder.svg' : 'icons/album-placeholder.svg';
     const img = it.artworkUrl100 ? it.artworkUrl100.replace('100x100bb', '200x200bb') : fallback;
     const typeBadge = type === 'artist' ? 'Артист' : (type === 'track' ? 'Трек' : 'Альбом');
 
     el.innerHTML = `
-      <img src="${img}" alt="" onerror="this.src='${fallback}'">
+      <img src="${escapeHTML(img)}" alt="" onerror="this.onerror=null; this.src='${fallback}'">
       <div class="item-info">
-        <span class="item-title">${title}</span>
-        <span class="item-sub">${sub}</span>
+        <span class="item-title">${escapeHTML(title)}</span>
+        <span class="item-sub">${escapeHTML(sub)}</span>
       </div>
       <span class="type-pill">${typeBadge}</span>
     `;
@@ -637,14 +750,23 @@ function renderDropdown(items) {
 
 async function openFullSearch(query) {
   if (!query) return;
-  document.getElementById('search-dropdown').classList.add('hidden');
+  // Скасовуємо відкладений пошук у дропдауні, щоб він не вискочив поверх результатів
+  cancelDropdownSearch();
+  stopTrackAudio();
   showView('view-search');
   document.getElementById('search-query-label').textContent = `Результати для "${query}"`;
+
+  // Скидаємо активний таб на "Всі"
+  document.querySelectorAll('.search-tabs .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === 'all');
+  });
 
   const container = document.getElementById('search-full-results');
   container.innerHTML = '<p style="color: var(--color-text-muted);">Пошук...</p>';
 
+  const seq = ++fullSearchSeq;
   const items = await MusicAPI.search(query, 50);
+  if (seq !== fullSearchSeq) return;
   State.lastSearchResults = items;
   filterSearchResults('all');
 }
@@ -679,10 +801,10 @@ function filterSearchResults(tab) {
     const typeBadge = type === 'artist' ? 'Артист' : (type === 'track' ? 'Трек' : 'Альбом');
 
     row.innerHTML = `
-      <img src="${img}" alt="" onerror="this.src='${fallback}'">
+      <img src="${escapeHTML(img)}" alt="" onerror="this.onerror=null; this.src='${fallback}'">
       <div class="item-info">
-        <span class="item-title">${title}</span>
-        <span class="item-sub">${sub}</span>
+        <span class="item-title">${escapeHTML(title)}</span>
+        <span class="item-sub">${escapeHTML(sub)}</span>
       </div>
       <span class="type-pill">${typeBadge}</span>
       <button class="btn btn-inactive" style="flex-shrink: 0; padding: 8px 18px; margin-left: 10px;">
@@ -714,7 +836,10 @@ function handleSearchItemClick(it, type) {
 }
 
 // 11. СТОРІНКА АРТИСТА
+let artistViewSeq = 0;
 async function openArtistView(artistId, name, genre) {
+  const seq = ++artistViewSeq;
+  stopTrackAudio();
   showView('view-artist');
   document.getElementById('artist-name').textContent = name;
   document.getElementById('artist-genre').textContent = genre || 'Музика';
@@ -724,6 +849,7 @@ async function openArtistView(artistId, name, genre) {
   document.getElementById('artist-singles').innerHTML = '';
 
   const disc = await MusicAPI.getArtistDiscography(artistId);
+  if (seq !== artistViewSeq) return;
   renderReleaseList('artist-albums', disc.albums, 'album');
   renderReleaseList('artist-eps', disc.eps, 'album');
   renderReleaseList('artist-singles', disc.singles, 'single');
@@ -740,9 +866,9 @@ function renderReleaseList(containerId, list, kind) {
     const card = document.createElement('div');
     card.className = 'music-card frosted';
     card.innerHTML = `
-      <img src="${rel.artwork}" class="card-thumb" alt="" onerror="this.src='icons/album-placeholder.svg'">
-      <div class="card-title">${rel.title}</div>
-      <div class="card-artist">${rel.artist}</div>
+      <img src="${escapeHTML(rel.artwork || 'icons/album-placeholder.svg')}" class="card-thumb" alt="" onerror="this.onerror=null; this.src='icons/album-placeholder.svg'">
+      <div class="card-title">${escapeHTML(rel.title)}</div>
+      <div class="card-artist">${escapeHTML(rel.artist)}</div>
       <button class="btn btn-inactive">${kind === 'single' ? 'Оцінити трек' : 'Оцінити альбом'}</button>
     `;
 
@@ -752,15 +878,7 @@ function renderReleaseList(containerId, list, kind) {
     card.querySelector('button').addEventListener('click', (e) => {
       e.stopPropagation();
       if (kind === 'single') {
-        startSingleTrackRating({
-          id: rel.id,
-          title: rel.title,
-          artist: rel.artist,
-          albumTitle: rel.title,
-          genre: rel.genre,
-          artwork: rel.artwork,
-          previewUrl: null
-        });
+        startReleaseAsSingle(rel);
       } else {
         startAlbumRating(rel.id);
       }
@@ -769,12 +887,45 @@ function renderReleaseList(containerId, list, kind) {
   });
 }
 
+// Сингл з дискографії: раніше оцінювався за id релізу і без аудіо-прев'ю.
+// Тепер підтягуємо реальний трек (або весь реліз, якщо в ньому 2 треки)
+async function startReleaseAsSingle(rel) {
+  const album = await MusicAPI.getAlbumWithTracks(rel.id);
+  if (!album || !album.tracks.length) {
+    showToast('Не вдалося завантажити реліз.');
+    return;
+  }
+  if (album.tracks.length === 1) {
+    const t = album.tracks[0];
+    startSingleTrackRating({
+      id: t.id,
+      title: t.title,
+      artist: album.artist,
+      albumTitle: album.title,
+      genre: album.genre,
+      artwork: album.artwork || rel.artwork,
+      previewUrl: t.previewUrl
+    });
+  } else {
+    startAlbumRating(album.id, album);
+  }
+}
+
+function applyCoverTheme(artwork) {
+  const token = ++State.themeToken;
+  MusicAPI.extractColorsFromImage(artwork, (theme) => {
+    // Колір міг прийти вже після виходу з екрана оцінювання або після старту іншого релізу
+    if (token !== State.themeToken || !isViewVisible('view-rating')) return;
+    applyDynamicSiteTheme(theme);
+  });
+}
+
 // 12. СТАРТ ОЦІНЮВАННЯ
-async function startAlbumRating(albumId) {
+async function startAlbumRating(albumId, preloadedAlbum = null) {
   stopTrackAudio();
-  const albumData = await MusicAPI.getAlbumWithTracks(albumId);
+  const albumData = preloadedAlbum || await MusicAPI.getAlbumWithTracks(albumId);
   if (!albumData || !albumData.tracks.length) {
-    alert('Не вдалося завантажити треки альбому.');
+    showToast('Не вдалося завантажити треки альбому.');
     return;
   }
 
@@ -783,7 +934,6 @@ async function startAlbumRating(albumId) {
   State.currentTrackIndex = 0;
   State.currentTrackRatings = {};
 
-  MusicAPI.extractColorsFromImage(albumData.artwork, applyDynamicSiteTheme);
 
   const ambientWrap = document.getElementById('ambient-blur-container');
   const ambientImg = document.getElementById('ambient-blur-cover');
@@ -799,15 +949,27 @@ async function startAlbumRating(albumId) {
 
   document.getElementById('btn-prev-track').style.display = 'flex';
   showView('view-rating');
+  applyCoverTheme(albumData.artwork);
   loadTrackForRating(0);
 }
 
-function startSingleTrackRating(trackData) {
+async function startSingleTrackRating(trackData) {
   stopTrackAudio();
+
+  // Немає прев'ю (наприклад, повторна оцінка з хмарної історії) — пробуємо дістати його
+  if (!trackData.previewUrl && /^\d+$/.test(String(trackData.id || ''))) {
+    const info = await MusicAPI.getTrack(trackData.id);
+    if (info && info.previewUrl) {
+      trackData = { ...trackData, previewUrl: info.previewUrl };
+    }
+  }
+
   State.isSingleTrackMode = true;
   State.currentAlbum = {
     id: trackData.id,
-    title: trackData.albumTitle || trackData.title,
+    // Назвою оцінки має бути сам трек, а не альбом, з якого він
+    title: trackData.title,
+    albumTitle: trackData.albumTitle || trackData.title,
     artist: trackData.artist,
     genre: trackData.genre,
     artwork: trackData.artwork,
@@ -820,7 +982,6 @@ function startSingleTrackRating(trackData) {
   State.currentTrackIndex = 0;
   State.currentTrackRatings = {};
 
-  MusicAPI.extractColorsFromImage(trackData.artwork, applyDynamicSiteTheme);
 
   const ambientWrap = document.getElementById('ambient-blur-container');
   const ambientImg = document.getElementById('ambient-blur-cover');
@@ -831,11 +992,15 @@ function startSingleTrackRating(trackData) {
 
   document.getElementById('summary-album-cover').src = trackData.artwork;
   document.getElementById('rating-cover-img').src = trackData.artwork;
-  document.getElementById('rating-album-title').textContent = `${trackData.artist} — Сингл`;
+  const fromAlbum = trackData.albumTitle && trackData.albumTitle !== trackData.title;
+  document.getElementById('rating-album-title').textContent = fromAlbum
+    ? `${trackData.artist} — ${trackData.albumTitle}`
+    : `${trackData.artist} — Сингл`;
   document.getElementById('rating-mode-tag').textContent = `Окремий трек • ${trackData.artist}`;
 
   document.getElementById('btn-prev-track').style.display = 'none';
   showView('view-rating');
+  applyCoverTheme(trackData.artwork);
   loadTrackForRating(0);
 }
 
@@ -928,6 +1093,7 @@ function initMagneticLiquidSlider() {
 
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', stopDrag);
+    window.addEventListener('pointercancel', stopDrag);
   }
 
   function stopDrag() {
@@ -950,11 +1116,21 @@ function initMagneticLiquidSlider() {
 
     window.removeEventListener('pointermove', handleMove);
     window.removeEventListener('pointerup', stopDrag);
+    window.removeEventListener('pointercancel', stopDrag);
   }
 
   container.addEventListener('pointerdown', (e) => {
+    if (e.button !== undefined && e.button !== 0) return; // лише ліва кнопка / дотик
     e.preventDefault();
     startDrag(e);
+  });
+
+  // Після зміни розміру вікна "бульбашка" з оцінкою мала стару позицію
+  window.addEventListener('resize', () => {
+    if (!State.currentAlbum || !isViewVisible('view-rating')) return;
+    const current = State.currentAlbum.tracks[State.currentTrackIndex];
+    const val = current ? (State.currentTrackRatings[current.id] ?? 0) : 0;
+    updateLiquidSliderPosition(val, false);
   });
 }
 
@@ -1093,14 +1269,20 @@ function initVolumeControls() {
     applyVolume(offsetX / rect.width);
   }
 
+  function stopVolDrag() {
+    isVolDragging = false;
+    window.removeEventListener('pointermove', handleVolMove);
+    window.removeEventListener('pointerup', stopVolDrag);
+    window.removeEventListener('pointercancel', stopVolDrag);
+  }
+
   volTrack.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
     isVolDragging = true;
     handleVolMove(e);
     window.addEventListener('pointermove', handleVolMove);
-    window.addEventListener('pointerup', () => {
-      isVolDragging = false;
-      window.removeEventListener('pointermove', handleVolMove);
-    }, { once: true });
+    window.addEventListener('pointerup', stopVolDrag);
+    window.addEventListener('pointercancel', stopVolDrag);
   });
 
   applyVolume(State.volume);
@@ -1111,6 +1293,10 @@ function initRatingNavButtons() {
   const playbackBtn = document.getElementById('btn-playback-toggle');
 
   playbackBtn.addEventListener('click', () => {
+    if (!State.audio.getAttribute('src')) {
+      showToast('Для цього треку немає аудіо-прев\'ю');
+      return;
+    }
     if (State.isEnded) {
       State.isEnded = false;
       document.getElementById('cover-image-box').classList.remove('is-ended');
@@ -1189,6 +1375,9 @@ function initAudioEvents() {
 function playTrackAudio(url) {
   stopTrackAudio();
   if (!url) {
+    // Інакше в плеєрі лишався попередній трек і кнопка Play вмикала його
+    State.audio.removeAttribute('src');
+    State.audio.load();
     document.getElementById('track-loader').classList.add('hidden');
     return;
   }
@@ -1222,6 +1411,7 @@ function resetBorderProgress() {
 function trackPlaybackProgress() {
   const fill = document.getElementById('track-progress-fill');
   const maxDash = 1000;
+  cancelAnimationFrame(State.animFrameId); // не запускаємо кілька циклів одночасно
 
   function loop() {
     if (!State.audio.paused && State.audio.duration) {
@@ -1237,14 +1427,16 @@ function trackPlaybackProgress() {
 async function renderSummaryView(data, isHistoryMode = false, isExternalReview = false) {
   stopTrackAudio();
   showView('view-summary', false);
+  State.displayedSummary = data;
 
   const banner = document.getElementById('shared-review-banner');
+  const reviewerBtn = document.getElementById('btn-view-reviewer-profile');
   if (isExternalReview && data.username) {
     banner.classList.remove('hidden');
     document.getElementById('shared-user-name').textContent = `@${data.username}`;
-    document.getElementById('btn-view-reviewer-profile').onclick = () => {
-      openPublicProfile(data.userId || data.user_id);
-    };
+    const reviewerId = data.userId || data.user_id;
+    reviewerBtn.classList.toggle('hidden', !reviewerId);
+    reviewerBtn.onclick = () => openPublicProfile(reviewerId);
   } else {
     banner.classList.add('hidden');
   }
@@ -1270,7 +1462,7 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
     if (data.isSingleTrack || data.title === data.albumTitle) {
       tracksList = [{ id: data.albumId, title: data.title, score: data.avgScore }];
       data.tracks = tracksList;
-      localStorage.setItem('songrate_history', JSON.stringify(State.ratingsHistory));
+      saveStoredHistory();
     } else {
       try {
         const albumData = await MusicAPI.getAlbumWithTracks(data.albumId);
@@ -1281,15 +1473,19 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
             score: data.avgScore
           }));
           data.tracks = tracksList;
-          localStorage.setItem('songrate_history', JSON.stringify(State.ratingsHistory));
+          saveStoredHistory();
         }
       } catch (e) {}
     }
   }
 
+  // Поки вантажився треклист, користувач міг перейти на інший екран
+  if (State.displayedSummary !== data || !isViewVisible('view-summary')) return;
+
   const isSingle = data.isSingleTrack || (tracksList && tracksList.length <= 1);
   const hBox = document.getElementById('summary-highlights-box');
-  const tracksTitleEl = document.querySelector('.tracks-summary-container .section-title');
+  // Раніше селектор знаходив заголовок на сторінці альбому (вона вище в DOM) і перезаписував його
+  const tracksTitleEl = document.querySelector('#view-summary .tracks-summary-container .section-title');
 
   if (isSingle) {
     hBox.style.display = 'none';
@@ -1360,7 +1556,7 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
     const row = document.createElement('div');
     row.className = 'summary-row';
     row.innerHTML = `
-      <span>${t.title}</span>
+      <span>${escapeHTML(t.title)}</span>
       <span class="score-badge-val" style="color: ${scoreColor}; background: ${scoreColor}18; border-color: ${scoreColor}40; ${isTen ? 'box-shadow: 0 0 16px rgba(251, 191, 36, 0.5); text-shadow: 0 0 10px rgba(251, 191, 36, 0.7);' : ''}">${scoreText}</span>
     `;
       listContainer.appendChild(row);
@@ -1385,15 +1581,26 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
   };
 
   const saveBtn = document.getElementById('btn-save-summary');
+  saveBtn.disabled = false;
   if (isHistoryMode) {
-    saveBtn.innerHTML = `<img src="icons/check.svg" class="svg-icon btn-icon"> Закрити перегляд`;
-    saveBtn.onclick = () => showView(State.previousView || 'view-profile');
+    saveBtn.innerHTML = `<img src="icons/check.svg" alt="" class="svg-icon btn-icon"> Закрити перегляд`;
+    saveBtn.onclick = () => {
+      const target = State.previousView && State.previousView !== 'view-summary' ? State.previousView : 'view-home';
+      if (target === 'view-profile') updateProfileView();
+      showView(target);
+    };
   } else {
     saveBtn.innerHTML = `Зберегти в історію`;
     saveBtn.onclick = async () => {
-      await saveRatingToStorage();
+      if (saveBtn.disabled) return; // захист від подвійного збереження
+      saveBtn.disabled = true;
+      try {
+        await saveRatingToStorage();
+      } finally {
+        saveBtn.disabled = false;
+      }
+      State.homeLoaded = false; // оновити рекомендації без щойно оціненого релізу
       showView('view-home');
-      loadHomeRecommendations();
     };
   }
 }
@@ -1426,6 +1633,7 @@ function finishRating() {
 
   State.lastSummaryResult = {
     id: localId,
+    ts: now.getTime(),
     albumId: numericAlbumId,
     title: State.currentAlbum.title,
     artist: State.currentAlbum.artist,
@@ -1444,12 +1652,13 @@ function finishRating() {
 
 async function saveRatingToStorage() {
   if (!State.lastSummaryResult) return;
+  if (State.ratingsHistory.includes(State.lastSummaryResult)) return; // вже збережено
   State.ratingsHistory.unshift(State.lastSummaryResult);
-  localStorage.setItem('songrate_history', JSON.stringify(State.ratingsHistory));
+  saveStoredHistory();
 
   if (supabaseClient && State.user) {
     try {
-      const { data } = await supabaseClient.from('ratings').insert({
+      const { data, error } = await supabaseClient.from('ratings').insert({
         user_id: State.user.id,
         album_id: State.lastSummaryResult.albumId,
         title: State.lastSummaryResult.title,
@@ -1462,9 +1671,11 @@ async function saveRatingToStorage() {
         is_single_track: State.lastSummaryResult.isSingleTrack
       }).select().single();
 
+      if (error) throw error;
       if (data) {
         State.lastSummaryResult.id = data.id;
-        localStorage.setItem('songrate_history', JSON.stringify(State.ratingsHistory));
+        State.lastSummaryResult.userId = State.user.id;
+        saveStoredHistory();
       }
       loadLeaderboard();
     } catch (err) {
@@ -1491,7 +1702,7 @@ function updateProfileView() {
   document.getElementById('stat-total-ratings').textContent = history.length;
 
   if (history.length) {
-    const rawTotal = history.reduce((acc, h) => acc + h.avgScore, 0) / history.length;
+    const rawTotal = history.reduce((acc, h) => acc + (Number(h.avgScore) || 0), 0) / history.length;
     const avgEl = document.getElementById('stat-avg-score');
     avgEl.textContent = (rawTotal === 10) ? '10' : rawTotal.toFixed(1);
     avgEl.style.color = getScoreColor(rawTotal);
@@ -1529,11 +1740,11 @@ function updateProfileView() {
     const scoreText = (item.avgScore === 10) ? '10' : Number(item.avgScore).toFixed(1);
 
     card.innerHTML = `
-      <img src="${item.artwork || 'icons/album-placeholder.svg'}" class="history-thumb" alt="" onerror="this.src='icons/album-placeholder.svg'">
+      <img src="${escapeHTML(item.artwork || 'icons/album-placeholder.svg')}" class="history-thumb" alt="" onerror="this.onerror=null; this.src='icons/album-placeholder.svg'">
       <div class="item-info">
-        <span class="item-title">${item.title}</span>
-        <span class="item-sub">${item.artist}</span>
-        <span class="history-date">${item.date || 'Нещодавно'}</span>
+        <span class="item-title">${escapeHTML(item.title)}</span>
+        <span class="item-sub">${escapeHTML(item.artist)}</span>
+        <span class="history-date">${escapeHTML(item.date || 'Нещодавно')}</span>
       </div>
       <span class="score-badge-val" style="color: ${scoreColor}; background: ${scoreColor}18;">${scoreText}</span>
     `;
@@ -1579,10 +1790,14 @@ async function loadUserCloudRatings(userId) {
 
   if (!error && data?.length) {
     const localMap = new Map(State.ratingsHistory.map(h => [h.albumId, h]));
-    State.ratingsHistory = data.map(d => {
+    // Оцінки, зроблені без входу (rev_...), раніше просто затирались хмарними
+    const localOnly = State.ratingsHistory.filter(h => isLocalReviewId(h.id));
+    const cloudItems = data.map(d => {
       const localItem = localMap.get(d.album_id);
       return {
         id: d.id,
+        ts: Date.parse(d.created_at) || 0,
+        userId: d.user_id,
         albumId: d.album_id,
         title: d.title,
         artist: d.artist,
@@ -1595,7 +1810,9 @@ async function loadUserCloudRatings(userId) {
         tracks: d.tracks || localItem?.tracks || []
       };
     });
-    localStorage.setItem('songrate_history', JSON.stringify(State.ratingsHistory));
+    State.ratingsHistory = [...localOnly, ...cloudItems]
+      .sort((a, b) => getReviewTimestamp(b) - getReviewTimestamp(a));
+    saveStoredHistory();
     updateProfileView();
   }
 }
@@ -1611,6 +1828,14 @@ function initAuth() {
   const submitBtn = document.getElementById('btn-auth-submit');
   const title = document.getElementById('auth-title');
 
+  const showAuthMessage = (text, isInfo = false) => {
+    errBox.textContent = text;
+    errBox.classList.toggle('is-info', isInfo);
+    errBox.classList.remove('hidden');
+  };
+
+  const closeModal = () => modal.classList.add('hidden');
+
   btnOpen.addEventListener('click', async () => {
     if (State.user) {
       if (supabaseClient) await supabaseClient.auth.signOut();
@@ -1623,7 +1848,13 @@ function initAuth() {
     }
   });
 
-  btnClose.addEventListener('click', () => modal.classList.add('hidden'));
+  btnClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal(); // клік по затемненню
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+  });
 
   tabLogin.addEventListener('click', () => {
     State.authMode = 'login';
@@ -1651,8 +1882,7 @@ function initAuth() {
     const password = document.getElementById('auth-password').value.trim();
 
     if (!supabaseClient) {
-      errBox.textContent = 'Вкажи SUPABASE_URL та SUPABASE_ANON_KEY на початку app.js';
-      errBox.classList.remove('hidden');
+      showAuthMessage('Сервер акаунтів зараз недоступний. Спробуй пізніше.');
       return;
     }
 
@@ -1669,11 +1899,14 @@ function initAuth() {
       submitBtn.textContent = 'Створити акаунт';
 
       if (error) {
-        errBox.textContent = error.message;
-        errBox.classList.remove('hidden');
-      } else if (data.user) {
+        showAuthMessage(error.message);
+      } else if (data.session && data.user) {
         applyUserSession(data.user);
-        modal.classList.add('hidden');
+        await loadUserCloudRatings(data.user.id);
+        closeModal();
+      } else if (data.user) {
+        // Потрібне підтвердження пошти — сесії ще немає, тож не вдаємо, що користувач увійшов
+        showAuthMessage('Акаунт створено! Підтверди пошту за посиланням з листа, а потім увійди.', true);
       }
     } else {
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -1681,12 +1914,13 @@ function initAuth() {
       submitBtn.textContent = 'Увійти';
 
       if (error) {
-        errBox.textContent = 'Неправильна пошта або пароль';
-        errBox.classList.remove('hidden');
+        showAuthMessage(/confirm/i.test(error.message || '')
+          ? 'Спершу підтверди пошту за посиланням з листа'
+          : 'Неправильна пошта або пароль');
       } else if (data.user) {
         applyUserSession(data.user);
         await loadUserCloudRatings(data.user.id);
-        modal.classList.add('hidden');
+        closeModal();
       }
     }
   });

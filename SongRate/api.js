@@ -47,9 +47,38 @@ const MusicAPI = {
     }
   },
 
+  // 1.1 Пошук лише альбомів (для рекомендацій — 1 запит замість 3, щоб не впиратися в ліміт iTunes)
+  async searchAlbums(query, limit = 8) {
+    if (!query) return [];
+    const q = encodeURIComponent(query.trim().replace(/\s+/g, ' '));
+    try {
+      const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=album&limit=${limit}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.results || [];
+    } catch (err) {
+      console.error('Помилка пошуку альбомів:', err);
+      return [];
+    }
+  },
+
+  // 1.2 Окремий трек (щоб дістати previewUrl, якщо його немає)
+  async getTrack(trackId) {
+    if (!trackId) return null;
+    try {
+      const res = await fetch(`https://itunes.apple.com/lookup?id=${encodeURIComponent(trackId)}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return (data.results || []).find(item => item.wrapperType === 'track') || null;
+    } catch (err) {
+      console.error('Помилка завантаження треку:', err);
+      return null;
+    }
+  },
+
   // 2. Отримання альбому та всіх його треків
   async getAlbumWithTracks(albumId) {
-    const url = `https://itunes.apple.com/lookup?id=${albumId}&entity=song&limit=100`;
+    const url = `https://itunes.apple.com/lookup?id=${encodeURIComponent(albumId)}&entity=song&limit=200`;
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -57,8 +86,10 @@ const MusicAPI = {
 
       if (!data.results || data.results.length === 0) return null;
 
-      const albumMeta = data.results[0];
-      const tracks = data.results.slice(1).filter(item => item.wrapperType === 'track');
+      const albumMeta = data.results.find(item => item.wrapperType === 'collection') || data.results[0];
+      const tracks = data.results
+        .filter(item => item.wrapperType === 'track' && item.kind !== 'music-video')
+        .sort((a, b) => ((a.discNumber || 1) - (b.discNumber || 1)) || ((a.trackNumber || 0) - (b.trackNumber || 0)));
 
       const rawArt = albumMeta.artworkUrl100 || '';
       const highResArt = rawArt ? rawArt.replace('100x100bb', '1000x1000bb') : '';
@@ -84,20 +115,20 @@ const MusicAPI = {
 
   // 3. Дискографія артиста
   async getArtistDiscography(artistId) {
-    const url = `https://itunes.apple.com/lookup?id=${artistId}&entity=album&limit=100`;
+    const url = `https://itunes.apple.com/lookup?id=${encodeURIComponent(artistId)}&entity=album&limit=200`;
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
 
-      const items = data.results ? data.results.slice(1) : [];
+      const items = (data.results || []).filter(item => item.wrapperType === 'collection');
 
       const albums = [];
       const eps = [];
       const singles = [];
 
       items.forEach(item => {
-        const name = (item.collectionName || '').toLowerCase();
+        const name = (item.collectionName || '').trim();
         const count = item.trackCount || 1;
         const rawArt = item.artworkUrl100 || '';
         const art = rawArt ? rawArt.replace('100x100bb', '600x600bb') : '';
@@ -111,9 +142,11 @@ const MusicAPI = {
           count
         };
 
-        if (count <= 2 || name.includes('single')) {
+        // iTunes підписує релізи як "Назва - Single" / "Назва - EP".
+        // Раніше перевірка includes('ep') ловила будь-яке слово з "ep" (Deep, Sleep...)
+        if (count <= 2 || /\s-\s*single$/i.test(name)) {
           singles.push(release);
-        } else if ((count >= 3 && count <= 6) || name.includes('ep')) {
+        } else if (count <= 6 || /\s-\s*ep$/i.test(name)) {
           eps.push(release);
         } else {
           albums.push(release);
