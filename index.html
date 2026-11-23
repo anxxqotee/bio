@@ -751,6 +751,48 @@
       transition: outline-color 0.3s ease, color 0.3s ease, background-color 0.3s ease;
     }
 
+    /* Плашка "Нове відео" */
+    .link-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .new-pill {
+      flex-shrink: 0;
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 10px;
+      background-color: #e5322d;
+      color: #ffffff;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(229, 50, 45, 0.35);
+      transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Всередині — стікер у куті кнопки, щоб не ламати рядок */
+    .nested-btn {
+      position: relative;
+    }
+
+    .nested-btn .new-pill {
+      position: absolute;
+      top: -7px;
+      right: 14px;
+      font-size: 0.64rem;
+      padding: 3px 7px;
+    }
+
+    /* На закритій картці плашка видна, при відкритті переїжджає всередину */
+    .link-card.is-open .link-main-row .new-pill {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+
     .nested-btn-right {
       font-size: 0.78rem;
       color: var(--subtext);
@@ -1005,10 +1047,12 @@
           title: "YouTube",
           subtitle: "Основний та ігровий канали",
           icon: "img/youtube.svg",
+          newLabel: "Нове відео", // плашка на закритій картці (прибрати рядок, щоб сховати)
           nestedButtons: [
             {
               title: "Основний канал",
               badge: "Великі відео",
+              newLabel: "Нове відео", // плашка всередині, коли картку відкрито
               url: "https://youtube.com/@artem_haiduk",
               actionText: "Перейти",
               actionType: "external"
@@ -1129,6 +1173,8 @@
 
     const linksBox = document.getElementById('linksContainer');
 
+    const newPill = (label) => label ? `<span class="new-pill">${label}</span>` : '';
+
     // Розкриття / закриття картки (лише одна відкрита одночасно)
     function setCardOpen(card, open) {
       card.classList.toggle('is-open', open);
@@ -1198,7 +1244,7 @@
               <span class="link-icon-masked" style="-webkit-mask-image: url('${btn.icon}'); mask-image: url('${btn.icon}');"></span>
             </div>
             <div class="link-content">
-              <span class="link-title">${btn.title}</span>
+              <span class="link-title-row"><span class="link-title">${btn.title}</span>${newPill(btn.newLabel)}</span>
               <span class="link-subtitle">${btn.subtitle}</span>
             </div>
             ${arrowIcon}
@@ -1235,7 +1281,7 @@
               <button type="button" class="nested-btn copy-card-btn" data-copy="${PAGE_DATA.cardNumber}">
                 <div class="nested-btn-left">
                   <span>${sub.title}</span>
-                  <span class="nested-btn-badge">${sub.badge}</span>
+                  <span class="nested-btn-badge">${sub.badge}</span>${newPill(sub.newLabel)}
                 </div>
                 <span class="nested-btn-right">
                   <span class="nested-btn-text">${sub.actionText}</span>
@@ -1248,7 +1294,7 @@
               <a href="${sub.url}" target="_blank" rel="noopener noreferrer" class="nested-btn">
                 <div class="nested-btn-left">
                   <span>${sub.title}</span>
-                  <span class="nested-btn-badge">${sub.badge}</span>
+                  <span class="nested-btn-badge">${sub.badge}</span>${newPill(sub.newLabel)}
                 </div>
                 <span class="nested-btn-right">
                   <span class="nested-btn-text">${sub.actionText}</span>
@@ -1268,7 +1314,7 @@
               <span class="link-icon-masked" style="-webkit-mask-image: url('${btn.icon}'); mask-image: url('${btn.icon}');"></span>
             </div>
             <div class="link-content">
-              <span class="link-title">${btn.title}</span>
+              <span class="link-title-row"><span class="link-title">${btn.title}</span>${newPill(btn.newLabel)}</span>
               <span class="link-subtitle">${btn.subtitle}</span>
             </div>
             ${arrowIcon}
@@ -1291,7 +1337,7 @@
                 <span class="link-icon-masked" style="-webkit-mask-image: url('${btn.icon}'); mask-image: url('${btn.icon}');"></span>
               </div>
               <div class="link-content">
-                <span class="link-title">${btn.title}</span>
+                <span class="link-title-row"><span class="link-title">${btn.title}</span>${newPill(btn.newLabel)}</span>
                 <span class="link-subtitle">${btn.subtitle}</span>
               </div>
               ${arrowIcon}
