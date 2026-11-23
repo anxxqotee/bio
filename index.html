@@ -632,9 +632,8 @@
       flex-shrink: 0;
     }
 
-    /* Випуклий стан на телефоні: при скролі, дотику або "прожектор" */
-    .link-card.is-elevated,
-    .link-card.is-touched:not(.is-open) {
+    /* Випуклий стан на телефоні під час гортання */
+    .link-card.is-elevated {
       transform: translateY(-2px);
       border-color: rgba(255, 255, 255, 0.25);
       box-shadow: 
@@ -642,50 +641,24 @@
         -9px -11px 24px var(--shadow-light);
     }
 
-    .link-card.is-elevated .link-icon-masked,
-    .link-card.is-touched:not(.is-open) .link-icon-masked {
+    .link-card.is-elevated .link-icon-masked {
       transform: scale(1.08) rotate(-6deg);
     }
 
-    .link-card.is-elevated .link-icon-box,
-    .link-card.is-touched:not(.is-open) .link-icon-box {
+    .link-card.is-elevated .link-icon-box {
       transform: scale(1.06);
       box-shadow: 
         3px 3px 8px var(--shadow-dark),
         -3px -3px 8px var(--shadow-light);
     }
 
-    .link-card.is-elevated .link-arrow,
-    .link-card.is-touched:not(.is-open) .link-arrow {
+    .link-card.is-elevated .link-arrow {
       opacity: 1;
       transform: translateX(3px);
     }
 
-    .link-card.is-elevated .link-subtitle,
-    .link-card.is-touched .link-subtitle {
+    .link-card.is-elevated .link-subtitle {
       color: var(--text);
-    }
-
-    /* Дотик на телефоні для дрібних елементів — як hover на ПК */
-    .nested-btn.is-touched {
-      background-color: var(--sub-card-hover) !important;
-    }
-
-    .nested-btn.is-touched .nested-action-icon {
-      transform: translate(2px, -2px);
-    }
-
-    .username-badge.is-touched,
-    .theme-toggle.is-touched {
-      transform: translateY(-2px);
-    }
-
-    .theme-toggle.is-touched svg {
-      transform: rotate(-18deg) scale(1.08);
-    }
-
-    .insta-preview-card.is-touched .insta-preview-img {
-      transform: scale(1.08);
     }
 
     /* Hover на ПК */
@@ -1066,19 +1039,26 @@
 
     .easter-egg {
       width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
       padding-bottom: 10px;
       opacity: 0;
-      transform: translateY(60px) scale(0.85) rotate(-3deg);
-      transition: opacity 0.7s var(--ease-soft), transform 1.1s var(--ease-spring);
+      transform-origin: 50% 100%;
     }
 
+    /* Смішна поява: вилітає, розплющується, витягується і трясеться як желе */
     .easter-egg.is-visible {
       opacity: 1;
-      transform: translateY(0) scale(1) rotate(0deg);
+      animation: easterBoing 1.4s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+    }
+
+    @keyframes easterBoing {
+      0%   { opacity: 0; transform: translateY(120px) scale(0.3, 1.6); }
+      22%  { opacity: 1; transform: translateY(-30px) scale(0.75, 1.35); }
+      36%  { transform: translateY(0) scale(1.45, 0.55); }
+      50%  { transform: translateY(-12px) scale(0.8, 1.25); }
+      63%  { transform: translateY(0) scale(1.18, 0.86); }
+      75%  { transform: scale(0.93, 1.08) rotate(-2deg); }
+      86%  { transform: scale(1.04, 0.97) rotate(1.5deg); }
+      100% { opacity: 1; transform: scale(1, 1) rotate(0); }
     }
 
     .easter-img {
@@ -1090,12 +1070,6 @@
       box-shadow: 
         8px 10px 22px var(--shadow-dark),
         -8px -10px 22px var(--shadow-light);
-    }
-
-    .easter-caption {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--subtext);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1192,7 +1166,6 @@
 
     <div class="easter-egg" id="easterEgg">
       <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" loading="lazy" width="1349" height="600">
-      <p class="easter-caption">ти догортав до самого кінця 👀</p>
     </div>
   </div>
 
@@ -1735,75 +1708,48 @@
 
     syncTheme();
 
-    // 4. "Hover" на телефоні
-    //    - дотик до елемента показує ту саму анімацію, що й наведення на ПК;
-    //    - якщо сторінку можна гортати — піднімається картка за прогресом скролу;
-    //    - якщо гортати нікуди — картки по черзі м'яко "підсвічуються" самі.
+    // 4. Анімація за скролом (мобільні): картка стає випуклою лише під час гортання.
+    //    Угорі сторінки активна перша картка, далі — по черзі до останньої.
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (isTouchDevice) {
       const cards = Array.from(document.querySelectorAll('.link-card'));
-      const TOUCH_SELECTOR = '.link-card, .nested-btn, .username-badge, .theme-toggle, .insta-preview-card';
-      const TOUCH_HOLD_MS = 650;   // скільки "hover" лишається після відпускання
-      const IDLE_PAUSE_MS = 5000;  // пауза прожектора після дотику
-      const SPOTLIGHT_MS = 2600;   // як часто прожектор переходить на наступну картку
-
-      let lastInteraction = 0;
-      let spotlightIdx = -1;
       let ticking = false;
 
-      const setElevated = (activeIndex) => {
+      const docCenter = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.top + (window.scrollY || window.pageYOffset) + r.height / 2;
+      };
+
+      function updateActiveCardOnScroll() {
+        ticking = false;
+        if (cards.length === 0) return;
+        const scrollY = window.scrollY || window.pageYOffset;
+        const first = docCenter(cards[0]);
+        const last = docCenter(cards[cards.length - 1]);
+
+        // Скільки треба прогорнути, щоб остання картка дійшла до центру екрана
+        const range = Math.max(last - window.innerHeight / 2, 1);
+        const progress = Math.min(Math.max(scrollY / range, 0), 1);
+        const focus = first + (last - first) * progress;
+
+        let activeIndex = -1;
+        let bestDist = Infinity;
+        cards.forEach((card, idx) => {
+          const dist = Math.abs(docCenter(card) - focus);
+          if (dist < bestDist) { bestDist = dist; activeIndex = idx; }
+        });
+
+        // Картки вже за верхнім краєм (гортаємо до пасхалки) — нічого не піднімаємо
+        const lastRect = cards[cards.length - 1].getBoundingClientRect();
+        if (lastRect.bottom < 0) activeIndex = -1;
+
         cards.forEach((card, idx) => {
           card.classList.toggle('is-elevated', idx === activeIndex && !card.classList.contains('is-open'));
         });
-      };
-
-      const canScroll = () => document.documentElement.scrollHeight - window.innerHeight > 40;
-
-      // --- Дотик ---
-      document.addEventListener('touchstart', () => {}, { passive: true }); // вмикає :active в iOS
-
-      const touchedTimers = new WeakMap();
-      document.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'mouse') return;
-        const el = e.target.closest(TOUCH_SELECTOR);
-        lastInteraction = Date.now();
-        setElevated(-1);
-        if (!el) return;
-        clearTimeout(touchedTimers.get(el));
-        el.classList.add('is-touched');
-      }, { passive: true });
-
-      const release = (e) => {
-        if (e.pointerType === 'mouse') return;
-        document.querySelectorAll('.is-touched').forEach((el) => {
-          clearTimeout(touchedTimers.get(el));
-          touchedTimers.set(el, setTimeout(() => el.classList.remove('is-touched'), TOUCH_HOLD_MS));
-        });
-      };
-      document.addEventListener('pointerup', release, { passive: true });
-      document.addEventListener('pointercancel', release, { passive: true });
-
-      // --- Скрол ---
-      // Піднімаємо картку, найближчу до центру екрана (якщо картки взагалі видно)
-      function updateActiveCardOnScroll() {
-        ticking = false;
-        if (!canScroll() || cards.length === 0) return;
-        const center = window.innerHeight / 2;
-        let best = -1;
-        let bestDist = Infinity;
-        cards.forEach((card, idx) => {
-          const r = card.getBoundingClientRect();
-          if (r.bottom < 0 || r.top > window.innerHeight) return;
-          const dist = Math.abs(r.top + r.height / 2 - center);
-          if (dist < bestDist) { bestDist = dist; best = idx; }
-        });
-        setElevated(best);
       }
 
       window.addEventListener('scroll', () => {
-        lastInteraction = Date.now();
         if (!ticking) {
           window.requestAnimationFrame(updateActiveCardOnScroll);
           ticking = true;
@@ -1811,17 +1757,6 @@
       }, { passive: true });
       window.addEventListener('resize', updateActiveCardOnScroll);
       setTimeout(updateActiveCardOnScroll, 350);
-
-      // --- Прожектор, коли гортати нікуди ---
-      if (!reduceMotion) {
-        setInterval(() => {
-          if (document.hidden || canScroll()) return;
-          if (Date.now() - lastInteraction < IDLE_PAUSE_MS) return;
-          if (document.querySelector('.link-card.is-open')) { setElevated(-1); return; }
-          spotlightIdx = (spotlightIdx + 1) % cards.length;
-          setElevated(spotlightIdx);
-        }, SPOTLIGHT_MS);
-      }
     }
 
     // 4.1 Пасхалка: підказки та картинка з'являються, коли до них догортали
