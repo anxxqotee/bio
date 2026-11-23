@@ -1194,6 +1194,120 @@
       100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    /* ===== 3D-РЕЖИМ ПАСХАЛКИ ===== */
+    .egg3d-scene {
+      perspective: 900px;
+    }
+
+    .egg3d-card {
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    .egg3d-back,
+    .egg3d-glare,
+    .egg3d-edge {
+      display: none;
+    }
+
+    .easter-overlay.is-3d .egg3d-card {
+      cursor: grab;
+      will-change: transform;
+    }
+
+    .easter-overlay.is-3d .easter-img {
+      transform: translateZ(11px) !important;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      box-shadow: none;
+    }
+
+    /* Зворот — "інопланетна" версія фото */
+    .easter-overlay.is-3d .egg3d-back {
+      display: block;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 28px;
+      transform: rotateY(180deg) translateZ(11px);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      filter: hue-rotate(170deg) saturate(1.6) contrast(1.1);
+      pointer-events: none;
+    }
+
+    /* Товщина картки — стопка кілець по краю (всередині порожньо, щоб не
+       перекривати лице чи зворот під будь-яким кутом) */
+    .easter-overlay.is-3d .egg3d-edge {
+      display: block;
+      position: absolute;
+      inset: 0;
+      border-radius: 28px;
+      border: 4px solid #34363e;
+      background: transparent;
+      pointer-events: none;
+    }
+
+    /* Відблиск, що бігає по картці */
+    .easter-overlay.is-3d .egg3d-glare {
+      display: block;
+      position: absolute;
+      inset: 0;
+      border-radius: 28px;
+      transform: translateZ(11.5px);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 55%);
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+
+    .egg3d-toggle {
+      position: relative;
+      z-index: 3;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 9999px;
+      border: 1px solid var(--card-border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      box-shadow: 
+        5px 5px 14px rgba(0, 0, 0, 0.35),
+        -3px -3px 10px var(--shadow-light);
+      transition: transform 0.5s var(--ease-spring), box-shadow 0.4s var(--ease-smooth), background-color 0.4s var(--ease-soft), color 0.4s var(--ease-soft);
+    }
+
+    .egg3d-toggle svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.8s var(--ease-spring);
+    }
+
+    .egg3d-toggle[aria-pressed="true"] {
+      background: var(--text);
+      color: var(--bg);
+    }
+
+    .egg3d-toggle[aria-pressed="true"] svg {
+      transform: rotate(180deg);
+    }
+
+    .egg3d-toggle:active {
+      transform: scale(0.94);
+    }
+
     .easter-bounce {
       position: relative;
       z-index: 1;
@@ -1338,8 +1452,19 @@
   <div class="easter-overlay" id="easterOverlay" role="dialog" aria-label="Пасхалка" aria-hidden="true">
     <div class="easter-quote" id="easterQuote" aria-live="polite"></div>
     <div class="easter-bounce">
-      <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" decoding="async" width="1349" height="600">
+      <div class="egg3d-scene">
+        <div class="egg3d-card" id="egg3dCard">
+          <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" decoding="async" width="1349" height="600">
+          <img src="img/easter-egg.webp" alt="" class="egg3d-back" aria-hidden="true" decoding="async">
+          <div class="egg3d-glare" aria-hidden="true"></div>
+        </div>
+      </div>
     </div>
+
+    <button type="button" class="egg3d-toggle" id="egg3dToggle" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M12 2.8 20 7.3v9.4L12 21.2 4 16.7V7.3Z"></path><path d="M4 7.3l8 4.5 8-4.5M12 11.8v9.4"></path></svg>
+      <span id="egg3dLabel">3D</span>
+    </button>
   </div>
 
   <script src="js/easter-phrases.js"></script>
@@ -2144,7 +2269,10 @@
         rafId = requestAnimationFrame(step);
       }
 
+      const is3D = () => document.getElementById('easterOverlay').classList.contains('is-3d');
+
       img.addEventListener('pointerdown', (e) => {
+        if (is3D()) return; // у 3D-режимі картку крутять, а не розтягують
         e.preventDefault();
         dragging = true;
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
@@ -2249,6 +2377,204 @@
           if (e.target === overlay) { bubble.classList.remove('is-shown'); lastShown = -Infinity; }
         });
       }
+    })();
+
+    // 4.5 3D-режим: об'ємна картка, яку можна крутити пальцем і нахиляти телефоном
+    (() => {
+      const overlay = document.getElementById('easterOverlay');
+      const card = document.getElementById('egg3dCard');
+      const btn = document.getElementById('egg3dToggle');
+      const label = document.getElementById('egg3dLabel');
+      const img = card && card.querySelector('.easter-img');
+      const glare = card && card.querySelector('.egg3d-glare');
+      if (!overlay || !card || !btn || !img) return;
+
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const THICK = 22;                 // товщина картки, px
+      const LAYERS = 20;
+
+      // Товщина: шари між лицем і зворотом
+      for (let i = 0; i < LAYERS; i++) {
+        const z = -THICK / 2 + (THICK * (i + 0.5)) / LAYERS;
+        const edge = document.createElement('div');
+        edge.className = 'egg3d-edge';
+        // Трохи світліші краї посередині — об'ємніше виглядає
+        const shade = 46 + Math.round(Math.sin((i / (LAYERS - 1)) * Math.PI) * 18);
+        edge.style.borderColor = `rgb(${shade}, ${shade + 2}, ${shade + 10})`;
+        edge.style.transform = `translateZ(${z.toFixed(2)}px)`;
+        card.insertBefore(edge, img);
+      }
+
+      let on = false;
+      let rx = 0, ry = 0;               // поворот, градуси
+      let vx = 0, vy = 0;               // швидкість, градуси/с
+      let tiltX = 0, tiltY = 0;         // нахил від гіроскопа
+      let gx = 0, gy = 0;               // згладжений нахил
+      let dragging = false;
+      let last = null;
+      let rafId = null;
+      let prevT = 0;
+      let lastFace = 0;
+      let baseBeta = null;
+
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+      const onOrient = (e) => {
+        if (e.beta == null || e.gamma == null) return;
+        if (baseBeta === null) baseBeta = e.beta;
+        tiltX = clamp((e.beta - baseBeta) * 0.7, -25, 25);
+        tiltY = clamp(e.gamma * 0.7, -25, 25);
+      };
+
+      function frame(t) {
+        const dt = Math.min((t - prevT) / 1000, 0.033);
+        prevT = t;
+
+        if (!dragging) {
+          // Обертання по Y крутиться з інерцією і тертям, потім м'яко "сідає" на лице або зворот
+          vy *= Math.pow(0.12, dt);
+          if (Math.abs(vy) < 40) {
+            const target = Math.round(ry / 180) * 180;
+            vy += ((target - ry) * 28 - vy * 6) * dt;
+          }
+          ry += vy * dt;
+          // Нахил по X пружинить назад
+          vx += (-rx * 60 - vx * 9) * dt;
+          rx += vx * dt;
+        }
+
+        gx += (tiltX - gx) * Math.min(1, dt * 8);
+        gy += (tiltY - gy) * Math.min(1, dt * 8);
+
+        const X = rx + gx;
+        const Y = ry + gy;
+        const float = Math.sin(t / 900) * 4;
+        card.style.transform = `translateY(${float.toFixed(2)}px) rotateX(${(-X).toFixed(2)}deg) rotateY(${Y.toFixed(2)}deg)`;
+
+        if (glare) {
+          const yr = (Y * Math.PI) / 180, xr = (X * Math.PI) / 180;
+          glare.style.setProperty('--gx', `${50 - Math.sin(yr) * 60}%`);
+          glare.style.setProperty('--gy', `${35 + Math.sin(xr) * 60}%`);
+        }
+
+        // Перевернули на інший бік — тік і звук
+        const face = Math.round(ry / 180);
+        if (face !== lastFace) {
+          lastFace = face;
+          Haptics.tick(14);
+          if (window.easterSound && window.easterSound.flip) window.easterSound.flip();
+        }
+
+        rafId = on || Math.abs(ry % 360) > 0.5 ? requestAnimationFrame(frame) : null;
+      }
+
+      const start = () => {
+        if (!rafId) { prevT = performance.now(); rafId = requestAnimationFrame(frame); }
+      };
+
+      async function enable() {
+        on = true;
+        overlay.classList.add('is-3d');
+        btn.setAttribute('aria-pressed', 'true');
+        label.textContent = '2D';
+        img.style.transform = '';
+        rx = 0; ry = 0; vx = 0; lastFace = 0;
+        vy = reduceMotion ? 0 : 720;       // ефектне "розкручування" на вході
+        baseBeta = null;
+        // iPhone просить дозвіл на гіроскоп — лише у відповідь на натискання кнопки
+        try {
+          if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            const res = await DeviceOrientationEvent.requestPermission();
+            if (res !== 'granted') throw new Error('denied');
+          }
+          window.addEventListener('deviceorientation', onOrient);
+        } catch (e) {}
+        Haptics.pattern([10, 40, 10, 40, 20]);
+        start();
+      }
+
+      function disable() {
+        on = false;
+        window.removeEventListener('deviceorientation', onOrient);
+        tiltX = tiltY = 0;
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = null;
+        // Плавно повертаємо картку лицем до глядача
+        const target = Math.round(ry / 360) * 360;
+        card.style.transition = 'transform 0.7s cubic-bezier(0.34, 1.3, 0.64, 1)';
+        card.style.transform = `rotateX(0deg) rotateY(${target}deg)`;
+        btn.setAttribute('aria-pressed', 'false');
+        label.textContent = '3D';
+        Haptics.tick(12);
+        setTimeout(() => {
+          if (on) return;
+          overlay.classList.remove('is-3d');
+          card.style.transition = '';
+          card.style.transform = '';
+          rx = ry = vx = vy = 0;
+        }, 720);
+      }
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (on) disable(); else enable();
+      });
+
+      // Закрили пасхалку — виходимо з 3D
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay && on) {
+          on = false;
+          window.removeEventListener('deviceorientation', onOrient);
+          overlay.classList.remove('is-3d');
+          btn.setAttribute('aria-pressed', 'false');
+          label.textContent = '3D';
+          card.style.transform = '';
+          card.style.transition = '';
+        }
+      });
+
+      // Кручення пальцем
+      card.addEventListener('pointerdown', (e) => {
+        if (!on) return;
+        e.preventDefault();
+        dragging = true;
+        card.style.cursor = 'grabbing';
+        last = { x: e.clientX, y: e.clientY, t: performance.now() };
+        vx = vy = 0;
+        try { card.setPointerCapture(e.pointerId); } catch (err) {}
+        if (window.easterQuote) window.easterQuote();
+        Haptics.tick(8);
+        if (window.easterSound) window.easterSound.grab();
+        start();
+      });
+
+      card.addEventListener('pointermove', (e) => {
+        if (!on || !dragging || !last) return;
+        const now = performance.now();
+        const dt = Math.max((now - last.t) / 1000, 0.001);
+        const dx = e.clientX - last.x;
+        const dy = e.clientY - last.y;
+        ry += dx * 0.5;
+        rx = clamp(rx + dy * 0.5, -70, 70);
+        // Згладжена швидкість для інерції після відпускання
+        vy = vy * 0.6 + ((dx * 0.5) / dt) * 0.4;
+        vx = vx * 0.6 + ((dy * 0.5) / dt) * 0.4;
+        last = { x: e.clientX, y: e.clientY, t: now };
+      });
+
+      const end = () => {
+        if (!dragging) return;
+        dragging = false;
+        card.style.cursor = '';
+        // Відпустили без руху — гасимо швидкість
+        if (last && performance.now() - last.t > 80) { vx = 0; vy = 0; }
+        vy = clamp(vy, -2000, 2000);
+        vx = clamp(vx, -600, 600);
+        if (Math.abs(vy) > 500) Haptics.pattern([12, 30, 8]);
+      };
+      card.addEventListener('pointerup', end);
+      card.addEventListener('pointercancel', end);
+      card.addEventListener('lostpointercapture', end);
     })();
 
     // 4.4 Звуки пасхалки: водяні "хлюпи" з варіаціями (синтез у браузері, без файлів)
@@ -2378,6 +2704,16 @@
       ];
 
       return {
+        // Переворот картки в 3D — легкий "свуш" і клац
+        flip() {
+          try {
+            if (!getAC()) return;
+            const t = ac.currentTime + 0.005;
+            const d = out(0.45);
+            wash(d, t, 0.14, 0.1, 600, 3000, 2);
+            bloop(d, t + 0.05, 900, 1400, 0.04, 0.12, 'triangle');
+          } catch (e) {}
+        },
         // Тихий "чвяк" коли хапаєш картинку
         grab() {
           try {
