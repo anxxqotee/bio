@@ -1163,7 +1163,7 @@
       transform-origin: 50% 100%;
       transition: opacity 0.25s var(--ease-soft), transform 0.3s var(--ease-smooth);
       pointer-events: none;
-      z-index: 2;
+      z-index: 3;
     }
 
     /* Хвостик бульбашки */
@@ -1194,16 +1194,19 @@
       100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    /* Хвилі малюються під картинкою і під фразою — нічого не перекривають */
     #splashCanvas {
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100vh;
       pointer-events: none;
-      z-index: 9500;
+      z-index: 0;
     }
 
     .easter-bounce {
+      position: relative;
+      z-index: 1;
       width: 100%;
       max-width: 460px;
       opacity: 0;
@@ -1343,14 +1346,12 @@
   </div>
 
   <div class="easter-overlay" id="easterOverlay" role="dialog" aria-label="Пасхалка" aria-hidden="true">
+    <canvas id="splashCanvas" aria-hidden="true"></canvas>
     <div class="easter-quote" id="easterQuote" aria-live="polite"></div>
     <div class="easter-bounce">
       <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" decoding="async" width="1349" height="600">
     </div>
   </div>
-
-  <!-- Полотно для хлюпань на весь екран -->
-  <canvas id="splashCanvas" aria-hidden="true"></canvas>
 
   <script src="js/easter-phrases.js"></script>
   <script>
@@ -2188,16 +2189,13 @@
       }
     })();
 
-    // 4.4 Хлюпання: відпускаєш розтягнуту картинку — з неї на весь екран летять
-    //     желейні краплі, ляпаються об "скло" екрана, стікають і зникають.
+    // 4.4 Хлюпання: відпускаєш розтягнуту картинку — від неї по екрану розходяться
+    //     хвилі, як по воді, і звучить водяний "плюх".
     (() => {
       const canvas = document.getElementById('splashCanvas');
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-      // Соковиті желейні кольори
-      const COLORS = ['#ff3b6b', '#ff8a1f', '#ffd21f', '#7be33b', '#22d3c5', '#3b8bff', '#a15bff', '#ff5bd1'];
 
       let W = 0, H = 0, dpr = 1;
       const resize = () => {
@@ -2211,175 +2209,67 @@
       resize();
       window.addEventListener('resize', resize);
 
-      let drops = [];
-      let splats = [];
+      let waves = [];
       let rafId = null;
-      let lastT = 0;
       const rand = (a, b) => a + Math.random() * (b - a);
 
-      // Нерівна "клякса" — коло з горбками
-      const makeBlob = (r) => {
-        const n = 9 + Math.floor(Math.random() * 5);
-        const pts = [];
-        for (let i = 0; i < n; i++) pts.push(r * rand(0.78, 1.22));
-        return pts;
-      };
-
-      // Плавна крива через середини між "горбками"
-      const drawBlob = (x, y, pts, scale) => {
-        const n = pts.length;
-        const P = pts.map((rr, i) => {
-          const a = (i / n) * Math.PI * 2;
-          return [x + Math.cos(a) * rr * scale, y + Math.sin(a) * rr * scale];
-        });
-        const mid = (i) => {
-          const p0 = P[i % n], p1 = P[(i + 1) % n];
-          return [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2];
-        };
+      // Коло з легким "тремтінням", як хвиля на воді
+      const ringPath = (cx, cy, rad, wob, phase) => {
         ctx.beginPath();
-        const m0 = mid(0);
-        ctx.moveTo(m0[0], m0[1]);
-        for (let i = 1; i <= n; i++) {
-          const c = P[i % n], m = mid(i);
-          ctx.quadraticCurveTo(c[0], c[1], m[0], m[1]);
+        if (wob < 0.3) {
+          ctx.arc(cx, cy, Math.max(rad, 0), 0, Math.PI * 2);
+          return;
+        }
+        const steps = 120;
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * Math.PI * 2;
+          const r = Math.max(rad + Math.sin(t * 5 + phase) * wob * 0.7 + Math.sin(t * 2 - phase) * wob * 0.3, 0);
+          const x = cx + Math.cos(t) * r, y = cy + Math.sin(t) * r;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
         ctx.closePath();
-        ctx.fill();
       };
-
-      // Глянцевий відблиск — щоб виглядало як желе, а не бруд
-      const shine = (x, y, r, alpha) => {
-        ctx.save();
-        ctx.globalAlpha = alpha * 0.55;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.ellipse(x - r * 0.35, y - r * 0.4, r * 0.28, r * 0.16, -0.6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      };
-
-      function playSplat(power) {
-        // Синтезований "хлюп": падіння тону + шум
-        try {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (!AC) return;
-          const ac = window.__splatAC || (window.__splatAC = new AC());
-          if (ac.state === 'suspended') ac.resume();
-          const t = ac.currentTime;
-          const vol = Math.min(0.25, 0.08 + power * 0.15);
-
-          const osc = ac.createOscillator();
-          const g = ac.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(520 + power * 200, t);
-          osc.frequency.exponentialRampToValueAtTime(70, t + 0.22);
-          g.gain.setValueAtTime(vol, t);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-          osc.connect(g).connect(ac.destination);
-          osc.start(t);
-          osc.stop(t + 0.3);
-
-          const len = Math.floor(ac.sampleRate * 0.18);
-          const buf = ac.createBuffer(1, len, ac.sampleRate);
-          const data = buf.getChannelData(0);
-          for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 2;
-          const noise = ac.createBufferSource();
-          noise.buffer = buf;
-          const bp = ac.createBiquadFilter();
-          bp.type = 'bandpass';
-          bp.frequency.value = 900;
-          bp.Q.value = 0.8;
-          const ng = ac.createGain();
-          ng.gain.value = vol * 0.9;
-          noise.connect(bp).connect(ng).connect(ac.destination);
-          noise.start(t);
-        } catch (e) {}
-      }
 
       function step(t) {
-        const dt = Math.min((t - lastT) / 1000, 0.033);
-        lastT = t;
         ctx.clearRect(0, 0, W, H);
+        const maxD = Math.hypot(W, H);
 
-        // Клякси на "склі": стікають і тануть
-        splats = splats.filter((s) => {
-          s.age += dt;
-          const grow = Math.min(1, s.age / 0.14);
-          const scale = grow < 1 ? 0.3 + 0.9 * grow : 1 + 0.08 * Math.max(0, 1 - (s.age - 0.14) / 0.2);
-          const alpha = s.age < s.life - 0.9 ? 1 : Math.max(0, (s.life - s.age) / 0.9);
-          if (alpha <= 0) return false;
-          s.drip = Math.min(s.dripMax, s.drip + s.dripSpeed * dt * Math.max(0, 1 - s.drip / s.dripMax * 0.6));
+        waves = waves.filter((w) => {
+          const age = (t - w.start) / 1000;
+          if (age < 0) return true;
+          // Хвиля швидко стартує і плавно сповільнюється
+          const d = w.speed * Math.pow(age, 0.7);
+          const life = Math.min(1 - d / (maxD * 0.8), 1 - age / 2.4);
+          if (life <= 0) return false;
+          const fadeIn = Math.min(1, age / 0.08);
+          const a = Math.pow(life, 1.3) * w.power * fadeIn;
+          // Тремтіння слабке на малих колах і згасає з часом — без "квіточок"
+          const wob = w.wobble * Math.max(0, 1 - age * 0.9) * Math.min(1, d / 260);
+          const thick = 3 + w.power * 7 * life;
+          const ph = w.phase + age * 3;
 
-          ctx.globalAlpha = alpha * 0.92;
-          ctx.fillStyle = s.color;
-          drawBlob(s.x, s.y, s.blob, scale);
-          // Цівка, що стікає вниз
-          if (s.drip > 1) {
-            const w = s.r * 0.42;
-            ctx.beginPath();
-            ctx.moveTo(s.x + s.dripX - w / 2, s.y);
-            ctx.lineTo(s.x + s.dripX - w * 0.35, s.y + s.drip);
-            ctx.arc(s.x + s.dripX, s.y + s.drip, w * 0.55, Math.PI, 0, true);
-            ctx.lineTo(s.x + s.dripX + w / 2, s.y);
-            ctx.closePath();
-            ctx.fill();
-          }
-          // Бризки навколо
-          s.dots.forEach((d) => {
-            ctx.beginPath();
-            ctx.arc(s.x + d.x * scale, s.y + d.y * scale, d.r, 0, Math.PI * 2);
-            ctx.fill();
-          });
-          shine(s.x, s.y, s.r * scale, alpha);
-          ctx.globalAlpha = 1;
+          // Темна "западина" перед гребенем
+          ringPath(w.x, w.y, d - thick * 1.1, wob, ph);
+          ctx.strokeStyle = `rgba(0, 25, 50, ${a * 0.35})`;
+          ctx.lineWidth = thick * 1.8;
+          ctx.stroke();
+          // Світлий гребінь з сяйвом
+          ringPath(w.x, w.y, d, wob, ph);
+          ctx.strokeStyle = `rgba(210, 236, 255, ${a * 0.85})`;
+          ctx.lineWidth = thick;
+          ctx.shadowColor = `rgba(130, 200, 255, ${a})`;
+          ctx.shadowBlur = 18;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+          // Тонкий відблиск
+          ringPath(w.x, w.y, d + thick * 0.8, wob, ph);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${a * 0.45})`;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
           return true;
         });
 
-        // Краплі в польоті
-        drops = drops.filter((d) => {
-          d.t += dt;
-          d.vy += 2100 * dt;
-          d.vx *= 1 - 0.6 * dt;
-          d.x += d.vx * dt;
-          d.y += d.vy * dt;
-
-          if (d.t >= d.land) {
-            if (d.x > -20 && d.x < W + 20 && d.y > -20 && d.y < H + 20) {
-              const r = d.r * rand(1.8, 2.6);
-              const dots = [];
-              const nd = 3 + Math.floor(Math.random() * 5);
-              for (let i = 0; i < nd; i++) {
-                const a = Math.random() * Math.PI * 2;
-                const dist = r * rand(1.3, 2.2);
-                dots.push({ x: Math.cos(a) * dist, y: Math.sin(a) * dist, r: rand(1.5, r * 0.28) });
-              }
-              splats.push({
-                x: d.x, y: d.y, r, color: d.color, blob: makeBlob(r), dots,
-                age: 0, life: rand(1.8, 2.8),
-                drip: 0, dripMax: Math.random() < 0.65 ? rand(r * 1.5, r * 5) : 0,
-                dripSpeed: rand(25, 70), dripX: rand(-r * 0.4, r * 0.4)
-              });
-            }
-            return false;
-          }
-
-          // Крапля витягується вздовж руху
-          const speed = Math.hypot(d.vx, d.vy);
-          const ang = Math.atan2(d.vy, d.vx);
-          const stretch = 1 + Math.min(speed / 700, 2.2);
-          ctx.save();
-          ctx.translate(d.x, d.y);
-          ctx.rotate(ang);
-          ctx.fillStyle = d.color;
-          ctx.beginPath();
-          ctx.ellipse(0, 0, d.r * stretch, d.r / Math.sqrt(stretch), 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-          shine(d.x, d.y, d.r, 1);
-          return true;
-        });
-
-        if (drops.length || splats.length) {
+        if (waves.length) {
           rafId = requestAnimationFrame(step);
         } else {
           ctx.clearRect(0, 0, W, H);
@@ -2387,43 +2277,91 @@
         }
       }
 
-      // x, y — де відпустили палець; pull — вектор розтягу; power — його довжина
-      window.easterSplash = (x, y, pull, power) => {
-        if (reduceMotion) return;
-        const img = document.querySelector('.easter-img');
-        const r = img ? img.getBoundingClientRect() : { left: W / 2, top: H / 2, width: 0, height: 0 };
-        const cx = r.left + r.width / 2;
-        const cy = r.top + r.height / 2;
-        const ox = x == null ? cx : x;
-        const oy = y == null ? cy : y;
-        const k = Math.min(power / 220, 1.2);           // сила 0..1.2
-        const base = Math.atan2(pull.y, pull.x);        // летять туди, куди тягнули
-        const count = Math.round(22 + k * 40);
+      // Водяний звук: "бульк" (тон росте вгору, як у бульбашки), шелест хлюпу і дрібні краплі
+      function playWater(power) {
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          const ac = window.__splatAC || (window.__splatAC = new AC());
+          if (ac.state === 'suspended') ac.resume();
+          const t0 = ac.currentTime + 0.01;
+          const master = ac.createGain();
+          master.gain.value = Math.min(0.9, 0.45 + power * 0.35);
+          master.connect(ac.destination);
 
+          const bloop = (time, f0, f1, dur, vol) => {
+            const o = ac.createOscillator();
+            const g = ac.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(f0, time);
+            o.frequency.exponentialRampToValueAtTime(f1, time + dur * 0.7);
+            g.gain.setValueAtTime(0.0001, time);
+            g.gain.exponentialRampToValueAtTime(vol, time + 0.006);
+            g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+            o.connect(g).connect(master);
+            o.start(time);
+            o.stop(time + dur + 0.02);
+          };
+
+          // Головний "бульк"
+          bloop(t0, 160, 620 + power * 200, 0.16, 0.5);
+
+          // Хлюп води: шум, що "закривається" фільтром
+          const len = Math.floor(ac.sampleRate * 0.5);
+          const buf = ac.createBuffer(1, len, ac.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+          const noise = ac.createBufferSource();
+          noise.buffer = buf;
+          const lp = ac.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.Q.value = 3;
+          lp.frequency.setValueAtTime(2600, t0);
+          lp.frequency.exponentialRampToValueAtTime(350, t0 + 0.4);
+          const ng = ac.createGain();
+          ng.gain.setValueAtTime(0.0001, t0);
+          ng.gain.exponentialRampToValueAtTime(0.18 + power * 0.12, t0 + 0.015);
+          ng.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
+          noise.connect(lp).connect(ng).connect(master);
+          noise.start(t0);
+          noise.stop(t0 + 0.5);
+
+          // Дрібні краплі, що падають назад
+          const drops = 4 + Math.round(power * 5);
+          for (let i = 0; i < drops; i++) {
+            const tt = t0 + rand(0.06, 0.6);
+            const f = rand(700, 1800);
+            bloop(tt, f, f * rand(1.4, 2), rand(0.04, 0.08), rand(0.08, 0.2));
+          }
+        } catch (e) {}
+      }
+
+      // x, y — де відпустили; pull — вектор розтягу; power — його довжина
+      window.easterSplash = (x, y, pull, power) => {
+        const k = Math.min(power / 220, 1.2);
+        playWater(k);
+        if (reduceMotion) return;
+        // Центр хвиль — точка, де відпустили палець (або центр картинки)
+        let cx = x, cy = y;
+        if (cx == null || cy == null) {
+          const img = document.querySelector('.easter-img');
+          const r = img ? img.getBoundingClientRect() : { left: 0, top: 0, width: W, height: H };
+          cx = r.left + r.width / 2;
+          cy = r.top + r.height / 2;
+        }
+        const now = performance.now();
+        const count = 3 + Math.round(k * 3);
         for (let i = 0; i < count; i++) {
-          const fromEdge = Math.random() < 0.35;
-          // Частина крапель — з краю картинки, частина — з точки відпускання
-          const sx = fromEdge ? rand(r.left, r.left + r.width) : ox + rand(-12, 12);
-          const sy = fromEdge ? rand(r.top, r.top + r.height) : oy + rand(-12, 12);
-          // Більшість летить у бік розтягу, решта — на всі боки, щоб заляпало весь екран
-          const spread = Math.random() < 0.55 ? rand(-0.9, 0.9) : rand(-Math.PI, Math.PI);
-          const a = base + spread;
-          const sp = rand(600, 1700) * (0.6 + k * 0.6);
-          drops.push({
-            x: sx, y: sy,
-            vx: Math.cos(a) * sp,
-            vy: Math.sin(a) * sp - rand(200, 600),
-            r: rand(4, 11) * (0.8 + k * 0.4),
-            color: COLORS[Math.floor(Math.random() * COLORS.length)],
-            t: 0,
-            land: rand(0.15, 0.75)
+          waves.push({
+            x: cx, y: cy,
+            start: now + i * rand(150, 210),
+            speed: rand(380, 460) * (0.85 + k * 0.3),
+            power: Math.max(0.45, Math.min(1, k)) * (1 - i * 0.12),
+            wobble: 2 + k * 4,
+            phase: rand(0, Math.PI * 2)
           });
         }
-        playSplat(k);
-        if (!rafId) {
-          lastT = performance.now();
-          rafId = requestAnimationFrame(step);
-        }
+        if (!rafId) rafId = requestAnimationFrame(step);
       };
     })();
 
