@@ -632,8 +632,9 @@
       flex-shrink: 0;
     }
 
-    /* Випуклий стан при скролі */
-    .link-card.is-elevated {
+    /* Випуклий стан на телефоні: при скролі, дотику або "прожектор" */
+    .link-card.is-elevated,
+    .link-card.is-touched:not(.is-open) {
       transform: translateY(-2px);
       border-color: rgba(255, 255, 255, 0.25);
       box-shadow: 
@@ -641,20 +642,50 @@
         -9px -11px 24px var(--shadow-light);
     }
 
-    .link-card.is-elevated .link-icon-masked {
+    .link-card.is-elevated .link-icon-masked,
+    .link-card.is-touched:not(.is-open) .link-icon-masked {
       transform: scale(1.08) rotate(-6deg);
     }
 
-    .link-card.is-elevated .link-icon-box {
+    .link-card.is-elevated .link-icon-box,
+    .link-card.is-touched:not(.is-open) .link-icon-box {
       transform: scale(1.06);
       box-shadow: 
         3px 3px 8px var(--shadow-dark),
         -3px -3px 8px var(--shadow-light);
     }
 
-    .link-card.is-elevated .link-arrow {
+    .link-card.is-elevated .link-arrow,
+    .link-card.is-touched:not(.is-open) .link-arrow {
       opacity: 1;
       transform: translateX(3px);
+    }
+
+    .link-card.is-elevated .link-subtitle,
+    .link-card.is-touched .link-subtitle {
+      color: var(--text);
+    }
+
+    /* Дотик на телефоні для дрібних елементів — як hover на ПК */
+    .nested-btn.is-touched {
+      background-color: var(--sub-card-hover) !important;
+    }
+
+    .nested-btn.is-touched .nested-action-icon {
+      transform: translate(2px, -2px);
+    }
+
+    .username-badge.is-touched,
+    .theme-toggle.is-touched {
+      transform: translateY(-2px);
+    }
+
+    .theme-toggle.is-touched svg {
+      transform: rotate(-18deg) scale(1.08);
+    }
+
+    .insta-preview-card.is-touched .insta-preview-img {
+      transform: scale(1.08);
     }
 
     /* Hover на ПК */
@@ -1630,50 +1661,86 @@
 
     syncTheme();
 
-    // 4. Анімація за скролом (мобільні)
+    // 4. "Hover" на телефоні
+    //    - дотик до елемента показує ту саму анімацію, що й наведення на ПК;
+    //    - якщо сторінку можна гортати — піднімається картка за прогресом скролу;
+    //    - якщо гортати нікуди — картки по черзі м'яко "підсвічуються" самі.
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (isTouchDevice) {
       const cards = Array.from(document.querySelectorAll('.link-card'));
+      const TOUCH_SELECTOR = '.link-card, .nested-btn, .username-badge, .theme-toggle, .insta-preview-card';
+      const TOUCH_HOLD_MS = 650;   // скільки "hover" лишається після відпускання
+      const IDLE_PAUSE_MS = 5000;  // пауза прожектора після дотику
+      const SPOTLIGHT_MS = 2600;   // як часто прожектор переходить на наступну картку
+
+      let lastInteraction = 0;
+      let spotlightIdx = -1;
       let ticking = false;
 
-      function updateActiveCardOnScroll() {
-        const totalCards = cards.length;
-        if (totalCards === 0) return;
+      const setElevated = (activeIndex) => {
+        cards.forEach((card, idx) => {
+          card.classList.toggle('is-elevated', idx === activeIndex && !card.classList.contains('is-open'));
+        });
+      };
 
+      const canScroll = () => document.documentElement.scrollHeight - window.innerHeight > 40;
+
+      // --- Дотик ---
+      document.addEventListener('touchstart', () => {}, { passive: true }); // вмикає :active в iOS
+
+      const touchedTimers = new WeakMap();
+      document.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse') return;
+        const el = e.target.closest(TOUCH_SELECTOR);
+        lastInteraction = Date.now();
+        setElevated(-1);
+        if (!el) return;
+        clearTimeout(touchedTimers.get(el));
+        el.classList.add('is-touched');
+      }, { passive: true });
+
+      const release = (e) => {
+        if (e.pointerType === 'mouse') return;
+        document.querySelectorAll('.is-touched').forEach((el) => {
+          clearTimeout(touchedTimers.get(el));
+          touchedTimers.set(el, setTimeout(() => el.classList.remove('is-touched'), TOUCH_HOLD_MS));
+        });
+      };
+      document.addEventListener('pointerup', release, { passive: true });
+      document.addEventListener('pointercancel', release, { passive: true });
+
+      // --- Скрол ---
+      function updateActiveCardOnScroll() {
+        ticking = false;
+        if (!canScroll() || cards.length === 0) return;
         const scrollY = window.scrollY || window.pageYOffset;
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-
-        let activeIndex = 0;
-
-        if (maxScroll > 15) {
-          const scrollProgress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
-          activeIndex = Math.floor(scrollProgress * totalCards);
-          if (activeIndex >= totalCards) {
-            activeIndex = totalCards - 1;
-          }
-        }
-
-        cards.forEach((card, idx) => {
-          if (idx === activeIndex && !card.classList.contains('is-open')) {
-            card.classList.add('is-elevated');
-          } else {
-            card.classList.remove('is-elevated');
-          }
-        });
-
-        ticking = false;
+        const progress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
+        setElevated(Math.min(Math.floor(progress * cards.length), cards.length - 1));
       }
 
       window.addEventListener('scroll', () => {
+        lastInteraction = Date.now();
         if (!ticking) {
           window.requestAnimationFrame(updateActiveCardOnScroll);
           ticking = true;
         }
       }, { passive: true });
-
-      setTimeout(updateActiveCardOnScroll, 350);
       window.addEventListener('resize', updateActiveCardOnScroll);
+      setTimeout(updateActiveCardOnScroll, 350);
+
+      // --- Прожектор, коли гортати нікуди ---
+      if (!reduceMotion) {
+        setInterval(() => {
+          if (document.hidden || canScroll()) return;
+          if (Date.now() - lastInteraction < IDLE_PAUSE_MS) return;
+          if (document.querySelector('.link-card.is-open')) { setElevated(-1); return; }
+          spotlightIdx = (spotlightIdx + 1) % cards.length;
+          setElevated(spotlightIdx);
+        }, SPOTLIGHT_MS);
+      }
     }
 
     // 5. Курсор
