@@ -1037,15 +1037,20 @@
       transform: translateY(0);
     }
 
+    /* Сам блок не рухається (за ним стежить скрипт), анімується лише внутрішня обгортка.
+       Великий нижній відступ — щоб картинку не перекривала панель браузера. */
     .easter-egg {
       width: 100%;
-      padding-bottom: 10px;
+      padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .easter-bounce {
       opacity: 0;
       transform-origin: 50% 100%;
     }
 
     /* Смішна поява: вилітає, розплющується, витягується і трясеться як желе */
-    .easter-egg.is-visible {
+    .easter-egg.is-visible .easter-bounce {
       opacity: 1;
       animation: easterBoing 1.4s cubic-bezier(0.3, 0.7, 0.4, 1) both;
     }
@@ -1165,7 +1170,9 @@
     </div>
 
     <div class="easter-egg" id="easterEgg">
-      <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" loading="lazy" width="1349" height="600">
+      <div class="easter-bounce">
+        <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" loading="lazy" width="1349" height="600">
+      </div>
     </div>
   </div>
 
@@ -1761,11 +1768,15 @@
 
     // 4.1 Пасхалка: підказки та картинка з'являються, коли до них догортали
     if ('IntersectionObserver' in window) {
+      // Показуємо, коли видно хоча б половину; ховаємо (щоб програти знову) лише
+      // коли елемент повністю пішов з екрана — інакше панель браузера, що
+      // ховається/з'являється, перезапускає анімацію знову і знову.
       const easterObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-          entry.target.classList.toggle('is-visible', entry.isIntersecting);
+          if (entry.intersectionRatio >= 0.5) entry.target.classList.add('is-visible');
+          else if (!entry.isIntersecting) entry.target.classList.remove('is-visible');
         });
-      }, { threshold: 0.35 });
+      }, { threshold: [0, 0.5] });
       document.querySelectorAll('.easter-hint, .easter-egg').forEach((el) => easterObserver.observe(el));
     } else {
       document.querySelectorAll('.easter-hint, .easter-egg').forEach((el) => el.classList.add('is-visible'));
