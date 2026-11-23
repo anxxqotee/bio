@@ -1160,6 +1160,11 @@
     }
 
     .easter-img {
+      touch-action: none;
+      cursor: grab;
+      will-change: transform;
+      -webkit-user-drag: none;
+      user-select: none;
       width: 100%;
       height: auto;
       display: block;
@@ -1922,7 +1927,10 @@
         render(0, false);
       }
 
-      overlay.addEventListener('click', closeEgg);
+      // Закриваємо тапом по фону (не по картинці — її можна тягати)
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeEgg();
+      });
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeEgg();
       });
@@ -1961,6 +1969,101 @@
         clearTimeout(wheelTimer);
         wheelTimer = setTimeout(() => render(0, false), 500);
       }, { passive: true });
+    })();
+
+    // 4.2 Желейна картинка: хапаєш пальцем — тягнеш — розтягується, відпускаєш — пружинить
+    (() => {
+      const img = document.querySelector('.easter-img');
+      if (!img) return;
+
+      const STIFFNESS = 260;   // пружність (чим більше — тим швидше повертається)
+      const DAMPING = 9;       // гасіння (чим менше — тим довше трясеться)
+      const MAX_PULL = 260;    // максимальний зсув, далі "впирається"
+
+      let pos = { x: 0, y: 0 };   // поточна деформація
+      let vel = { x: 0, y: 0 };
+      let dragging = false;
+      let grab = null;            // точка, де схопили (відносно центру, -1..1)
+      let start = null;
+      let rafId = null;
+      let lastT = 0;
+
+      // Еластичний "упор": чим далі тягнеш, тим важче
+      const soften = (v) => Math.sign(v) * MAX_PULL * (1 - Math.exp(-Math.abs(v) / MAX_PULL));
+
+      function apply() {
+        const { x, y } = pos;
+        const len = Math.hypot(x, y);
+        if (len < 0.05) {
+          img.style.transform = '';
+          return;
+        }
+        const angle = Math.atan2(y, x) * 180 / Math.PI;
+        const stretch = 1 + len / 220;               // тягнемо вздовж руху пальця
+        const squeeze = 1 / Math.sqrt(stretch);      // і стискаємо впоперек (як гума)
+        img.style.transform =
+          `translate(${x * 0.35}px, ${y * 0.35}px) rotate(${angle}deg) scale(${stretch}, ${squeeze}) rotate(${-angle}deg)`;
+      }
+
+      function step(t) {
+        const dt = Math.min((t - lastT) / 1000, 0.032);
+        lastT = t;
+        // Пружина: a = -k*x - c*v
+        vel.x += (-STIFFNESS * pos.x - DAMPING * vel.x) * dt;
+        vel.y += (-STIFFNESS * pos.y - DAMPING * vel.y) * dt;
+        pos.x += vel.x * dt;
+        pos.y += vel.y * dt;
+        apply();
+        if (Math.hypot(pos.x, pos.y) < 0.1 && Math.hypot(vel.x, vel.y) < 0.5) {
+          pos = { x: 0, y: 0 };
+          vel = { x: 0, y: 0 };
+          apply();
+          rafId = null;
+          return;
+        }
+        rafId = requestAnimationFrame(step);
+      }
+
+      img.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        dragging = true;
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        const r = img.getBoundingClientRect();
+        grab = {
+          x: ((e.clientX - r.left) / r.width) * 2 - 1,
+          y: ((e.clientY - r.top) / r.height) * 2 - 1
+        };
+        // Тягнемо від протилежного боку — він ніби "прибитий", а схоплений тягнеться
+        img.style.transformOrigin = `${50 - grab.x * 50}% ${50 - grab.y * 50}%`;
+        start = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+        vel = { x: 0, y: 0 };
+        img.style.cursor = 'grabbing';
+        try { img.setPointerCapture(e.pointerId); } catch (err) {}
+      });
+
+      img.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const nx = soften(e.clientX - start.x);
+        const ny = soften(e.clientY - start.y);
+        // Швидкість потрібна, щоб відпущена картинка "відстрілювала" природно
+        vel = { x: (nx - pos.x) * 60, y: (ny - pos.y) * 60 };
+        pos = { x: nx, y: ny };
+        apply();
+      });
+
+      const release = () => {
+        if (!dragging) return;
+        dragging = false;
+        img.style.cursor = '';
+        if (Math.hypot(pos.x, pos.y) > 60 && navigator.vibrate) {
+          try { navigator.vibrate([12, 40, 12]); } catch (err) {}
+        }
+        lastT = performance.now();
+        rafId = requestAnimationFrame(step);
+      };
+      img.addEventListener('pointerup', release);
+      img.addEventListener('pointercancel', release);
+      img.addEventListener('lostpointercapture', release);
     })();
 
     // 5. Курсор
