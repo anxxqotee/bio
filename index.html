@@ -1010,47 +1010,140 @@
       text-align: center;
     }
 
-    /* ПАСХАЛКА */
+    /* ПАСХАЛКА: потягни пальцем угору в самому низу сторінки */
     .easter-spacer {
       width: 100%;
-      min-height: 85vh;
+      min-height: 45vh;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-around;
-      padding: 40px 0;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
       pointer-events: none;
       user-select: none;
     }
 
-    .easter-hint {
-      font-size: 0.8rem;
-      color: var(--subtext);
-      letter-spacing: 0.04em;
+    /* Ледь помітна стрілочка-підказка без тексту */
+    .easter-chevron {
+      width: 22px;
+      height: 22px;
+      stroke: var(--subtext);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.4;
+      animation: chevronNudge 2.4s var(--ease-soft) infinite;
+    }
+
+    @keyframes chevronNudge {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* Кільце прогресу — фіксоване, тож сторінка під ним не смикається */
+    .pull-ring {
+      position: fixed;
+      left: 50%;
+      bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+      width: 68px;
+      height: 68px;
+      margin-left: -34px;
+      border-radius: 50%;
+      background: var(--bg);
+      box-shadow: 
+        5px 5px 14px var(--shadow-dark),
+        -5px -5px 14px var(--shadow-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      pointer-events: none;
       opacity: 0;
-      transform: translateY(16px);
-      transition: opacity 0.9s var(--ease-soft), transform 1s var(--ease-smooth);
+      transform: translateY(30px) scale(0.6);
+      transition: opacity 0.35s var(--ease-soft), transform 0.5s var(--ease-spring);
     }
 
-    .easter-hint.is-visible {
-      opacity: 0.55;
-      transform: translateY(0);
+    .pull-ring.is-dragging {
+      transition: none;
     }
 
-    /* Сам блок не рухається (за ним стежить скрипт), анімується лише внутрішня обгортка.
-       Великий нижній відступ — щоб картинку не перекривала панель браузера. */
-    .easter-egg {
+    .pull-ring-svg {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .pull-ring-track {
+      fill: none;
+      stroke: var(--subtext);
+      stroke-width: 2.2;
+      stroke-dasharray: 3 5;
+      stroke-linecap: round;
+      opacity: 0.55;
+    }
+
+    .pull-ring-fill {
+      fill: none;
+      stroke: var(--text);
+      stroke-width: 3.2;
+      stroke-linecap: round;
+    }
+
+    .pull-ring-arrow {
+      width: 22px;
+      height: 22px;
+      stroke: var(--text);
+      fill: none;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      position: relative;
+    }
+
+    .pull-ring.is-done {
+      animation: ringPop 0.45s var(--ease-spring) forwards;
+    }
+
+    @keyframes ringPop {
+      0%   { opacity: 1; transform: scale(1); }
+      40%  { opacity: 1; transform: scale(1.25); }
+      100% { opacity: 0; transform: scale(0.4); }
+    }
+
+    /* Шар з картинкою поверх сторінки */
+    .easter-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 18px;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.35s var(--ease-soft), visibility 0s linear 0.35s;
+    }
+
+    .easter-overlay.is-open {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.35s var(--ease-soft), visibility 0s;
     }
 
     .easter-bounce {
+      width: 100%;
+      max-width: 460px;
       opacity: 0;
       transform-origin: 50% 100%;
     }
 
     /* Смішна поява: вилітає, розплющується, витягується і трясеться як желе */
-    .easter-egg.is-visible .easter-bounce {
+    .easter-overlay.is-open .easter-bounce {
       opacity: 1;
       animation: easterBoing 1.4s cubic-bezier(0.3, 0.7, 0.4, 1) both;
     }
@@ -1161,18 +1254,24 @@
       <span id="footerText"></span>
     </div>
 
-    <!-- Пасхалка: штучний запас для гортання + картинка в самому низу -->
+    <!-- Пасхалка: запас для гортання; в самому низу треба потягнути пальцем угору -->
     <div class="easter-spacer" aria-hidden="true">
-      <span class="easter-hint">гортай далі ↓</span>
-      <span class="easter-hint">тут нічого немає</span>
-      <span class="easter-hint">чесно</span>
-      <span class="easter-hint">ну ще трохи...</span>
+      <svg class="easter-chevron" viewBox="0 0 24 24"><polyline points="6 15 12 9 18 15"></polyline></svg>
     </div>
+  </div>
 
-    <div class="easter-egg" id="easterEgg">
-      <div class="easter-bounce">
-        <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" loading="lazy" width="1349" height="600">
-      </div>
+  <!-- Кільце прогресу та шар з картинкою (поза потоком сторінки) -->
+  <div class="pull-ring" id="pullRing" aria-hidden="true">
+    <svg class="pull-ring-svg" viewBox="0 0 68 68">
+      <circle class="pull-ring-track" cx="34" cy="34" r="29"></circle>
+      <circle class="pull-ring-fill" id="pullRingFill" cx="34" cy="34" r="29"></circle>
+    </svg>
+    <svg class="pull-ring-arrow" id="pullRingArrow" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+  </div>
+
+  <div class="easter-overlay" id="easterOverlay" role="dialog" aria-label="Пасхалка" aria-hidden="true">
+    <div class="easter-bounce">
+      <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" decoding="async" width="1349" height="600">
     </div>
   </div>
 
@@ -1766,21 +1865,103 @@
       setTimeout(updateActiveCardOnScroll, 350);
     }
 
-    // 4.1 Пасхалка: підказки та картинка з'являються, коли до них догортали
-    if ('IntersectionObserver' in window) {
-      // Показуємо, коли видно хоча б половину; ховаємо (щоб програти знову) лише
-      // коли елемент повністю пішов з екрана — інакше панель браузера, що
-      // ховається/з'являється, перезапускає анімацію знову і знову.
-      const easterObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.intersectionRatio >= 0.5) entry.target.classList.add('is-visible');
-          else if (!entry.isIntersecting) entry.target.classList.remove('is-visible');
-        });
-      }, { threshold: [0, 0.5] });
-      document.querySelectorAll('.easter-hint, .easter-egg').forEach((el) => easterObserver.observe(el));
-    } else {
-      document.querySelectorAll('.easter-hint, .easter-egg').forEach((el) => el.classList.add('is-visible'));
-    }
+    // 4.1 Пасхалка: в самому низу тягнеш пальцем угору (або крутиш колесо далі) —
+    //     пунктирне кільце плавно заповнюється, а коли повне — вилітає картинка.
+    (() => {
+      const ring = document.getElementById('pullRing');
+      const fill = document.getElementById('pullRingFill');
+      const arrow = document.getElementById('pullRingArrow');
+      const overlay = document.getElementById('easterOverlay');
+      if (!ring || !fill || !overlay) return;
+
+      const PULL_DISTANCE = 160;          // скільки пікселів тягнути пальцем
+      const CIRCUMFERENCE = 2 * Math.PI * 29;
+      fill.style.strokeDasharray = CIRCUMFERENCE;
+      fill.style.strokeDashoffset = CIRCUMFERENCE;
+
+      let progress = 0;
+      let pullStartY = null;
+      let done = false;
+
+      const atBottom = () =>
+        window.innerHeight + (window.scrollY || window.pageYOffset) >= document.documentElement.scrollHeight - 4;
+
+      function render(p, dragging) {
+        progress = p;
+        ring.classList.toggle('is-dragging', !!dragging);
+        fill.style.strokeDashoffset = CIRCUMFERENCE * (1 - p);
+        ring.style.opacity = p > 0 ? Math.min(1, p * 4) : 0;
+        ring.style.transform = p > 0
+          ? `translateY(${(1 - p) * 20}px) scale(${0.75 + p * 0.25})`
+          : '';
+        if (arrow) arrow.style.transform = `translateY(${-p * 4}px)`;
+      }
+
+      function reset() {
+        pullStartY = null;
+        if (!done) render(0, false);
+      }
+
+      function openEgg() {
+        done = true;
+        pullStartY = null;
+        ring.classList.remove('is-dragging');
+        ring.style.opacity = '';
+        ring.style.transform = '';
+        ring.classList.add('is-done');
+        if (navigator.vibrate) { try { navigator.vibrate(30); } catch (e) {} }
+        overlay.classList.add('is-open');
+        overlay.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeEgg() {
+        overlay.classList.remove('is-open');
+        overlay.setAttribute('aria-hidden', 'true');
+        ring.classList.remove('is-done');
+        done = false;
+        render(0, false);
+      }
+
+      overlay.addEventListener('click', closeEgg);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeEgg();
+      });
+
+      // --- Палець ---
+      document.addEventListener('touchstart', (e) => {
+        if (done || e.touches.length !== 1) return;
+        pullStartY = atBottom() ? e.touches[0].clientY : null;
+      }, { passive: true });
+
+      document.addEventListener('touchmove', (e) => {
+        if (done || e.touches.length !== 1) return;
+        const y = e.touches[0].clientY;
+        if (pullStartY === null) {
+          if (atBottom()) pullStartY = y; // догорнули до низу посеред жесту
+          return;
+        }
+        const dy = pullStartY - y; // > 0, коли палець іде вгору
+        if (dy <= 0) { render(0, true); return; }
+        // Блокуємо прокрутку й "гумку" браузера, щоб нічого не смикалось
+        if (e.cancelable) e.preventDefault();
+        const p = Math.min(dy / PULL_DISTANCE, 1);
+        render(p, true);
+        if (p >= 1) openEgg();
+      }, { passive: false });
+
+      document.addEventListener('touchend', reset, { passive: true });
+      document.addEventListener('touchcancel', reset, { passive: true });
+
+      // --- Колесо миші на ПК ---
+      let wheelTimer = null;
+      window.addEventListener('wheel', (e) => {
+        if (done || e.deltaY <= 0 || !atBottom()) return;
+        render(Math.min(progress + e.deltaY / 900, 1), true);
+        if (progress >= 1) { openEgg(); return; }
+        clearTimeout(wheelTimer);
+        wheelTimer = setTimeout(() => render(0, false), 500);
+      }, { passive: true });
+    })();
 
     // 5. Курсор
     const isDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
