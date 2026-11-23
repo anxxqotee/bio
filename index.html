@@ -1037,6 +1037,67 @@
       text-align: center;
     }
 
+    /* ПАСХАЛКА */
+    .easter-spacer {
+      width: 100%;
+      min-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-around;
+      padding: 40px 0;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .easter-hint {
+      font-size: 0.8rem;
+      color: var(--subtext);
+      letter-spacing: 0.04em;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.9s var(--ease-soft), transform 1s var(--ease-smooth);
+    }
+
+    .easter-hint.is-visible {
+      opacity: 0.55;
+      transform: translateY(0);
+    }
+
+    .easter-egg {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 10px;
+      opacity: 0;
+      transform: translateY(60px) scale(0.85) rotate(-3deg);
+      transition: opacity 0.7s var(--ease-soft), transform 1.1s var(--ease-spring);
+    }
+
+    .easter-egg.is-visible {
+      opacity: 1;
+      transform: translateY(0) scale(1) rotate(0deg);
+    }
+
+    .easter-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 28px;
+      border: 1px solid var(--card-border);
+      box-shadow: 
+        8px 10px 22px var(--shadow-dark),
+        -8px -10px 22px var(--shadow-light);
+    }
+
+    .easter-caption {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--subtext);
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -1119,6 +1180,19 @@
 
     <div class="footer">
       <span id="footerText"></span>
+    </div>
+
+    <!-- Пасхалка: штучний запас для гортання + картинка в самому низу -->
+    <div class="easter-spacer" aria-hidden="true">
+      <span class="easter-hint">гортай далі ↓</span>
+      <span class="easter-hint">тут нічого немає</span>
+      <span class="easter-hint">чесно</span>
+      <span class="easter-hint">ну ще трохи...</span>
+    </div>
+
+    <div class="easter-egg" id="easterEgg">
+      <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" loading="lazy" width="1349" height="600">
+      <p class="easter-caption">ти догортав до самого кінця 👀</p>
     </div>
   </div>
 
@@ -1712,13 +1786,20 @@
       document.addEventListener('pointercancel', release, { passive: true });
 
       // --- Скрол ---
+      // Піднімаємо картку, найближчу до центру екрана (якщо картки взагалі видно)
       function updateActiveCardOnScroll() {
         ticking = false;
         if (!canScroll() || cards.length === 0) return;
-        const scrollY = window.scrollY || window.pageYOffset;
-        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-        const progress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
-        setElevated(Math.min(Math.floor(progress * cards.length), cards.length - 1));
+        const center = window.innerHeight / 2;
+        let best = -1;
+        let bestDist = Infinity;
+        cards.forEach((card, idx) => {
+          const r = card.getBoundingClientRect();
+          if (r.bottom < 0 || r.top > window.innerHeight) return;
+          const dist = Math.abs(r.top + r.height / 2 - center);
+          if (dist < bestDist) { bestDist = dist; best = idx; }
+        });
+        setElevated(best);
       }
 
       window.addEventListener('scroll', () => {
@@ -1741,6 +1822,18 @@
           setElevated(spotlightIdx);
         }, SPOTLIGHT_MS);
       }
+    }
+
+    // 4.1 Пасхалка: підказки та картинка з'являються, коли до них догортали
+    if ('IntersectionObserver' in window) {
+      const easterObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          entry.target.classList.toggle('is-visible', entry.isIntersecting);
+        });
+      }, { threshold: 0.35 });
+      document.querySelectorAll('.easter-hint, .easter-egg').forEach((el) => easterObserver.observe(el));
+    } else {
+      document.querySelectorAll('.easter-hint, .easter-egg').forEach((el) => el.classList.add('is-visible'));
     }
 
     // 5. Курсор
