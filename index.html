@@ -1195,73 +1195,35 @@
     }
 
     /* ===== 3D-РЕЖИМ ПАСХАЛКИ ===== */
-    .egg3d-scene {
-      perspective: 900px;
-    }
-
-    .egg3d-card {
-      position: relative;
-      transform-style: preserve-3d;
-    }
-
-    .egg3d-back,
-    .egg3d-glare,
-    .egg3d-edge {
-      display: none;
-    }
-
-    .easter-overlay.is-3d .egg3d-card {
-      cursor: grab;
-      will-change: transform;
-    }
-
-    .easter-overlay.is-3d .easter-img {
-      transform: translateZ(11px) !important;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      box-shadow: none;
-    }
-
-    /* Зворот — "інопланетна" версія фото */
-    .easter-overlay.is-3d .egg3d-back {
-      display: block;
-      position: absolute;
+    /* 3D-режим (WebGL): полотно на весь екран під фразою та кнопкою */
+    .egg3d-canvas {
+      position: fixed;
       inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 28px;
-      transform: rotateY(180deg) translateZ(11px);
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      filter: hue-rotate(170deg) saturate(1.6) contrast(1.1);
-      pointer-events: none;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      opacity: 0;
+      visibility: hidden;
+      touch-action: none;
+      transition: opacity 0.3s var(--ease-soft), visibility 0s linear 0.3s;
     }
 
-    /* Товщина картки — стопка кілець по краю (всередині порожньо, щоб не
-       перекривати лице чи зворот під будь-яким кутом) */
-    .easter-overlay.is-3d .egg3d-edge {
-      display: block;
-      position: absolute;
-      inset: 0;
-      border-radius: 28px;
-      border: 4px solid #34363e;
-      background: transparent;
-      pointer-events: none;
+    .easter-overlay.is-3d .egg3d-canvas {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.3s var(--ease-soft), visibility 0s;
     }
 
-    /* Відблиск, що бігає по картці */
-    .easter-overlay.is-3d .egg3d-glare {
-      display: block;
-      position: absolute;
-      inset: 0;
-      border-radius: 28px;
-      transform: translateZ(11.5px);
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      background: radial-gradient(circle at var(--gx, 50%) var(--gy, 30%), rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 55%);
-      mix-blend-mode: overlay;
-      pointer-events: none;
+    .easter-overlay.is-3d .easter-bounce {
+      visibility: hidden;
+    }
+
+    .egg3d-toggle.is-loading svg {
+      animation: eggSpin 0.8s linear infinite;
+    }
+
+    @keyframes eggSpin {
+      to { transform: rotate(360deg); }
     }
 
     .egg3d-toggle {
@@ -1452,14 +1414,10 @@
   <div class="easter-overlay" id="easterOverlay" role="dialog" aria-label="Пасхалка" aria-hidden="true">
     <div class="easter-quote" id="easterQuote" aria-live="polite"></div>
     <div class="easter-bounce">
-      <div class="egg3d-scene">
-        <div class="egg3d-card" id="egg3dCard">
-          <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" decoding="async" width="1349" height="600">
-          <img src="img/easter-egg.webp" alt="" class="egg3d-back" aria-hidden="true" decoding="async">
-          <div class="egg3d-glare" aria-hidden="true"></div>
-        </div>
-      </div>
+      <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" decoding="async" width="1349" height="600">
     </div>
+
+    <canvas class="egg3d-canvas" id="egg3dCanvas" aria-hidden="true"></canvas>
 
     <button type="button" class="egg3d-toggle" id="egg3dToggle" aria-pressed="false">
       <svg viewBox="0 0 24 24"><path d="M12 2.8 20 7.3v9.4L12 21.2 4 16.7V7.3Z"></path><path d="M4 7.3l8 4.5 8-4.5M12 11.8v9.4"></path></svg>
@@ -2379,202 +2337,534 @@
       }
     })();
 
-    // 4.5 3D-режим: об'ємна картка, яку можна крутити пальцем і нахиляти телефоном
+    // 4.5 3D-режим на WebGL (three.js підвантажується лише при натисканні "3D").
+    //     Картка — товста, з заокругленими кутами, гнеться як желе:
+    //     тягнеш по картці — деформується, тягнеш по фону — крутиться.
     (() => {
       const overlay = document.getElementById('easterOverlay');
-      const card = document.getElementById('egg3dCard');
+      const canvas = document.getElementById('egg3dCanvas');
       const btn = document.getElementById('egg3dToggle');
       const label = document.getElementById('egg3dLabel');
-      const img = card && card.querySelector('.easter-img');
-      const glare = card && card.querySelector('.egg3d-glare');
-      if (!overlay || !card || !btn || !img) return;
+      const srcImg = document.querySelector('.easter-img');
+      if (!overlay || !canvas || !btn || !srcImg) return;
 
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const THICK = 22;                 // товщина картки, px
-      const LAYERS = 20;
-
-      // Товщина: шари між лицем і зворотом
-      for (let i = 0; i < LAYERS; i++) {
-        const z = -THICK / 2 + (THICK * (i + 0.5)) / LAYERS;
-        const edge = document.createElement('div');
-        edge.className = 'egg3d-edge';
-        // Трохи світліші краї посередині — об'ємніше виглядає
-        const shade = 46 + Math.round(Math.sin((i / (LAYERS - 1)) * Math.PI) * 18);
-        edge.style.borderColor = `rgb(${shade}, ${shade + 2}, ${shade + 10})`;
-        edge.style.transform = `translateZ(${z.toFixed(2)}px)`;
-        card.insertBefore(edge, img);
-      }
-
-      let on = false;
-      let rx = 0, ry = 0;               // поворот, градуси
-      let vx = 0, vy = 0;               // швидкість, градуси/с
-      let tiltX = 0, tiltY = 0;         // нахил від гіроскопа
-      let gx = 0, gy = 0;               // згладжений нахил
-      let dragging = false;
-      let last = null;
-      let rafId = null;
-      let prevT = 0;
-      let lastFace = 0;
-      let baseBeta = null;
-
       const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+      // Розміри картки у "світових" одиницях
+      const CW = 3.6;
+      const CH = CW * 600 / 1349;
+      const TH = 0.14;                  // товщина
+      const RAD = CW * 0.078;           // радіус кутів
+      const SEG_X = 48, SEG_Y = 22;     // деталізація поверхні
+
+      // Сітка фізики (м'яке тіло): вузли з пружинами до сусідів і до спокою
+      const GX = 37, GY = 17;
+      const NODES = GX * GY;
+      const P = new Float32Array(NODES * 3);  // зміщення вузлів
+      const V = new Float32Array(NODES * 3);  // швидкість
+      const W = new Float32Array(NODES);      // вага захоплення
+      const K_ANCHOR = 80, K_NEIGH = 90, DAMP = 4.2, K_GRAB = 1400;
+
+      let THREE = null;
+      let ready = false, loading = false, on = false, exiting = false;
+      let renderer, scene, camera, group, hitMesh, raycaster;
+      const meshes = [];                // { geo, base, uv }
+      let rafId = null, prevT = 0;
+
+      // Обертання
+      let rx = 0, ry = 0, vrx = 0, vry = 0;
+      let tiltX = 0, tiltY = 0, gx = 0, gy = 0, baseBeta = null;
+      let lastFace = 0;
+
+      // Взаємодія
+      let mode = null;                  // 'deform' | 'rotate' | null
+      let startPt = null, lastPt = null, downTime = 0, moved = false;
+      let grabTarget = [0, 0, 0];
+      let detent = 0, lastDetent = 0;
 
       const onOrient = (e) => {
         if (e.beta == null || e.gamma == null) return;
         if (baseBeta === null) baseBeta = e.beta;
-        tiltX = clamp((e.beta - baseBeta) * 0.7, -25, 25);
-        tiltY = clamp(e.gamma * 0.7, -25, 25);
+        tiltX = clamp((e.beta - baseBeta) * 0.012, -0.45, 0.45);
+        tiltY = clamp(e.gamma * 0.012, -0.45, 0.45);
       };
 
+      // ---------- Побудова сцени ----------
+      function roundRectPath(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      }
+
+      function makeAlphaMap() {
+        const c = document.createElement('canvas');
+        c.width = 512;
+        c.height = Math.round(512 * CH / CW);
+        const g = c.getContext('2d');
+        g.fillStyle = '#000';
+        g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = '#fff';
+        roundRectPath(g, 0, 0, c.width, c.height, (RAD / CW) * c.width);
+        g.fill();
+        const t = new THREE.CanvasTexture(c);
+        return t;
+      }
+
+      // Фото на полотні потрібного розміру (надійніше за пряму передачу <img> у WebGL)
+      function photoCanvas() {
+        const c = document.createElement('canvas');
+        c.width = Math.min(srcImg.naturalWidth || 1349, 1024);
+        c.height = Math.round(c.width * 600 / 1349);
+        c.getContext('2d').drawImage(srcImg, 0, 0, c.width, c.height);
+        return c;
+      }
+
+      function makeFrontTexture() {
+        const t = new THREE.CanvasTexture(photoCanvas());
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 4;
+        return t;
+      }
+
+      // Зворот: "інопланетна" версія фото (поворот відтінку + насиченість)
+      function makeBackTexture() {
+        const c = photoCanvas();
+        const g = c.getContext('2d');
+        try {
+          const d = g.getImageData(0, 0, c.width, c.height);
+          const px = d.data;
+          const a = (170 * Math.PI) / 180, cos = Math.cos(a), sin = Math.sin(a);
+          const m = [
+            0.213 + cos * 0.787 - sin * 0.213, 0.715 - cos * 0.715 - sin * 0.715, 0.072 - cos * 0.072 + sin * 0.928,
+            0.213 - cos * 0.213 + sin * 0.143, 0.715 + cos * 0.285 + sin * 0.140, 0.072 - cos * 0.072 - sin * 0.283,
+            0.213 - cos * 0.213 - sin * 0.787, 0.715 - cos * 0.715 + sin * 0.715, 0.072 + cos * 0.928 + sin * 0.072
+          ];
+          const sat = 1.6;
+          for (let i = 0; i < px.length; i += 4) {
+            const r = px[i], gg = px[i + 1], b = px[i + 2];
+            let nr = m[0] * r + m[1] * gg + m[2] * b;
+            let ng = m[3] * r + m[4] * gg + m[5] * b;
+            let nb = m[6] * r + m[7] * gg + m[8] * b;
+            const l = 0.2126 * nr + 0.7152 * ng + 0.0722 * nb;
+            px[i] = clamp(l + (nr - l) * sat, 0, 255);
+            px[i + 1] = clamp(l + (ng - l) * sat, 0, 255);
+            px[i + 2] = clamp(l + (nb - l) * sat, 0, 255);
+          }
+          g.putImageData(d, 0, 0);
+        } catch (e) {}
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+
+      // Точки по периметру заокругленого прямокутника (для бокової стінки)
+      function perimeter() {
+        const pts = [];
+        const hw = CW / 2, hh = CH / 2, r = RAD;
+        const corners = [
+          [hw - r, hh - r, 0], [-hw + r, hh - r, Math.PI / 2],
+          [-hw + r, -hh + r, Math.PI], [hw - r, -hh + r, Math.PI * 1.5]
+        ];
+        const ARC = 10, EDGE_X = 40, EDGE_Y = 16;
+        corners.forEach(([cx, cy, a0], ci) => {
+          for (let i = 0; i <= ARC; i++) {
+            const a = a0 + (i / ARC) * (Math.PI / 2);
+            pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+          }
+          // пряма до наступного кута
+          const [nx, ny, na] = corners[(ci + 1) % 4];
+          const ex = cx + Math.cos(a0 + Math.PI / 2) * r, ey = cy + Math.sin(a0 + Math.PI / 2) * r;
+          const sx = nx + Math.cos(na) * r, sy = ny + Math.sin(na) * r;
+          const n = ci % 2 === 0 ? EDGE_X : EDGE_Y;
+          for (let i = 1; i < n; i++) pts.push([ex + (sx - ex) * (i / n), ey + (sy - ey) * (i / n)]);
+        });
+        return pts;
+      }
+
+      function register(geo) {
+        const pos = geo.attributes.position.array;
+        const base = new Float32Array(pos);
+        const n = pos.length / 3;
+        const uv = new Float32Array(n * 2);
+        for (let i = 0; i < n; i++) {
+          uv[i * 2] = clamp((base[i * 3] + CW / 2) / CW, 0, 1);
+          uv[i * 2 + 1] = clamp((base[i * 3 + 1] + CH / 2) / CH, 0, 1);
+        }
+        meshes.push({ geo, base, uv });
+      }
+
+      function build() {
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setClearColor(0x000000, 0);
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+        scene.add(camera);
+
+        // Світло прив'язане до камери — обидві сторони картки гарно освітлені
+        scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+        const key = new THREE.DirectionalLight(0xffffff, 2.2);
+        key.position.set(-2.5, 3, 6);
+        camera.add(key);
+        const rim = new THREE.DirectionalLight(0x9fd0ff, 0.9);
+        rim.position.set(4, -2, 3);
+        camera.add(rim);
+
+        group = new THREE.Group();
+        scene.add(group);
+
+        const frontTex = makeFrontTexture();
+        const alpha = makeAlphaMap();
+        const faceMat = (map) => new THREE.MeshStandardMaterial({
+          map, alphaMap: alpha, alphaTest: 0.5, roughness: 0.32, metalness: 0.05
+        });
+
+        const front = new THREE.PlaneGeometry(CW, CH, SEG_X, SEG_Y);
+        front.translate(0, 0, TH / 2);
+        const back = new THREE.PlaneGeometry(CW, CH, SEG_X, SEG_Y);
+        back.rotateY(Math.PI);
+        back.translate(0, 0, -TH / 2);
+
+        // Бокова стінка
+        const pts = perimeter();
+        const rimPos = new Float32Array(pts.length * 2 * 3);
+        pts.forEach(([x, y], i) => {
+          rimPos.set([x, y, TH / 2], i * 6);
+          rimPos.set([x, y, -TH / 2], i * 6 + 3);
+        });
+        const idx = [];
+        for (let i = 0; i < pts.length; i++) {
+          const a = i * 2, b = i * 2 + 1, c = ((i + 1) % pts.length) * 2, d = c + 1;
+          idx.push(a, b, c, b, d, c);
+        }
+        const rimGeo = new THREE.BufferGeometry();
+        rimGeo.setAttribute('position', new THREE.BufferAttribute(rimPos, 3));
+        rimGeo.setIndex(idx);
+        rimGeo.computeVertexNormals();
+
+        group.add(new THREE.Mesh(front, faceMat(frontTex)));
+        group.add(new THREE.Mesh(back, faceMat(makeBackTexture())));
+        group.add(new THREE.Mesh(rimGeo, new THREE.MeshStandardMaterial({
+          color: 0x3b3e48, roughness: 0.5, metalness: 0.2, side: THREE.DoubleSide
+        })));
+        [front, back, rimGeo].forEach(register);
+
+        // Невидима площина для визначення, куди саме торкнулись
+        hitMesh = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }));
+        group.add(hitMesh);
+        raycaster = new THREE.Raycaster();
+
+        resize();
+        window.addEventListener('resize', resize);
+        ready = true;
+      }
+
+      function resize() {
+        if (!renderer) return;
+        const w = window.innerWidth, h = window.innerHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        // Відстань камери, щоб картка займала ~88% ширини (але не більше 460px)
+        const targetFrac = Math.min(0.88, 460 / w);
+        const tanH = Math.tan((camera.fov * Math.PI) / 360);
+        camera.position.set(0, 0, CW / targetFrac / (2 * tanH * camera.aspect));
+        camera.updateProjectionMatrix();
+      }
+
+      // Скільки світових одиниць в одному пікселі на глибині картки
+      const unitsPerPx = () => (2 * camera.position.z * Math.tan((camera.fov * Math.PI) / 360)) / window.innerHeight;
+
+      // ---------- Фізика м'якого тіла ----------
+      function physics(dt) {
+        const steps = 3;
+        const h = dt / steps;
+        for (let s = 0; s < steps; s++) {
+          for (let j = 0; j < GY; j++) {
+            for (let i = 0; i < GX; i++) {
+              const n = j * GX + i;
+              for (let c = 0; c < 3; c++) {
+                const k = n * 3 + c;
+                const p = P[k];
+                let lap = 0, cnt = 0;
+                if (i > 0) { lap += P[k - 3]; cnt++; }
+                if (i < GX - 1) { lap += P[k + 3]; cnt++; }
+                if (j > 0) { lap += P[k - GX * 3]; cnt++; }
+                if (j < GY - 1) { lap += P[k + GX * 3]; cnt++; }
+                let f = -K_ANCHOR * p + K_NEIGH * (lap - cnt * p) - DAMP * V[k];
+                if (mode === 'deform' && W[n] > 0.001) f += K_GRAB * W[n] * (grabTarget[c] * W[n] - p);
+                V[k] += f * h;
+              }
+            }
+          }
+          for (let k = 0; k < P.length; k++) P[k] += V[k] * h;
+        }
+      }
+
+      // Білінійна вибірка зміщення в точці (u, v)
+      function deformGeometry() {
+        for (const m of meshes) {
+          const pos = m.geo.attributes.position.array;
+          const { base, uv } = m;
+          const n = base.length / 3;
+          for (let i = 0; i < n; i++) {
+            const fx = uv[i * 2] * (GX - 1), fy = uv[i * 2 + 1] * (GY - 1);
+            const x0 = Math.min(Math.floor(fx), GX - 2), y0 = Math.min(Math.floor(fy), GY - 2);
+            const tx = fx - x0, ty = fy - y0;
+            const a = (y0 * GX + x0) * 3, b = a + 3, c = a + GX * 3, d = c + 3;
+            for (let k = 0; k < 3; k++) {
+              const top = P[a + k] * (1 - tx) + P[b + k] * tx;
+              const bot = P[c + k] * (1 - tx) + P[d + k] * tx;
+              pos[i * 3 + k] = base[i * 3 + k] + top * (1 - ty) + bot * ty;
+            }
+          }
+          m.geo.attributes.position.needsUpdate = true;
+          m.geo.computeVertexNormals();
+        }
+      }
+
+      // ---------- Кадр ----------
       function frame(t) {
         const dt = Math.min((t - prevT) / 1000, 0.033);
         prevT = t;
 
-        if (!dragging) {
-          // Обертання по Y крутиться з інерцією і тертям, потім м'яко "сідає" на лице або зворот
-          vy *= Math.pow(0.12, dt);
-          if (Math.abs(vy) < 40) {
-            const target = Math.round(ry / 180) * 180;
-            vy += ((target - ry) * 28 - vy * 6) * dt;
+        if (mode !== 'rotate') {
+          if (exiting) {
+            const target = Math.round(ry / (Math.PI * 2)) * Math.PI * 2;
+            vry += ((target - ry) * 60 - vry * 11) * dt;
+          } else {
+            vry *= Math.pow(0.15, dt);
+            if (Math.abs(vry) < 0.7) {
+              const target = Math.round(ry / Math.PI) * Math.PI;
+              vry += ((target - ry) * 28 - vry * 6) * dt;
+            }
           }
-          ry += vy * dt;
-          // Нахил по X пружинить назад
-          vx += (-rx * 60 - vx * 9) * dt;
-          rx += vx * dt;
+          ry += vry * dt;
+          vrx += (-rx * 40 - vrx * 8) * dt;
+          rx += vrx * dt;
         }
 
-        gx += (tiltX - gx) * Math.min(1, dt * 8);
-        gy += (tiltY - gy) * Math.min(1, dt * 8);
+        const ti = exiting ? 0 : 1;
+        gx += (tiltX * ti - gx) * Math.min(1, dt * 8);
+        gy += (tiltY * ti - gy) * Math.min(1, dt * 8);
 
-        const X = rx + gx;
-        const Y = ry + gy;
-        const float = Math.sin(t / 900) * 4;
-        card.style.transform = `translateY(${float.toFixed(2)}px) rotateX(${(-X).toFixed(2)}deg) rotateY(${Y.toFixed(2)}deg)`;
+        physics(dt);
+        deformGeometry();
 
-        if (glare) {
-          const yr = (Y * Math.PI) / 180, xr = (X * Math.PI) / 180;
-          glare.style.setProperty('--gx', `${50 - Math.sin(yr) * 60}%`);
-          glare.style.setProperty('--gy', `${35 + Math.sin(xr) * 60}%`);
-        }
+        group.rotation.x = rx + gx;
+        group.rotation.y = ry + gy;
+        group.position.y = exiting ? 0 : Math.sin(t / 900) * 0.05;
+        renderer.render(scene, camera);
 
-        // Перевернули на інший бік — тік і звук
-        const face = Math.round(ry / 180);
+        // Переворот — тік і "свуш"
+        const face = Math.round(ry / Math.PI);
         if (face !== lastFace) {
           lastFace = face;
           Haptics.tick(14);
           if (window.easterSound && window.easterSound.flip) window.easterSound.flip();
         }
 
-        rafId = on || Math.abs(ry % 360) > 0.5 ? requestAnimationFrame(frame) : null;
+        if (exiting) {
+          let energy = 0;
+          for (let k = 0; k < P.length; k++) energy += Math.abs(P[k]);
+          const target = Math.round(ry / (Math.PI * 2)) * Math.PI * 2;
+          if ((Math.abs(ry - target) < 0.01 && Math.abs(rx) < 0.01 && energy < 0.5) || t - exitStart > 1400) {
+            finishExit();
+            return;
+          }
+        }
+        rafId = requestAnimationFrame(frame);
       }
 
-      const start = () => {
+      let exitStart = 0;
+      function finishExit() {
+        exiting = false;
+        on = false;
+        overlay.classList.remove('is-3d');
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
+      const startLoop = () => {
         if (!rafId) { prevT = performance.now(); rafId = requestAnimationFrame(frame); }
       };
 
+      // ---------- Увімкнення / вимкнення ----------
       async function enable() {
+        if (loading) return;
+        // Дозвіл на гіроскоп iPhone треба просити одразу в обробнику натискання
+        let permission = Promise.resolve('granted');
+        try {
+          if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            permission = DeviceOrientationEvent.requestPermission().catch(() => 'denied');
+          }
+        } catch (e) {}
+
+        if (!ready) {
+          loading = true;
+          btn.classList.add('is-loading');
+          try {
+            THREE = await import('./js/vendor/three.module.min.js');
+            build();
+          } catch (e) {
+            loading = false;
+            btn.classList.remove('is-loading');
+            label.textContent = '3D ✕';
+            setTimeout(() => { label.textContent = '3D'; }, 1500);
+            return;
+          }
+          loading = false;
+          btn.classList.remove('is-loading');
+        }
+
         on = true;
+        exiting = false;
+        P.fill(0); V.fill(0);
+        rx = 0; vrx = 0; ry = 0; lastFace = 0;
+        vry = reduceMotion ? 0 : Math.PI * 4;   // ефектне розкручування на вході
+        baseBeta = null;
         overlay.classList.add('is-3d');
         btn.setAttribute('aria-pressed', 'true');
         label.textContent = '2D';
-        img.style.transform = '';
-        rx = 0; ry = 0; vx = 0; lastFace = 0;
-        vy = reduceMotion ? 0 : 720;       // ефектне "розкручування" на вході
-        baseBeta = null;
-        // iPhone просить дозвіл на гіроскоп — лише у відповідь на натискання кнопки
-        try {
-          if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            const res = await DeviceOrientationEvent.requestPermission();
-            if (res !== 'granted') throw new Error('denied');
-          }
-          window.addEventListener('deviceorientation', onOrient);
-        } catch (e) {}
+        resize();
+        permission.then((res) => { if (res === 'granted' && on) window.addEventListener('deviceorientation', onOrient); });
         Haptics.pattern([10, 40, 10, 40, 20]);
-        start();
+        startLoop();
       }
 
       function disable() {
-        on = false;
+        if (!on || exiting) return;
+        exiting = true;
+        exitStart = performance.now();
+        mode = null;
         window.removeEventListener('deviceorientation', onOrient);
         tiltX = tiltY = 0;
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = null;
-        // Плавно повертаємо картку лицем до глядача
-        const target = Math.round(ry / 360) * 360;
-        card.style.transition = 'transform 0.7s cubic-bezier(0.34, 1.3, 0.64, 1)';
-        card.style.transform = `rotateX(0deg) rotateY(${target}deg)`;
         btn.setAttribute('aria-pressed', 'false');
         label.textContent = '3D';
         Haptics.tick(12);
-        setTimeout(() => {
-          if (on) return;
-          overlay.classList.remove('is-3d');
-          card.style.transition = '';
-          card.style.transform = '';
-          rx = ry = vx = vy = 0;
-        }, 720);
+        startLoop();
       }
 
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (on) disable(); else enable();
+        if (on && !exiting) disable(); else if (!on) enable();
       });
 
-      // Закрили пасхалку — виходимо з 3D
+      // Закрили пасхалку — миттєво виходимо з 3D
       overlay.addEventListener('click', (e) => {
         if (e.target === overlay && on) {
-          on = false;
           window.removeEventListener('deviceorientation', onOrient);
-          overlay.classList.remove('is-3d');
           btn.setAttribute('aria-pressed', 'false');
           label.textContent = '3D';
-          card.style.transform = '';
-          card.style.transition = '';
+          finishExit();
         }
       });
 
-      // Кручення пальцем
-      card.addEventListener('pointerdown', (e) => {
-        if (!on) return;
+      // ---------- Дотики ----------
+      function hitUV(clientX, clientY) {
+        const ndc = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+        raycaster.setFromCamera(ndc, camera);
+        const hit = raycaster.intersectObject(hitMesh, false)[0];
+        if (!hit) return null;
+        const local = group.worldToLocal(hit.point.clone());
+        return { x: local.x, y: local.y };
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        if (!on || exiting || !ready) return;
         e.preventDefault();
-        dragging = true;
-        card.style.cursor = 'grabbing';
-        last = { x: e.clientX, y: e.clientY, t: performance.now() };
-        vx = vy = 0;
-        try { card.setPointerCapture(e.pointerId); } catch (err) {}
-        if (window.easterQuote) window.easterQuote();
-        Haptics.tick(8);
-        if (window.easterSound) window.easterSound.grab();
-        start();
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+        startPt = lastPt = { x: e.clientX, y: e.clientY, t: performance.now() };
+        downTime = performance.now();
+        moved = false;
+        const hit = hitUV(e.clientX, e.clientY);
+        if (hit) {
+          mode = 'deform';
+          // Вага кожного вузла — гаусіана навколо місця дотику
+          const sigma = 0.36;
+          for (let j = 0; j < GY; j++) {
+            for (let i = 0; i < GX; i++) {
+              const nx = (i / (GX - 1) - 0.5) * CW, ny = (j / (GY - 1) - 0.5) * CH;
+              const d2 = (nx - hit.x) ** 2 + (ny - hit.y) ** 2;
+              W[j * GX + i] = Math.exp(-d2 / (2 * sigma * sigma));
+            }
+          }
+          grabTarget = [0, 0, 0];
+          detent = 0;
+          if (window.easterQuote) window.easterQuote();
+          Haptics.tick(10);
+          if (window.easterSound) window.easterSound.grab();
+        } else {
+          mode = 'rotate';
+          vrx = vry = 0;
+        }
       });
 
-      card.addEventListener('pointermove', (e) => {
-        if (!on || !dragging || !last) return;
+      canvas.addEventListener('pointermove', (e) => {
+        if (!on || !mode || !lastPt) return;
         const now = performance.now();
-        const dt = Math.max((now - last.t) / 1000, 0.001);
-        const dx = e.clientX - last.x;
-        const dy = e.clientY - last.y;
-        ry += dx * 0.5;
-        rx = clamp(rx + dy * 0.5, -70, 70);
-        // Згладжена швидкість для інерції після відпускання
-        vy = vy * 0.6 + ((dx * 0.5) / dt) * 0.4;
-        vx = vx * 0.6 + ((dy * 0.5) / dt) * 0.4;
-        last = { x: e.clientX, y: e.clientY, t: now };
+        const dx = e.clientX - lastPt.x, dy = e.clientY - lastPt.y;
+        if (Math.hypot(e.clientX - startPt.x, e.clientY - startPt.y) > 6) moved = true;
+
+        if (mode === 'rotate') {
+          const dt = Math.max((now - lastPt.t) / 1000, 0.001);
+          ry += dx * 0.009;
+          rx = clamp(rx + dy * 0.009, -1.2, 1.2);
+          vry = vry * 0.6 + ((dx * 0.009) / dt) * 0.4;
+          vrx = vrx * 0.6 + ((dy * 0.009) / dt) * 0.4;
+        } else {
+          // Розтяг за пальцем + "витягування" до глядача
+          const upp = unitsPerPx();
+          let wx = (e.clientX - startPt.x) * upp;
+          let wy = -(e.clientY - startPt.y) * upp;
+          const len = Math.hypot(wx, wy);
+          const L = 1.5;
+          const soft = len > 0 ? (L * (1 - Math.exp(-len / L))) / len : 0;
+          wx *= soft; wy *= soft;
+          const pull = Math.min(len, 2) * 0.85;
+          const v = new THREE.Vector3(wx, wy, pull);
+          v.applyQuaternion(group.quaternion.clone().invert());
+          grabTarget = [v.x, v.y, v.z];
+
+          // Тіки при натягуванні
+          const level = Math.floor(len / upp / 40);
+          if (level > detent && now - lastDetent > 45) { Haptics.tick(4 + level * 2); lastDetent = now; }
+          detent = level;
+        }
+        lastPt = { x: e.clientX, y: e.clientY, t: now };
       });
 
-      const end = () => {
-        if (!dragging) return;
-        dragging = false;
-        card.style.cursor = '';
-        // Відпустили без руху — гасимо швидкість
-        if (last && performance.now() - last.t > 80) { vx = 0; vy = 0; }
-        vy = clamp(vy, -2000, 2000);
-        vx = clamp(vx, -600, 600);
-        if (Math.abs(vy) > 500) Haptics.pattern([12, 30, 8]);
+      const end = (e) => {
+        if (!mode) return;
+        const wasMode = mode;
+        mode = null;
+        if (wasMode === 'deform') {
+          const len = Math.hypot(grabTarget[0], grabTarget[1], grabTarget[2]);
+          W.fill(0);
+          if (len > 0.15) {
+            const k = Math.min(len / 1.2, 1.2);
+            Haptics.pattern([
+              Math.round(22 + 30 * k), 55, Math.round(14 + 18 * k), 70,
+              Math.round(8 + 10 * k), 85, Math.round(5 + 4 * k)
+            ]);
+            if (window.easterSound) window.easterSound.splash(k);
+          }
+        } else {
+          // Короткий тап по фону без руху — назад у 2D
+          if (!moved && performance.now() - downTime < 300) { disable(); return; }
+          if (lastPt && performance.now() - lastPt.t > 80) { vrx = vry = 0; }
+          vry = clamp(vry, -25, 25);
+          vrx = clamp(vrx, -8, 8);
+          if (Math.abs(vry) > 6) Haptics.pattern([12, 30, 8]);
+        }
       };
-      card.addEventListener('pointerup', end);
-      card.addEventListener('pointercancel', end);
-      card.addEventListener('lostpointercapture', end);
+      canvas.addEventListener('pointerup', end);
+      canvas.addEventListener('pointercancel', end);
+      canvas.addEventListener('lostpointercapture', end);
     })();
 
     // 4.4 Звуки пасхалки: водяні "хлюпи" з варіаціями (синтез у браузері, без файлів)
