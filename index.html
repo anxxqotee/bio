@@ -29,6 +29,10 @@
     }
 
     :root {
+      /* Плавні криві для всіх анімацій */
+      --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+      --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
       --bg: #f4f3ef;
       --text: #23252a;
       --subtext: #737782;
@@ -433,6 +437,35 @@
         -3px -3px 7px var(--shadow-light);
     }
 
+    .username-badge,
+    .theme-toggle {
+      transition: 
+        transform 0.6s var(--ease-spring),
+        box-shadow 0.6s var(--ease-smooth),
+        color 0.4s var(--ease-soft),
+        background-color 0.4s var(--ease-soft),
+        border-color 0.4s var(--ease-soft);
+    }
+
+    .theme-toggle svg {
+      transition: transform 0.7s var(--ease-spring);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .username-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+          5px 6px 12px var(--shadow-dark),
+          -4px -4px 10px var(--shadow-light);
+      }
+      .theme-toggle:hover {
+        transform: translateY(-2px);
+      }
+      .theme-toggle:hover svg {
+        transform: rotate(-18deg) scale(1.08);
+      }
+    }
+
     .username-badge:active {
       transform: scale(0.96);
       box-shadow: 
@@ -483,11 +516,24 @@
         -2px -2px 6px var(--shadow-light);
 
       transition: 
-        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-        box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-        border-color 0.4s cubic-bezier(0.25, 1, 0.5, 1),
-        background-color 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        transform 0.7s var(--ease-smooth),
+        box-shadow 0.7s var(--ease-smooth),
+        border-color 0.6s var(--ease-soft),
+        background-color 0.6s var(--ease-soft);
       will-change: transform, box-shadow;
+    }
+
+    /* Натискання — м'яке "втискання" картки */
+    .link-card:not(.is-open):active,
+    .link-card.is-open .link-main-row:active .link-icon-box {
+      transition-duration: 0.18s;
+    }
+
+    .link-card:not(.is-open):active {
+      transform: translateY(0) scale(0.985) !important;
+      box-shadow: 
+        1px 1px 3px var(--shadow-dark),
+        -1px -1px 3px var(--shadow-light) !important;
     }
 
     .link-main-row {
@@ -526,9 +572,9 @@
         inset -2px -2px 4px var(--shadow-light);
 
       transition: 
-        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-        box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-        background-color 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        transform 0.75s var(--ease-spring),
+        box-shadow 0.7s var(--ease-smooth),
+        background-color 0.6s var(--ease-soft);
       will-change: transform, box-shadow;
     }
 
@@ -543,6 +589,10 @@
       -webkit-mask-repeat: no-repeat;
       mask-repeat: no-repeat;
       display: block;
+      transform: translate3d(0, 0, 0);
+      transition: 
+        transform 0.8s var(--ease-spring),
+        background-color 0.6s var(--ease-soft);
     }
 
     .link-content {
@@ -578,7 +628,7 @@
       margin-left: 10px;
       color: var(--subtext);
       opacity: 0.7;
-      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, color 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: transform 0.7s var(--ease-spring), opacity 0.5s var(--ease-soft), color 0.6s var(--ease-soft);
       flex-shrink: 0;
     }
 
@@ -591,8 +641,12 @@
         -9px -11px 24px var(--shadow-light);
     }
 
+    .link-card.is-elevated .link-icon-masked {
+      transform: scale(1.08) rotate(-6deg);
+    }
+
     .link-card.is-elevated .link-icon-box {
-      transform: scale(1.035);
+      transform: scale(1.06);
       box-shadow: 
         3px 3px 8px var(--shadow-dark),
         -3px -3px 8px var(--shadow-light);
@@ -606,14 +660,20 @@
     /* Hover на ПК */
     @media (hover: hover) and (pointer: fine) {
       .link-card:not(.is-open):hover {
-        transform: translateY(-2px);
+        transform: translateY(-3px);
         border-color: rgba(255, 255, 255, 0.25);
         box-shadow: 
           8px 10px 22px var(--shadow-dark),
           -8px -10px 22px var(--shadow-light);
       }
+      .link-card:not(.is-open):hover .link-icon-masked {
+        transform: scale(1.1) rotate(-7deg);
+      }
+      .link-card:hover .link-subtitle {
+        color: var(--text);
+      }
       .link-card:not(.is-open):hover .link-icon-box {
-        transform: scale(1.035);
+        transform: scale(1.06);
         box-shadow: 
           3px 3px 8px var(--shadow-dark),
           -3px -3px 8px var(--shadow-light);
@@ -633,6 +693,10 @@
       transform: translateY(-1px);
     }
 
+    .link-card.is-open .link-icon-box {
+      transform: scale(1.04);
+    }
+
     .link-card.is-open .link-arrow {
       transform: rotate(180deg) !important;
       opacity: 1;
@@ -642,7 +706,7 @@
     .inner-tray {
       display: grid;
       grid-template-rows: 0fr;
-      transition: grid-template-rows 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: grid-template-rows 0.6s var(--ease-smooth);
       width: 100%;
       transform: translate3d(0, 0, 0);
       backface-visibility: hidden;
@@ -659,7 +723,7 @@
       flex-direction: column;
       gap: 10px;
       padding: 0 10px;
-      transition: padding-top 0.45s cubic-bezier(0.25, 1, 0.5, 1), padding-bottom 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: padding-top 0.6s var(--ease-smooth), padding-bottom 0.6s var(--ease-smooth);
       transform: translate3d(0, 0, 0);
       backface-visibility: hidden;
     }
@@ -684,7 +748,7 @@
       text-decoration: none;
       font-size: 0.88rem;
       font-weight: 600;
-      transform: translate3d(0, -6px, 0);
+      transform: translate3d(0, -10px, 0) scale(0.98);
       backface-visibility: hidden;
       will-change: transform, opacity;
       
@@ -694,21 +758,23 @@
 
       opacity: 0;
       transition: 
-        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-        opacity 0.35s ease,
-        background-color 0.3s ease,
-        outline-color 0.3s ease,
-        box-shadow 0.3s ease !important;
+        transform 0.55s var(--ease-smooth),
+        opacity 0.4s var(--ease-soft),
+        background-color 0.4s var(--ease-soft),
+        outline-color 0.4s var(--ease-soft),
+        box-shadow 0.5s var(--ease-smooth) !important;
     }
 
     .link-card.is-open .nested-btn {
       opacity: 1;
-      transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0) scale(1);
+      transition-delay: calc(0.06s + var(--n, 0) * 0.06s), calc(0.06s + var(--n, 0) * 0.06s), 0s, 0s, 0s !important;
     }
 
     @media (hover: hover) and (pointer: fine) {
       .nested-btn:hover {
-        transform: translate3d(0, -1.5px, 0) !important;
+        transform: translate3d(0, -2px, 0) !important;
+        transition-delay: 0s !important;
         background-color: var(--sub-card-hover) !important;
         outline-color: rgba(255, 255, 255, 0.45);
         box-shadow: 
@@ -729,7 +795,17 @@
       box-shadow: 
         inset 2px 2px 5px var(--shadow-dark),
         inset -2px -2px 5px var(--shadow-light) !important;
-      transition: all 0.15s ease !important;
+      transition: transform 0.15s var(--ease-soft), box-shadow 0.15s var(--ease-soft) !important;
+    }
+
+    .nested-action-icon {
+      transition: transform 0.5s var(--ease-spring), stroke 0.3s ease;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .nested-btn:hover .nested-action-icon {
+        transform: translate(2px, -2px);
+      }
     }
 
     .nested-btn-left {
@@ -771,7 +847,24 @@
       letter-spacing: 0.01em;
       white-space: nowrap;
       box-shadow: 0 2px 6px rgba(229, 50, 45, 0.35);
-      transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.4s var(--ease-soft), transform 0.6s var(--ease-spring);
+      animation: pillGlow 2.6s var(--ease-soft) infinite;
+    }
+
+    @keyframes pillGlow {
+      0%, 100% { box-shadow: 0 2px 6px rgba(229, 50, 45, 0.35), 0 0 0 0 rgba(229, 50, 45, 0.35); }
+      50% { box-shadow: 0 2px 6px rgba(229, 50, 45, 0.35), 0 0 0 5px rgba(229, 50, 45, 0); }
+    }
+
+    .link-card .nested-btn .new-pill {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+
+    .link-card.is-open .nested-btn .new-pill {
+      transform: scale(1);
+      opacity: 1;
+      transition-delay: 0.25s;
     }
 
     /* Всередині — стікер у куті кнопки, щоб не ламати рядок */
@@ -813,7 +906,6 @@
       flex-shrink: 0;
       display: inline-block;
       vertical-align: middle;
-      transition: stroke 0.3s ease;
     }
 
     /* Стан скопійовано */
@@ -863,10 +955,10 @@
       transform: translate3d(0, -6px, 0);
       opacity: 0;
       transition: 
-        transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-        box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-        border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-        opacity 0.35s ease;
+        transform 0.6s var(--ease-smooth),
+        box-shadow 0.6s var(--ease-smooth),
+        border-color 0.5s var(--ease-soft),
+        opacity 0.45s var(--ease-soft);
     }
 
     .link-card.is-open .insta-preview-card {
@@ -874,15 +966,17 @@
       opacity: 1;
     }
 
-    .link-card.is-open .insta-preview-card:nth-child(2) { transition-delay: 0.04s; }
-    .link-card.is-open .insta-preview-card:nth-child(3) { transition-delay: 0.08s; }
+    .link-card.is-open .insta-preview-card:nth-child(1) { transition-delay: 0.06s; }
+    .link-card.is-open .insta-preview-card:nth-child(2) { transition-delay: 0.12s; }
+    .link-card.is-open .insta-preview-card:nth-child(3) { transition-delay: 0.18s; }
+    .link-card.is-open .insta-preview-card:hover { transition-delay: 0s; }
 
     .insta-preview-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.9s var(--ease-smooth);
       color-interpolation-filters: sRGB;
     }
 
@@ -910,6 +1004,15 @@
       color: var(--subtext);
       letter-spacing: 0.04em;
       text-align: center;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0s !important;
+      }
     }
 
     @keyframes revealUp {
@@ -1104,7 +1207,7 @@
           type: "expandable",
           title: "Вайбкодинг",
           subtitle: "Веб-ігри та проекти",
-          icon: "img/star-collector.svg",
+          icon: "img/code.svg",
           nestedButtons: [
             {
               title: "Star Collector 2025",
@@ -1254,7 +1357,7 @@
               <div class="insta-gallery-grid">
                 ${photosHTML}
               </div>
-              <a href="${btn.profileUrl}" target="_blank" rel="noopener noreferrer" class="nested-btn insta-profile-btn">
+              <a href="${btn.profileUrl}" target="_blank" rel="noopener noreferrer" class="nested-btn insta-profile-btn" style="--n:3">
                 <div class="nested-btn-left">
                   <span>Перейти до профілю</span>
                   <span class="nested-btn-badge">Instagram</span>
@@ -1273,12 +1376,12 @@
         wrapper.appendChild(card);
       } else if (btn.type === 'expandable') {
         let nestedHTML = '';
-        btn.nestedButtons.forEach((sub) => {
+        btn.nestedButtons.forEach((sub, subIdx) => {
           const icon = sub.actionType === 'copy' ? copySVG : externalSVG;
 
           if (sub.copyAction) {
             nestedHTML += `
-              <button type="button" class="nested-btn copy-card-btn" data-copy="${PAGE_DATA.cardNumber}">
+              <button type="button" class="nested-btn copy-card-btn" style="--n:${subIdx}" data-copy="${PAGE_DATA.cardNumber}">
                 <div class="nested-btn-left">
                   <span>${sub.title}</span>
                   <span class="nested-btn-badge">${sub.badge}</span>${newPill(sub.newLabel)}
@@ -1291,7 +1394,7 @@
             `;
           } else {
             nestedHTML += `
-              <a href="${sub.url}" target="_blank" rel="noopener noreferrer" class="nested-btn">
+              <a href="${sub.url}" target="_blank" rel="noopener noreferrer" class="nested-btn" style="--n:${subIdx}">
                 <div class="nested-btn-left">
                   <span>${sub.title}</span>
                   <span class="nested-btn-badge">${sub.badge}</span>${newPill(sub.newLabel)}
