@@ -2580,6 +2580,29 @@
       }, { passive: true });
     })();
 
+    // Швидкість пальця за останні ~80 мс руху (для кидків по інерції)
+    const makeVelTracker = () => {
+      let hist = [];
+      return {
+        reset() { hist = []; },
+        push(x, y) {
+          const t = performance.now();
+          hist.push([t, x, y]);
+          while (hist.length > 2 && t - hist[0][0] > 120) hist.shift();
+        },
+        // Повертає {x, y} px/с; якщо палець зупинився перед відпусканням — нуль
+        get() {
+          const now = performance.now();
+          if (hist.length < 2 || now - hist[hist.length - 1][0] > 100) return { x: 0, y: 0 };
+          const last = hist[hist.length - 1];
+          let first = hist[0];
+          for (const h of hist) { if (last[0] - h[0] <= 80) { first = h; break; } }
+          const dt = Math.max((last[0] - first[0]) / 1000, 0.008);
+          return { x: (last[1] - first[1]) / dt, y: (last[2] - first[2]) / dt };
+        }
+      };
+    };
+
     // 4.2 Желейна картинка: хапаєш пальцем — тягнеш — розтягується, відпускаєш — пружинить
     (() => {
       const img = document.querySelector('.easter-img');
@@ -2601,6 +2624,7 @@
       let fv = { x: 0, y: 0 };       // швидкість пальця, px/с
       let lastMove = null;
       let holdStart = 0;             // секрет: тримати розтягнутою до упору
+      const tracker = makeVelTracker();
 
       // Еластичний "упор": чим далі тягнеш, тим важче
       const soften = (v) => Math.sign(v) * MAX_PULL * (1 - Math.exp(-Math.abs(v) / MAX_PULL));
@@ -2658,6 +2682,8 @@
         if (window.EggFun && window.EggFun.tap()) return; // надування з'їло дотик
         dragging = true;
         fv = { x: 0, y: 0 };
+        tracker.reset();
+        tracker.push(e.clientX, e.clientY);
         lastMove = { x: e.clientX, y: e.clientY, t: performance.now() };
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
         const r = img.getBoundingClientRect();
@@ -2686,6 +2712,7 @@
           fv.y = fv.y * 0.5 + ((e.clientY - lastMove.y) / dtm) * 0.5;
         }
         lastMove = { x: e.clientX, y: e.clientY, t: tNow };
+        tracker.push(e.clientX, e.clientY);
         const nx = soften(e.clientX - start.x);
         const ny = soften(e.clientY - start.y);
         // Швидкість потрібна, щоб відпущена картинка "відстрілювала" природно
@@ -2717,6 +2744,16 @@
         const pull = Math.hypot(pos.x, pos.y);
 
         holdStart = 0;
+
+        // Різкий змах — картка по інерції вилітає і вмикається "Політ"
+        const fling = tracker.get();
+        if (Math.hypot(fling.x, fling.y) > 1200 && window.EggFun && window.EggFun.launchWith) {
+          pos = { x: 0, y: 0 };
+          vel = { x: 0, y: 0 };
+          apply();
+          if (window.EggFun.launchWith(fling.x, fling.y)) return;
+        }
+
         if (pull > 30 && window.EggFun) {
           window.EggFun.stat('stretches');
           window.EggFun.statMax('maxPull', pull);
@@ -3861,6 +3898,7 @@
       let grav = { x: 0, y: 2600 };        // гравітація (від нахилу телефона)
       let lastHitX = -1e9, lastHitY = -1e9;
       let carry = null;
+      const carryTracker = makeVelTracker();
       const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
       // Хітбокс з урахуванням повороту: напівширина/напіввисота повернутого прямокутника
@@ -3946,15 +3984,17 @@
         if (!physRaf) { T.last = performance.now(); physRaf = requestAnimationFrame(physStep); }
       }
 
-      function setFree(on, instant) {
-        if (on === free) return;
+      function setFree(on, instant, v0) {
+        if (on === free) return false;
         if (on) {
-          if (overlay.classList.contains('is-3d') || popping || reduceMotion) return;
+          if (overlay.classList.contains('is-3d') || popping || reduceMotion) return false;
           free = true;
           returning = false;
           const r = fly.getBoundingClientRect();
           Object.assign(T, {
-            x: 0, y: 0, vx: rand(-200, 200), vy: -500, rot: 0, vrot: rand(-120, 120), sx: 1, sy: 1, vsx: 0, vsy: 0, base: 1,
+            x: 0, y: 0,
+            vx: v0 ? v0.x : rand(-200, 200), vy: v0 ? v0.y : -500,
+            rot: 0, vrot: v0 ? v0.x / 5 : rand(-120, 120), sx: 1, sy: 1, vsx: 0, vsy: 0, base: 1,
             w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2
           });
           overlay.classList.add('is-throwing');
@@ -3964,7 +4004,9 @@
           sound('splash', 0.6);
           Haptics.pattern([25, 30, 15]);
           stat('throws');
+          if (v0) counterHit();
           startPhys();
+          return true;
         } else {
           free = false;
           carrying = false;
@@ -3995,6 +4037,13 @@
         }
       }
 
+      // Запуск змахом: картка летить по інерції з тією ж швидкістю, що й палець
+      function launchWith(vx, vy) {
+        const cap = 4500;
+        const k = Math.min(1, cap / Math.max(1, Math.hypot(vx, vy)));
+        return setFree(true, false, { x: vx * k, y: vy * k });
+      }
+
       if (launchBtn) {
         launchBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -4010,6 +4059,8 @@
         carrying = true;
         try { fly.setPointerCapture(e.pointerId); } catch (err) {}
         carry = { dx: e.clientX - (T.cx + T.x), dy: e.clientY - (T.cy + T.y), lx: e.clientX, ly: e.clientY, lt: performance.now(), vx: 0, vy: 0 };
+        carryTracker.reset();
+        carryTracker.push(e.clientX, e.clientY);
         T.vx = T.vy = 0;
         T.vrot *= 0.3;
         if (window.easterQuote) window.easterQuote();
@@ -4024,6 +4075,7 @@
         carry.vx = carry.vx * 0.5 + ((e.clientX - carry.lx) / dt) * 0.5;
         carry.vy = carry.vy * 0.5 + ((e.clientY - carry.ly) / dt) * 0.5;
         carry.lx = e.clientX; carry.ly = e.clientY; carry.lt = now;
+        carryTracker.push(e.clientX, e.clientY);
         T.x = e.clientX - carry.dx - T.cx;
         T.y = e.clientY - carry.dy - T.cy;
         // Під час перенесення картка трохи нахиляється в бік руху
@@ -4033,9 +4085,10 @@
       const dropCard = () => {
         if (!carrying) return;
         carrying = false;
-        const fresh = carry && performance.now() - carry.lt < 90;
-        T.vx = fresh ? Math.max(-4000, Math.min(4000, carry.vx)) : 0;
-        T.vy = fresh ? Math.max(-4000, Math.min(4000, carry.vy)) : 0;
+        // Інерція: швидкість пальця за останні ~80 мс
+        const v = carryTracker.get();
+        T.vx = Math.max(-4500, Math.min(4500, v.x));
+        T.vy = Math.max(-4500, Math.min(4500, v.y));
         T.vrot = T.vx / 5;
         const sp = Math.hypot(T.vx, T.vy);
         if (sp > 800) {
@@ -4310,7 +4363,7 @@
       }
 
       return {
-        stat, statMax, counterHit, tap, askMotion, onOpen, onClose, secret, setFree,
+        stat, statMax, counterHit, tap, askMotion, onOpen, onClose, secret, setFree, launchWith,
         isFree: () => free,
         busy: () => carrying || popping || returning
       };
