@@ -39,7 +39,8 @@ function loadStoredHistory() {
 
 function saveStoredHistory() {
   try {
-    saveStoredHistory();
+    // Раніше функція викликала сама себе, і історія ніколи не записувалась
+    localStorage.setItem('songrate_history', JSON.stringify(State.ratingsHistory.slice(0, 500)));
   } catch (e) {}
 }
 
@@ -385,6 +386,7 @@ async function openPublicProfile(userId, updateUrl = true) {
   }
 
   document.getElementById('pub-username').textContent = `@${username}`;
+  if (window.SR && SR.fillAvatar) SR.fillAvatar(document.getElementById('pub-avatar-img'), userId, username);
   document.getElementById('pub-stat-count').textContent = userRatings.length;
 
   if (userRatings.length) {
@@ -469,10 +471,12 @@ async function loadLeaderboard() {
       row.className = 'leaderboard-row';
       row.innerHTML = `
         <span class="leaderboard-rank">#${idx + 1}</span>
+        <img class="leaderboard-avatar" alt="">
         <span class="leaderboard-user">@${escapeHTML(u.username)}</span>
         <span class="leaderboard-count">${u.count} ${pluralizeRatings(u.count)}</span>
       `;
       row.onclick = () => openPublicProfile(u.userId);
+      if (window.SR && SR.fillAvatar) SR.fillAvatar(row.querySelector('.leaderboard-avatar'), u.userId, u.username);
       container.appendChild(row);
     });
   } catch (err) {
@@ -505,6 +509,7 @@ function initProfileSettings() {
     }
 
     showToast('Юзернейм збережено!');
+    if (window.SR && SR.onUsernameChange) SR.onUsernameChange(newName);
     loadLeaderboard();
   });
 }
@@ -923,6 +928,7 @@ function applyCoverTheme(artwork) {
 // 12. СТАРТ ОЦІНЮВАННЯ
 async function startAlbumRating(albumId, preloadedAlbum = null) {
   stopTrackAudio();
+  if (!preloadedAlbum) showToast('Завантажуємо альбом...');
   const albumData = preloadedAlbum || await MusicAPI.getAlbumWithTracks(albumId);
   if (!albumData || !albumData.tracks.length) {
     showToast('Не вдалося завантажити треки альбому.');
@@ -1434,6 +1440,8 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
   if (isExternalReview && data.username) {
     banner.classList.remove('hidden');
     document.getElementById('shared-user-name').textContent = `@${data.username}`;
+    const bannerAva = document.getElementById('shared-user-avatar');
+    if (bannerAva && window.SR && SR.fillAvatar) SR.fillAvatar(bannerAva, data.userId || data.user_id, data.username);
     const reviewerId = data.userId || data.user_id;
     reviewerBtn.classList.toggle('hidden', !reviewerId);
     reviewerBtn.onclick = () => openPublicProfile(reviewerId);
@@ -1653,6 +1661,9 @@ function finishRating() {
 async function saveRatingToStorage() {
   if (!State.lastSummaryResult) return;
   if (State.ratingsHistory.includes(State.lastSummaryResult)) return; // вже збережено
+  // Повторна оцінка того ж релізу замінює стару локальну, а не дублює її
+  const sameId = String(State.lastSummaryResult.albumId);
+  State.ratingsHistory = State.ratingsHistory.filter(h => !(isLocalReviewId(h.id) && String(h.albumId) === sameId));
   State.ratingsHistory.unshift(State.lastSummaryResult);
   saveStoredHistory();
 
@@ -1699,6 +1710,7 @@ function getTopGenres() {
 
 function updateProfileView() {
   const history = State.ratingsHistory;
+  if (window.SR && SR.onProfileRender) SR.onProfileRender();
   document.getElementById('stat-total-ratings').textContent = history.length;
 
   if (history.length) {
@@ -1778,6 +1790,7 @@ function applyUserSession(user) {
   }
   document.getElementById('profile-email').textContent = user.email;
   document.getElementById('btn-auth-action').textContent = 'Вийти';
+  if (window.SR && SR.onAuthChange) SR.onAuthChange(user);
 }
 
 async function loadUserCloudRatings(userId) {
@@ -1840,8 +1853,13 @@ function initAuth() {
     if (State.user) {
       if (supabaseClient) await supabaseClient.auth.signOut();
       State.user = null;
+      // Хмарні оцінки належать акаунту — після виходу лишаємо лише локальні
+      State.ratingsHistory = State.ratingsHistory.filter(h => isLocalReviewId(h.id));
+      saveStoredHistory();
       document.getElementById('profile-email').textContent = 'Локальний профіль';
       btnOpen.textContent = 'Увійти / Реєстрація';
+      updateProfileView();
+      if (window.SR && SR.onAuthChange) SR.onAuthChange(null);
     } else {
       errBox.classList.add('hidden');
       modal.classList.remove('hidden');
