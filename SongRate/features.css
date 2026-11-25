@@ -1,0 +1,816 @@
+/* SongRate — стилі нових можливостей (аватарки, режими) */
+
+/* ---------- Аватарки ---------- */
+.avatar-editable {
+  position: relative;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.avatar-editable img {
+  transition: transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1), filter 0.3s ease;
+}
+
+.avatar-editable:hover img {
+  transform: scale(1.05);
+  filter: brightness(0.85);
+}
+
+.avatar-edit-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: #fff;
+  background: var(--color-purple);
+  border: 3px solid #12101a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.header-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-btn:has(.header-avatar) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaderboard-avatar,
+.mini-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #1b1828;
+}
+
+.mini-avatar {
+  width: 26px;
+  height: 26px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.shared-user-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.avatar-card {
+  max-width: 400px;
+}
+
+.avatar-tip {
+  margin: -6px 0 14px;
+}
+
+.avatar-crop {
+  position: relative;
+  width: min(280px, 70vw);
+  aspect-ratio: 1;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 4px var(--color-purple), 0 16px 40px rgba(0, 0, 0, 0.6);
+  touch-action: none;
+  cursor: grab;
+}
+
+.avatar-crop:active {
+  cursor: grabbing;
+}
+
+.avatar-crop canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.avatar-zoom {
+  width: 100%;
+  accent-color: var(--color-purple);
+  margin-bottom: 18px;
+}
+
+.avatar-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 8px;
+}
+
+.avatar-actions .btn {
+  padding: 10px 8px;
+  font-size: 0.85rem;
+}
+
+/* ---------- Режими на головній ---------- */
+.modes-block {
+  margin-bottom: 34px;
+}
+
+.modes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mode-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px 16px 16px;
+  border-radius: 22px;
+  color: var(--color-text-main);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1), border-color 0.3s, box-shadow 0.3s;
+}
+
+.mode-card::before {
+  content: "";
+  position: absolute;
+  inset: -40% -40% auto auto;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: var(--mode-glow, rgba(139, 92, 246, 0.35));
+  filter: blur(40px);
+  opacity: 0.7;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.mode-roulette { --mode-glow: rgba(250, 204, 21, 0.35); }
+.mode-battle { --mode-glow: rgba(244, 63, 94, 0.38); }
+.mode-quiz { --mode-glow: rgba(56, 189, 248, 0.38); }
+.mode-blind { --mode-glow: rgba(139, 92, 246, 0.4); }
+
+.mode-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.7);
+}
+
+.mode-card:hover::before {
+  opacity: 1;
+}
+
+.mode-card:active {
+  transform: scale(0.97);
+}
+
+.mode-emoji {
+  font-size: 1.9rem;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.mode-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.mode-desc {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+  flex: 1;
+}
+
+.mode-go {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-purple-light);
+}
+
+.mode-switch {
+  margin-top: 8px;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  position: relative;
+  transition: background 0.3s;
+}
+
+.mode-switch span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.35s cubic-bezier(0.34, 1.5, 0.64, 1);
+}
+
+.mode-switch.is-on {
+  background: var(--color-purple);
+}
+
+.mode-switch.is-on span {
+  transform: translateX(18px);
+}
+
+/* ---------- Сліпе оцінювання ---------- */
+body.sr-blind-active #rating-cover-img {
+  filter: blur(26px) saturate(1.4);
+  transform: scale(1.25);
+}
+
+body.sr-blind-active #rating-track-title,
+body.sr-blind-active #rating-album-title,
+body.sr-blind-active #rating-mode-tag {
+  color: transparent !important;
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.55);
+  user-select: none;
+}
+
+body.sr-blind-active #rating-mode-tag::after {
+  content: "🙈 Сліпий режим";
+  color: var(--color-purple-light);
+  text-shadow: none;
+  margin-left: -100%;
+}
+
+body.sr-blind-active .ambient-blur-cover-wrap {
+  opacity: 0.25 !important;
+}
+
+/* ---------- Вибір альбому ---------- */
+.picker-card {
+  max-width: 480px;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.picker-search input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--color-text-main);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 12px 16px;
+  outline: none;
+  margin-bottom: 10px;
+}
+
+.picker-search input:focus {
+  border-color: var(--color-purple);
+}
+
+.picker-results {
+  margin-top: 12px;
+  overflow-y: auto;
+  min-height: 120px;
+}
+
+.picker-caption {
+  margin: 4px 0 8px;
+}
+
+/* ---------- Рулетка ---------- */
+.roulette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.3s ease;
+}
+
+.roulette-card {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  padding: 28px 20px 22px;
+  border-radius: 28px;
+  text-align: center;
+}
+
+.roulette-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.roulette-window {
+  position: relative;
+  height: 196px;
+  overflow: hidden;
+  border-radius: 20px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+}
+
+.roulette-window::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--color-purple-light);
+  box-shadow: 0 0 14px var(--color-purple);
+  border-radius: 2px;
+}
+
+.roulette-strip {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+  will-change: transform;
+}
+
+.roulette-strip img {
+  width: 180px;
+  height: 180px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  object-fit: cover;
+  background: #12101a;
+  transition: transform 0.5s cubic-bezier(0.34, 1.5, 0.64, 1), box-shadow 0.5s;
+}
+
+.roulette-strip img.is-chosen {
+  transform: scale(1.04);
+  box-shadow: 0 0 0 3px var(--color-purple-light), 0 0 30px var(--color-purple);
+}
+
+.roulette-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 18px 0 16px;
+  min-height: 48px;
+}
+
+.roulette-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.roulette-artist {
+  color: var(--color-text-muted);
+}
+
+.roulette-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 8px;
+}
+
+.roulette-actions .btn {
+  padding: 10px 8px;
+}
+
+/* ---------- Батл і вікторина: спільне ---------- */
+.mode-head {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.mode-head .view-title {
+  font-size: 1.6rem;
+}
+
+.mode-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-top: 22px;
+  overflow: hidden;
+}
+
+.mode-progress-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--color-purple), var(--color-purple-light));
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Батл треків ---------- */
+.battle-arena {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.battle-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 24px;
+  text-align: center;
+  animation: battleIn 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  transition: transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.4s, border-color 0.3s;
+}
+
+.battle-card.is-right {
+  animation-delay: 0.08s;
+}
+
+@keyframes battleIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
+.battle-card.is-audio-playing {
+  border-color: var(--color-purple-light);
+  box-shadow: 0 0 0 1px var(--color-purple-light), 0 18px 40px rgba(0, 0, 0, 0.6);
+}
+
+.battle-card.is-winner {
+  transform: scale(1.06);
+  border-color: #fbbf24;
+}
+
+.battle-card.is-loser {
+  transform: scale(0.85) rotate(-4deg);
+  opacity: 0.25;
+}
+
+.battle-cover {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 1;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.battle-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.battle-cover.big {
+  max-width: 200px;
+  margin: 0 auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+.battle-play {
+  opacity: 1 !important;
+}
+
+.is-audio-playing .battle-play img {
+  content: url('icons/pause.svg');
+}
+
+.battle-title {
+  font-weight: 700;
+  font-size: 1rem;
+  min-height: 2.6em;
+  display: flex;
+  align-items: center;
+}
+
+.battle-pick {
+  width: 100%;
+}
+
+.battle-vs {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--color-purple-light);
+  text-shadow: 0 0 20px var(--color-purple);
+  animation: vsPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes vsPulse {
+  50% { transform: scale(1.18); }
+}
+
+.battle-result {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  animation: battleIn 0.6s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.battle-trophy {
+  font-size: 3rem;
+  animation: trophyBounce 1.2s cubic-bezier(0.34, 1.6, 0.64, 1) both;
+}
+
+@keyframes trophyBounce {
+  0% { transform: scale(0) rotate(-30deg); }
+  60% { transform: scale(1.25) rotate(8deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.battle-winner-label {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+.battle-winner-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.battle-ranking {
+  list-style: none;
+  width: 100%;
+  max-width: 420px;
+  margin: 12px 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.battle-ranking li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.92rem;
+}
+
+.battle-ranking li span {
+  width: 22px;
+  font-weight: 800;
+  color: var(--color-text-muted);
+}
+
+.battle-ranking li:first-child {
+  background: rgba(251, 191, 36, 0.14);
+  color: #fde68a;
+}
+
+.battle-ranking li:first-child span {
+  color: #fbbf24;
+}
+
+.battle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* ---------- Вгадай трек ---------- */
+.quiz-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.quiz-head .badge-tag {
+  margin: 0;
+}
+
+.quiz-score {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}
+
+.quiz-score b {
+  font-size: 1.3rem;
+  color: var(--color-text-main);
+}
+
+.quiz-disc-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 14px;
+}
+
+.quiz-disc {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.06), 0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+.quiz-disc img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(6px) saturate(1.3);
+  transform: scale(1.1);
+}
+
+.quiz-disc-hole {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  background: #0b0a10;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.12);
+}
+
+.quiz-disc.is-audio-playing {
+  animation: discSpin 2.4s linear infinite;
+}
+
+@keyframes discSpin {
+  to { transform: rotate(360deg); }
+}
+
+.quiz-album {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.quiz-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quiz-opt {
+  min-height: 56px;
+  border-radius: 18px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.quiz-opt.is-right {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #a7f3d0;
+  animation: answerPop 0.45s cubic-bezier(0.34, 1.6, 0.64, 1);
+}
+
+.quiz-opt.is-wrong {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fecaca;
+  animation: answerShake 0.4s;
+}
+
+.quiz-opt:disabled {
+  cursor: default;
+}
+
+@keyframes answerPop {
+  50% { transform: scale(1.06); }
+}
+
+@keyframes answerShake {
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.quiz-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.quiz-final-score {
+  font-size: 3.4rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #fff, var(--color-purple-light));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Адаптивність ---------- */
+@media (max-width: 900px) {
+  .modes-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .modes-block {
+    margin-bottom: 26px;
+  }
+
+  .modes-grid {
+    gap: 10px;
+  }
+
+  .mode-card {
+    padding: 14px 12px 12px;
+    border-radius: 18px;
+  }
+
+  .mode-emoji {
+    font-size: 1.6rem;
+  }
+
+  .mode-title {
+    font-size: 0.95rem;
+  }
+
+  .mode-desc {
+    font-size: 0.76rem;
+  }
+
+  .battle-arena {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .battle-card {
+    flex-direction: row;
+    padding: 10px;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .battle-cover {
+    width: 86px;
+    min-width: 86px;
+    border-radius: 14px;
+  }
+
+  .battle-card .playback-btn {
+    transform: scale(0.7);
+  }
+
+  .battle-title {
+    flex: 1;
+    min-height: 0;
+    font-size: 0.92rem;
+  }
+
+  .battle-pick {
+    width: auto;
+    padding: 9px 14px;
+    font-size: 0.82rem;
+  }
+
+  .battle-vs {
+    text-align: center;
+    font-size: 1.2rem;
+  }
+
+  .battle-cover.big {
+    width: 160px;
+    min-width: 0;
+  }
+
+  .quiz-options {
+    grid-template-columns: 1fr;
+  }
+
+  .quiz-disc {
+    width: 160px;
+    height: 160px;
+  }
+
+  .roulette-strip img {
+    width: 150px;
+    height: 150px;
+  }
+}

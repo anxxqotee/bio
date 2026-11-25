@@ -4,11 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SongRate — Оцінка Музики</title>
+  <meta name="description" content="Оцінюй альбоми й треки, влаштовуй батли треків, вгадуй пісні за 5 секунд і порівнюй смаки з друзями.">
+  <meta name="theme-color" content="#050508">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SongRate">
+  <meta property="og:title" content="SongRate — оцінка музики">
+  <meta property="og:description" content="Оцінюй альбоми, влаштовуй батли треків і вгадуй пісні за 5 секунд.">
+  <meta property="og:url" content="https://haiduk.top/SongRate/">
+  <meta property="og:image" content="https://haiduk.top/SongRate/logo.png">
+  <meta name="twitter:card" content="summary">
   <!-- Іконка на вкладці браузера (Favicon) -->
   <link rel="icon" type="image/png" href="logo.png">
 
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="features.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -53,6 +63,15 @@
         
         <!-- Ліва частина: Рекомендації -->
         <div class="home-main-col">
+          <!-- Режими -->
+          <div class="modes-block">
+            <div class="view-header">
+              <h1 class="view-title">Режими</h1>
+              <p class="view-subtitle">Оцінюй, змагайся і вгадуй</p>
+            </div>
+            <div class="modes-grid" id="modes-grid"></div>
+          </div>
+
           <div class="view-header row-between">
             <div>
               <h1 class="view-title">Рекомендовані релізи</h1>
@@ -90,8 +109,8 @@
             Назад
           </button>
           <button id="btn-share-album" class="btn btn-inactive">
-            <img src="icons/check.svg" alt="Поділитися" class="svg-icon btn-icon">
-            Поділитися альбомом
+            <img src="icons/check.svg" alt="" class="svg-icon btn-icon">
+            Поділитися
           </button>
         </div>
 
@@ -277,7 +296,7 @@
       <div class="wide-page-card frosted">
         
         <div id="shared-review-banner" class="shared-review-banner hidden">
-          <span>Оцінка користувача: <strong id="shared-user-name">@user</strong></span>
+          <span class="shared-user-line"><img id="shared-user-avatar" class="mini-avatar" alt="">Оцінка користувача: <strong id="shared-user-name">@user</strong></span>
           <button id="btn-view-reviewer-profile" class="btn btn-inactive" style="padding: 4px 12px; font-size: 0.8rem;">Профіль</button>
         </div>
 
@@ -330,9 +349,11 @@
     <section id="view-profile" class="view hidden">
       <div class="wide-page-card frosted">
         <div class="profile-top">
-          <div class="avatar-wrap">
-            <img id="profile-avatar-img" src="avatar.png" alt="Аватарка" onerror="this.src='icons/artist-placeholder.svg'">
-          </div>
+          <button type="button" class="avatar-wrap avatar-editable" id="btn-avatar-edit" aria-label="Змінити аватарку">
+            <img id="profile-avatar-img" src="icons/artist-placeholder.svg" alt="Аватарка">
+            <span class="avatar-edit-badge" aria-hidden="true">✎</span>
+          </button>
+          <input type="file" id="avatar-file-input" accept="image/*" hidden>
           <div class="profile-info">
             <div class="username-edit-row">
               <input type="text" id="profile-username-input" class="username-input" placeholder="Введіть юзернейм" maxlength="24">
@@ -383,7 +404,7 @@
 
         <div class="profile-top">
           <div class="avatar-wrap">
-            <img id="pub-avatar-img" src="avatar.png" alt="Аватар" onerror="this.src='icons/artist-placeholder.svg'">
+            <img id="pub-avatar-img" src="icons/artist-placeholder.svg" alt="Аватар">
           </div>
           <div class="profile-info">
             <h2 id="pub-username" class="user-name">Користувач</h2>
@@ -409,7 +430,78 @@
       </div>
     </section>
 
+    <!-- 9. Батл треків -->
+    <section id="view-battle" class="view hidden">
+      <div class="wide-page-card frosted">
+        <div class="rating-top-bar">
+          <button class="action-round-btn mode-exit" aria-label="Вийти з режиму">
+            <img src="icons/back.svg" alt="" class="svg-icon">
+          </button>
+          <span class="step-indicator" id="battle-round-label">Раунд 1</span>
+        </div>
+        <div class="mode-head">
+          <span class="badge-tag">⚔️ Батл треків</span>
+          <h1 class="view-title" id="battle-album-title">Альбом</h1>
+          <p class="view-subtitle" id="battle-hint">Послухай обидва треки і вибери кращий</p>
+        </div>
+        <div class="battle-arena" id="battle-arena"></div>
+        <div class="mode-progress"><div class="mode-progress-fill" id="battle-progress"></div></div>
+      </div>
+    </section>
+
+    <!-- 10. Вгадай трек -->
+    <section id="view-quiz" class="view hidden">
+      <div class="wide-page-card frosted">
+        <div class="rating-top-bar">
+          <button class="action-round-btn mode-exit" aria-label="Вийти з режиму">
+            <img src="icons/back.svg" alt="" class="svg-icon">
+          </button>
+          <span class="step-indicator" id="quiz-round-label">Питання 1 з 10</span>
+        </div>
+        <div class="quiz-stage" id="quiz-stage"></div>
+      </div>
+    </section>
+
   </main>
+
+  <!-- Вибір альбому для режимів -->
+  <div id="modal-picker" class="modal-backdrop hidden">
+    <div class="modal-card frosted picker-card">
+      <div class="modal-header">
+        <h2 id="picker-title">Вибери альбом</h2>
+        <button class="icon-btn" id="btn-close-picker" aria-label="Закрити">
+          <img src="icons/close.svg" alt="" class="svg-icon">
+        </button>
+      </div>
+      <div class="picker-search">
+        <input type="text" id="picker-input" placeholder="Знайди альбом або артиста..." autocomplete="off">
+      </div>
+      <button class="btn btn-inactive w-full" id="btn-picker-random">🎲 Випадковий альбом</button>
+      <div class="picker-results" id="picker-results"></div>
+    </div>
+  </div>
+
+  <!-- Обрізка аватарки -->
+  <div id="modal-avatar" class="modal-backdrop hidden">
+    <div class="modal-card frosted avatar-card">
+      <div class="modal-header">
+        <h2>Аватарка</h2>
+        <button class="icon-btn" id="btn-close-avatar" aria-label="Закрити">
+          <img src="icons/close.svg" alt="" class="svg-icon">
+        </button>
+      </div>
+      <p class="item-sub avatar-tip">Перетягни фото, щоб вибрати частину, і наближай повзунком</p>
+      <div class="avatar-crop" id="avatar-crop">
+        <canvas id="avatar-crop-canvas" width="560" height="560"></canvas>
+      </div>
+      <input type="range" id="avatar-zoom" class="avatar-zoom" min="1" max="3" step="0.01" value="1" aria-label="Масштаб">
+      <div class="avatar-actions">
+        <button class="btn btn-inactive" id="btn-avatar-pick">Інше фото</button>
+        <button class="btn btn-inactive" id="btn-avatar-reset">Прибрати</button>
+        <button class="btn btn-primary" id="btn-avatar-save">Зберегти</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Модальне вікно сповіщення копіювання посилання -->
   <div id="toast-notify" class="toast-notify hidden">
@@ -452,5 +544,6 @@
 
   <script src="api.js"></script>
   <script src="app.js"></script>
+  <script src="features.js"></script>
 </body>
 </html>
