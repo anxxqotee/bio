@@ -4229,8 +4229,8 @@
         { id: 'bounce50',  emoji: '🏓', title: 'Пінг-понг',                            desc: '50 ударів об краї екрана',         ok: (s) => s.bounces >= 50 },
         { id: 'pop',       emoji: '🎈', title: 'Перегодував',                          desc: 'Швидко тицяй, поки не лусне',      ok: (s) => s.pops >= 1 },
         { id: 'pop10',     emoji: '💨', title: 'Серійний пукач',                        desc: 'Лусни картинку 10 разів',          ok: (s) => s.pops >= 10 },
-        { id: 'shake',     emoji: '📳', title: 'Струснув як треба',                    desc: 'Струсни телефон',                  ok: (s) => s.shakes >= 1 },
-        { id: 'shake20',   emoji: '🍸', title: 'Шейкер',                               desc: 'Струсни телефон 20 разів',         ok: (s) => s.shakes >= 20 }
+        { id: 'shake',     emoji: '📳', title: 'Струснув як треба',                    desc: 'Струсни телефон (на ПК — потрусь мишкою або вікном)',                  ok: (s) => s.shakes >= 1 },
+        { id: 'shake20',   emoji: '🍸', title: 'Шейкер',                               desc: 'Струсни 20 разів',         ok: (s) => s.shakes >= 20 }
       ];
       // Секретні — в списку показуються як "Секретна пасхалка", поки не знайдеш
       const hasSecret = (id) => (s) => Array.isArray(s.secrets) && s.secrets.includes(id);
@@ -4772,6 +4772,47 @@
         void document.body.offsetWidth;
         document.body.classList.add('is-shaken');
         setTimeout(() => document.body.classList.remove('is-shaken'), 1000);
+      }
+
+      // ---------- "Струс" на ПК: потрусити мишкою або вікном браузера ----------
+      // Рахуємо різкі зміни напрямку руху: 5 розворотів за 0.7 с — це струс.
+      function makeWiggle(minAmp) {
+        let lastX = null, lastY = null, dirX = 0, dirY = 0, anchorX = 0, anchorY = 0, flips = [];
+        return (x, y) => {
+          const now = performance.now();
+          if (lastX === null) { lastX = anchorX = x; lastY = anchorY = y; return; }
+          const dx = x - lastX, dy = y - lastY;
+          lastX = x; lastY = y;
+          const check = (d, dir, anchor, pos, setDir, setAnchor) => {
+            if (Math.abs(d) < 1) return;
+            const nd = Math.sign(d);
+            if (dir !== 0 && nd !== dir && Math.abs(pos - anchor) > minAmp) flips.push(now);
+            if (nd !== dir) { setDir(nd); setAnchor(pos); }
+          };
+          check(dx, dirX, anchorX, x, (v) => { dirX = v; }, (v) => { anchorX = v; });
+          check(dy, dirY, anchorY, y, (v) => { dirY = v; }, (v) => { anchorY = v; });
+          flips = flips.filter((t) => now - t < 700);
+          if (flips.length >= 5 && now - lastShake > 1200) {
+            lastShake = now;
+            flips = [];
+            const horizontal = Math.abs(dx) >= Math.abs(dy);
+            shaken(1, horizontal ? (dx > 0 ? 0 : Math.PI) : (dy > 0 ? Math.PI / 2 : -Math.PI / 2));
+          }
+        };
+      }
+
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        // Мишка (лише коли кнопки не натиснуті — щоб не плутати з перетягуванням картки)
+        const mouseWiggle = makeWiggle(30);
+        window.addEventListener('pointermove', (e) => {
+          if (e.pointerType === 'mouse' && e.buttons === 0) mouseWiggle(e.clientX, e.clientY);
+        }, { passive: true });
+
+        // Вікно браузера: якщо його смикають за заголовок, змінюється screenX/screenY
+        const windowWiggle = makeWiggle(12);
+        setInterval(() => {
+          if (!document.hidden) windowWiggle(window.screenX, window.screenY);
+        }, 40);
       }
 
       function listenMotion() {
