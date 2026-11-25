@@ -203,6 +203,20 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    /* Текст на сайті не виділяється — окрім нікнеймів */
+    body {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .username-badge,
+    .username-badge * {
+      -webkit-user-select: text;
+      user-select: text;
+      -webkit-touch-callout: default;
+    }
+
     body, 
     .theme-toggle, 
     .avatar-wrapper, 
@@ -2964,9 +2978,12 @@
       let lastFaceSign = 1;
 
       // Арена
-      const FLOOR = -1.35;              // висота підлоги
+      let FLOOR = -3.5;                 // підлога = нижній край екрана (рахується в resize)
       const HOVER = 0.15;               // висота, на якій картка висить
-      const ARENA_R = 3.0;              // межа арени
+      const ARENA_R = 3.0;              // розмір тіні на підлозі
+      let floorMesh = null;
+      let carrying = false, carryOffset = null, carryPlane = null;
+      let lastTapT = 0;
       const GRAV = 15;
 
       // Тверде тіло картки
@@ -3122,7 +3139,7 @@
         sun.castShadow = true;
         sun.shadow.mapSize.set(1024, 1024);
         const sc = sun.shadow.camera;
-        sc.left = -5; sc.right = 5; sc.top = 5; sc.bottom = -5; sc.near = 1; sc.far = 20;
+        sc.left = -9; sc.right = 9; sc.top = 9; sc.bottom = -9; sc.near = 1; sc.far = 30;
         sun.shadow.radius = 6;
         scene.add(sun);
         const fill = new THREE.DirectionalLight(0xffffff, 1.3);
@@ -3133,19 +3150,13 @@
         camera.add(rimL);
 
         // Підлога: лише тінь + світний ореол арени
-        const floor = new THREE.Mesh(new THREE.CircleGeometry(ARENA_R + 1.5, 64), new THREE.ShadowMaterial({ opacity: 0.45 }));
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.45 }));
+        floorMesh = floor;
         floor.rotation.x = -Math.PI / 2;
         floor.position.y = FLOOR;
         floor.receiveShadow = true;
         scene.add(floor);
-        const ring = new THREE.Mesh(
-          new THREE.RingGeometry(ARENA_R - 0.04, ARENA_R + 0.04, 96),
-          new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
-        );
-        ring.rotation.x = -Math.PI / 2;
-        ring.position.y = FLOOR + 0.002;
-        scene.add(ring);
-        arenaRing = ring;
+        // Межі сцени — весь екран (без кола)
 
         // Зірки навколо — для відчуття глибини
         const starN = 260;
@@ -3239,6 +3250,11 @@
         camR = CW / targetFrac / (2 * tanH * camera.aspect);
         camera.updateProjectionMatrix();
         placeCamera();
+        // Підлога — там, де нижній край екрана перетинає вертикаль під центром сцени
+        const tanV = Math.tan((camera.fov * Math.PI) / 360);
+        const pitch = 0.2;
+        FLOOR = -0.15 + Math.sin(pitch) * camR - Math.tan(pitch + Math.atan(tanV * 0.72)) * Math.cos(pitch) * camR;
+        if (floorMesh) floorMesh.position.y = FLOOR;
       }
 
       function placeCamera() {
@@ -3352,6 +3368,48 @@
         }
       }
 
+      // Межі екрана: ліво/право/верх (і глибина, щоб не влітала в камеру)
+      function screenWalls() {
+        const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+        const fwd = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
+        const rel = pos3.clone().sub(camera.position);
+        const depth = rel.dot(fwd);
+        const halfH = depth * Math.tan((camera.fov * Math.PI) / 360) * 0.96;
+        const halfW = halfH * camera.aspect;
+        // Габарити картки вздовж осей екрана
+        let minR = Infinity, maxR = -Infinity, maxU = -Infinity;
+        if (!_c) _c = new THREE.Vector3();
+        for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+          _c.set(sx * CW / 2, sy * CH / 2, sz * TH / 2).applyQuaternion(quat);
+          const r = _c.dot(right), u = _c.dot(up);
+          if (r < minR) minR = r; if (r > maxR) maxR = r; if (u > maxU) maxU = u;
+        }
+        const x = rel.dot(right), y = rel.dot(up);
+        const hitWall = (axis, overlap, sign) => {
+          pos3.addScaledVector(axis, -overlap);
+          const vn = vel3.dot(axis) * sign;
+          if (vn > 0) {
+            vel3.addScaledVector(axis, -1.65 * vn * sign);
+            angVel.multiplyScalar(0.8);
+            if (vn > 2) {
+              const k = Math.min(vn / 14, 1);
+              if (window.easterSound) window.easterSound.thud(k * 0.8);
+              Haptics.tick(Math.round(8 + k * 25));
+              jiggle(0.5 + k * 1.5);
+              if (window.EggFun) window.EggFun.stat('bounces');
+            }
+          }
+        };
+        if (x + maxR > halfW) hitWall(right, x + maxR - halfW, 1);
+        if (x + minR < -halfW) hitWall(right, x + minR + halfW, -1);
+        if (y + maxU > halfH) hitWall(up, y + maxU - halfH, 1);
+        // Глибина: не далі й не ближче ніж на 1.5 від центру сцени
+        const dd = depth - camR;
+        if (dd > 1.5) hitWall(fwd, dd - 1.5, 1);
+        if (dd < -1.5) hitWall(fwd, dd + 1.5, -1);
+      }
+
       // Найнижча точка картки (8 кутів коробки після повороту)
       let _c = null;
       function lowestPoint() {
@@ -3375,8 +3433,7 @@
 
       // ---------- Підкидання ----------
       function toss(v, w) {
-        // Не вище за верхній край екрана
-        v.y = Math.min(v.y, 9.5);
+        if (v.length() > 22) v.setLength(22);
         state = 'air';
         airTime = 0;
         groundTime = 0;
@@ -3390,7 +3447,35 @@
         Haptics.pattern([25, 30, 15]);
       }
 
-      // Підстрибнути із сальто (тап)
+      // М'яке обертання для кидка: трохи крутиться, але без постійних сальто
+      function gentleSpin(vx, vy) {
+        const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+        const fwd = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2);
+        return right.multiplyScalar(-vy * 0.07)
+          .add(up.multiplyScalar(vx * 0.1))
+          .add(fwd.multiplyScalar(-vx * 0.05))
+          .add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(1.5));
+      }
+
+      // Кидок у площині екрана: куди ведеш пальцем — туди й летить
+      function throwFromScreen(fx, fy) {
+        const upp = unitsPerPx();
+        const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+        const vx = fx * upp, vy = -fy * upp;
+        const v = right.multiplyScalar(vx).add(up.multiplyScalar(vy)).add(new THREE.Vector3(0, 1.5, 0));
+        toss(v, gentleSpin(vx, vy));
+        if (window.EggFun) window.EggFun.counterHit();
+      }
+
+      // Маленький підскок без перевороту (одиночний тап)
+      function smallHop() {
+        toss(new THREE.Vector3((Math.random() - 0.5) * 1.5, 5.5, (Math.random() - 0.5) * 1.5),
+             new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(2));
+      }
+
+      // Підстрибнути із сальто (подвійний тап)
       function hop() {
         const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
         const spin = right.multiplyScalar(Math.random() < 0.5 ? -9 : 9);
@@ -3433,8 +3518,15 @@
           quat.slerp(hoverQuat(), Math.min(1, dt * 5));
         } else if (state === 'air') {
           airTime += dt;
-          vel3.y -= GRAV * dt;
-          pos3.addScaledVector(vel3, dt);
+          if (carrying) {
+            // Несемо пальцем: позиція задається в pointermove, обертання затухає
+            angVel.multiplyScalar(Math.pow(0.05, dt));
+            quat.slerp(hoverQuat(), Math.min(1, dt * 2));
+            vel3.set(0, 0, 0);
+          } else {
+            vel3.y -= GRAV * dt;
+            pos3.addScaledVector(vel3, dt);
+          }
           // Обертання: q += 0.5 * w * q * dt
           const wl = angVel.length();
           if (wl > 1e-4) {
@@ -3446,14 +3538,8 @@
           while (spinLog.length && t - spinLog[0][0] > 4000) spinLog.shift();
           if (spinLog.reduce((a, b) => a + b[1], 0) > Math.PI * 30 && window.EggFun) { window.EggFun.secret('heli'); spinLog = []; }
 
-          // Стінки арени
-          const rxz = Math.hypot(pos3.x, pos3.z);
-          if (rxz > ARENA_R - 0.6) {
-            const nx = pos3.x / rxz, nz = pos3.z / rxz;
-            pos3.x = nx * (ARENA_R - 0.6); pos3.z = nz * (ARENA_R - 0.6);
-            const vn = vel3.x * nx + vel3.z * nz;
-            if (vn > 0) { vel3.x -= 1.7 * vn * nx; vel3.z -= 1.7 * vn * nz; }
-          }
+          // Стінки — краї екрана
+          screenWalls();
 
           // Підлога
           const { minY, at } = lowestPoint();
@@ -3487,7 +3573,7 @@
           }
 
           // Полежала — підіймається назад
-          if ((groundTime > 0.8 && vel3.length() < 2) || airTime > 4.5) {
+          if (!carrying && ((groundTime > 2 && vel3.length() < 3) || airTime > 8)) {
             state = 'rise';
             riseT = 0;
             riseFrom = { p: pos3.clone(), q: quat.clone() };
@@ -3516,7 +3602,6 @@
           if (window.EggFun) window.EggFun.stat('flips');
         }
 
-        if (arenaRing) arenaRing.material.opacity = 0.35 + Math.sin(t / 600) * 0.15;
         if (stars) stars.rotation.y = t / 40000;
 
         physics(dt);
@@ -3638,6 +3723,13 @@
       });
 
       // ---------- Дотики ----------
+      function rayPlane(clientX, clientY) {
+        const ndc = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+        raycaster.setFromCamera(ndc, camera);
+        const out = new THREE.Vector3();
+        return raycaster.ray.intersectPlane(carryPlane, out) ? out : null;
+      }
+
       function hitPoint(clientX, clientY) {
         const ndc = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
         raycaster.setFromCamera(ndc, camera);
@@ -3659,11 +3751,18 @@
         tracker.push(e.clientX, e.clientY);
         const hit = hitPoint(e.clientX, e.clientY);
         if (hit && state !== 'hover') {
-          // Картка в повітрі/на підлозі — тап підкидає її знову (жонглювання)
-          mode = null;
-          const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
-          toss(new THREE.Vector3(vel3.x * 0.3, 8, vel3.z * 0.3), angVel.clone().multiplyScalar(0.3).add(right.multiplyScalar(8)));
+          // Картка в повітрі/на підлозі — хапаємо й несемо пальцем
+          mode = 'carry';
+          if (state !== 'air') { state = 'air'; airTime = 0; }
+          carrying = true;
+          groundTime = 0;
+          const fwd = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate();
+          carryPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(fwd, pos3.clone());
+          const pt = rayPlane(e.clientX, e.clientY);
+          carryOffset = pt ? pos3.clone().sub(pt) : new THREE.Vector3();
           if (window.easterQuote) window.easterQuote();
+          Haptics.tick(10);
+          if (window.easterSound) window.easterSound.grab();
           return;
         }
         if (hit) {
@@ -3694,7 +3793,16 @@
         if (Math.hypot(e.clientX - startPt.x, e.clientY - startPt.y) > 6) moved = true;
         tracker.push(e.clientX, e.clientY);
 
-        if (mode === 'orbit') {
+        if (mode === 'carry') {
+          const pt = rayPlane(e.clientX, e.clientY);
+          if (pt) {
+            pos3.copy(pt.add(carryOffset));
+            // Не виносимо за підлогу
+            const { minY } = lowestPoint();
+            if (pos3.y + minY < FLOOR) pos3.y = FLOOR - minY;
+            screenWalls();
+          }
+        } else if (mode === 'orbit') {
           const dt = Math.max((now - lastPt.t) / 1000, 0.001);
           camYaw -= dx * 0.008;
           camPitch = clamp(camPitch + dy * 0.006, 0.02, 1.1);
@@ -3729,27 +3837,29 @@
         const wasMode = mode;
         mode = null;
         const quick = !moved && performance.now() - downTime < 300;
+        const tapNow = performance.now();
+        const isDouble = quick && tapNow - lastTapT < 350;
+        if (quick) lastTapT = isDouble ? 0 : tapNow;
+
+        if (wasMode === 'carry') {
+          carrying = false;
+          const fling = tracker.get();
+          if (quick) { if (isDouble) hop(); else smallHop(); }
+          else if (Math.hypot(fling.x, fling.y) > 120) throwFromScreen(fling.x, fling.y);
+          else { vel3.set(0, 0, 0); }      // відпустив без руху — просто падає
+          startPt = null;
+          return;
+        }
         if (wasMode === 'deform') {
           W.fill(0);
           const fling = tracker.get();
           const sp = Math.hypot(fling.x, fling.y);
           if (quick) {
-            // Тап по картці — сальто
-            hop();
-          } else if (sp > 700) {
-            // Змах — картка летить по інерції
-            const upp = unitsPerPx();
-            const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).setY(0).normalize();
-            const fwd = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw));
-            const k = clamp(sp * upp, 0, 18) / Math.max(sp * upp, 1e-6);
-            const vx = fling.x * upp * k, vy = -fling.y * upp * k;
-            const v = right.clone().multiplyScalar(vx * 0.8)
-              .add(fwd.clone().multiplyScalar(Math.max(0, vy) * 0.35))
-              .add(new THREE.Vector3(0, Math.max(4, vy * 0.9 + 3), 0));
-            const w = right.clone().multiplyScalar(-vy * 1.2).add(new THREE.Vector3(0, vx * 1.5, 0))
-              .add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(4));
-            toss(v, w);
-            if (window.EggFun) window.EggFun.counterHit();
+            // Тап — маленький підскок, подвійний тап — сальто
+            if (isDouble) hop(); else smallHop();
+          } else if (sp > 350) {
+            // Змах — картка летить по інерції туди, куди вів палець
+            throwFromScreen(fling.x, fling.y);
           } else {
             const len = Math.hypot(grabTarget[0], grabTarget[1], grabTarget[2]);
             if (len > 0.15) {
