@@ -1526,7 +1526,9 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
         // Множина найкращих
         if (bestTracks.length > 1) {
           bestLabelEl.textContent = 'Найкращі треки';
-          hiEl.textContent = `${bestTracks.map(t => t.title).join(', ')} (${(maxScore === 10) ? '10' : maxScore.toFixed(1)})`;
+          hiEl.textContent = bestTracks.length > 3
+            ? `${bestTracks.length} треків з однаковим балом (${(maxScore === 10) ? '10' : maxScore.toFixed(1)})`
+            : `${bestTracks.map(t => t.title).join(', ')} (${(maxScore === 10) ? '10' : maxScore.toFixed(1)})`;
         } else {
           bestLabelEl.textContent = 'Найкращий трек';
           hiEl.textContent = `${bestTracks[0].title} (${(maxScore === 10) ? '10' : maxScore.toFixed(1)})`;
@@ -1536,7 +1538,9 @@ async function renderSummaryView(data, isHistoryMode = false, isExternalReview =
         // Множина найнижчих
         if (lowestTracks.length > 1) {
           lowLabelEl.textContent = 'Найнижчі бали';
-          lowEl.textContent = `${lowestTracks.map(t => t.title).join(', ')} (${(minScore === 10) ? '10' : minScore.toFixed(1)})`;
+          lowEl.textContent = lowestTracks.length > 3
+            ? `${lowestTracks.length} треків з однаковим балом (${(minScore === 10) ? '10' : minScore.toFixed(1)})`
+            : `${lowestTracks.map(t => t.title).join(', ')} (${(minScore === 10) ? '10' : minScore.toFixed(1)})`;
         } else {
           lowLabelEl.textContent = 'Найнижчий бал';
           lowEl.textContent = `${lowestTracks[0].title} (${(minScore === 10) ? '10' : minScore.toFixed(1)})`;

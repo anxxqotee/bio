@@ -814,3 +814,388 @@ body.sr-blind-active .ambient-blur-cover-wrap {
     height: 150px;
   }
 }
+
+/* =====================================================================
+   Оновлення інтерфейсу: рекомендації, сліпий режим, головна, навігація
+   ===================================================================== */
+
+/* ---------- Ширше на моніторі ---------- */
+@media (min-width: 1100px) {
+  .app-container {
+    max-width: 1400px;
+    padding: 34px 40px 80px;
+  }
+
+  .home-two-col-layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 36px;
+  }
+
+  .grid-cards {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 18px;
+  }
+
+  .leaderboard-card {
+    position: sticky;
+    top: 96px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .app-container {
+    max-width: 1560px;
+  }
+}
+
+/* ---------- Картки рекомендацій ---------- */
+.music-card {
+  animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.card-thumb-wrap {
+  position: relative;
+}
+
+.card-thumb-wrap .card-thumb {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), filter 0.4s;
+}
+
+.music-card:hover .card-thumb-wrap .card-thumb {
+  transform: scale(1.03);
+}
+
+.rec-reason {
+  position: absolute;
+  left: 8px;
+  bottom: 22px;
+  max-width: calc(100% - 16px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(10, 8, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Скелетони під час завантаження */
+.skeleton-card {
+  pointer-events: none;
+}
+
+.sk-thumb,
+.sk-line {
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.1), rgba(255,255,255,0.04));
+  background-size: 200% 100%;
+  animation: skShine 1.3s linear infinite;
+}
+
+.sk-thumb {
+  aspect-ratio: 1;
+  margin-bottom: 14px;
+}
+
+.sk-line {
+  height: 14px;
+  margin-bottom: 8px;
+  border-radius: 7px;
+}
+
+.sk-line.short {
+  width: 60%;
+}
+
+@keyframes skShine {
+  to { background-position: -200% 0; }
+}
+
+/* ---------- Кнопка сліпого режиму в шапці ---------- */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.blind-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  position: relative;
+  transition: background 0.3s, border-color 0.3s, transform 0.3s;
+}
+
+.blind-eye {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 22px;
+  height: 22px;
+  background: #e2e8f0;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.blind-btn.is-on {
+  background: var(--color-purple);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.6);
+}
+
+.blind-btn.is-on .blind-eye {
+  background: #fff;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.9 4.2A9.6 9.6 0 0 1 12 4c6.4 0 10 8 10 8a17 17 0 0 1-2.2 3.2M6.6 6.6A16.5 16.5 0 0 0 2 12s3.6 8 10 8a9.3 9.3 0 0 0 5.4-1.6M3 3l18 18'/%3E%3Cpath d='M9.9 9.9a3 3 0 0 0 4.2 4.2'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.9 4.2A9.6 9.6 0 0 1 12 4c6.4 0 10 8 10 8a17 17 0 0 1-2.2 3.2M6.6 6.6A16.5 16.5 0 0 0 2 12s3.6 8 10 8a9.3 9.3 0 0 0 5.4-1.6M3 3l18 18'/%3E%3Cpath d='M9.9 9.9a3 3 0 0 0 4.2 4.2'/%3E%3C/svg%3E");
+}
+
+/* Сліпий режим: батл без обкладинок */
+body.sr-blind-on .battle-card .battle-cover img {
+  filter: blur(18px) saturate(1.3);
+  transform: scale(1.2);
+}
+
+/* ---------- Підсумок сліпої оцінки: відкриття ---------- */
+#view-summary.sr-reveal-pending .summary-cover,
+#view-summary.sr-reveal-pending #summary-album-title,
+#view-summary.sr-reveal-pending #summary-album-artist,
+#view-summary.sr-reveal-pending .summary-row > span:first-child,
+#view-summary.sr-reveal-pending .hl-title {
+  filter: blur(14px);
+  transition: filter 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#view-summary.sr-revealed .summary-cover {
+  animation: revealPop 1s cubic-bezier(0.34, 1.5, 0.64, 1);
+}
+
+@keyframes revealPop {
+  0% { transform: scale(0.8) rotate(-6deg); filter: blur(14px); }
+  60% { transform: scale(1.12) rotate(2deg); filter: blur(0); }
+  100% { transform: none; }
+}
+
+.blind-reveal-btn {
+  display: none;
+}
+
+#view-summary.sr-reveal-pending .blind-reveal-btn {
+  display: inline-flex;
+  animation: vsPulse 1.6s ease-in-out infinite;
+}
+
+/* ---------- Привітальний блок ---------- */
+.home-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 24px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.home-hero::before {
+  content: "";
+  position: absolute;
+  left: -60px;
+  top: -80px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.35), transparent 70%);
+  pointer-events: none;
+}
+
+.hero-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-purple-light);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.hero-text {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.hero-hi {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.hero-sub {
+  margin-top: 3px;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 10px;
+  position: relative;
+}
+
+.hero-stats div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 82px;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero-stats b {
+  font-size: 1.3rem;
+}
+
+.hero-stats span {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Варіанти у вікторині: назва + артист ---------- */
+.quiz-opt {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opt-title {
+  font-weight: 700;
+}
+
+.opt-artist {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.quiz-disc.is-revealed img {
+  filter: none;
+  transition: filter 0.6s ease;
+}
+
+.quiz-footer {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Нижня навігація (лише на телефоні) ---------- */
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    z-index: 150;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 6px;
+    border-radius: 24px;
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s;
+  }
+
+  .bottom-nav.is-hidden {
+    transform: translateY(140%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .bottom-nav button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    border: none;
+    border-radius: 18px;
+    background: none;
+    color: var(--color-text-muted);
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 600;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  .bottom-nav button.is-active {
+    background: rgba(139, 92, 246, 0.22);
+    color: #fff;
+  }
+
+  .bn-ico {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .app-container {
+    padding-bottom: 110px;
+  }
+
+  .site-footer {
+    padding-bottom: 96px;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .blind-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .home-hero {
+    flex-wrap: wrap;
+    padding: 14px;
+    gap: 12px;
+    border-radius: 20px;
+  }
+
+  .hero-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .hero-hi {
+    font-size: 1.02rem;
+  }
+
+  .hero-stats {
+    width: 100%;
+  }
+
+  .hero-stats div {
+    flex: 1;
+  }
+
+  .rec-reason {
+    font-size: 0.62rem;
+    padding: 3px 8px;
+    bottom: 14px;
+    left: 6px;
+  }
+}

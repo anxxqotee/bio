@@ -277,7 +277,7 @@
   const MODES = [
     { id: 'roulette', emoji: '🎲', title: 'Рулетка', desc: 'Крутиш — і оцінюєш альбом, який випав' },
     { id: 'battle', emoji: '⚔️', title: 'Батл треків', desc: 'Треки альбому б\'ються попарно. Хто переможе?' },
-    { id: 'quiz', emoji: '🎧', title: 'Вгадай трек', desc: '5 секунд уривку і 4 варіанти. 10 питань' },
+    { id: 'quiz', emoji: '🎧', title: 'Вгадай трек', desc: '5 секунд уривку з твоїх оцінених треків і схожих' },
     { id: 'blind', emoji: '🙈', title: 'Сліпе оцінювання', desc: 'Без обкладинки і назв — тільки музика', toggle: true }
   ];
 
@@ -307,13 +307,15 @@
       const on = !LS.get(BLIND_KEY, false);
       LS.set(BLIND_KEY, on);
       renderModes();
+      document.body.classList.toggle('sr-blind-on', on);
       toast(on ? '🙈 Сліпе оцінювання увімкнено — обкладинку й назви побачиш у кінці' : 'Сліпе оцінювання вимкнено');
     } else if (id === 'roulette') {
       runRoulette();
     } else if (id === 'battle') {
       openPicker('⚔️ Батл треків: вибери альбом', startBattle);
     } else if (id === 'quiz') {
-      openPicker('🎧 Вгадай трек: вибери альбом', startQuiz);
+      if (window.SRSmart && SRSmart.startPersonalQuiz) SRSmart.startPersonalQuiz();
+      else openPicker('🎧 Вгадай трек: вибери альбом', startQuiz);
     }
   }
 
@@ -531,7 +533,7 @@
           <img src="${esc(battle.album.artwork)}" alt="" onerror="this.src='icons/album-placeholder.svg'">
           <button class="playback-btn battle-play" aria-label="Слухати"><img src="icons/play.svg" alt="" class="svg-icon"></button>
         </div>
-        <div class="battle-title">${esc(t.title)}</div>
+        <div class="battle-title">${document.body.classList.contains('sr-blind-on') ? (side ? 'Трек B' : 'Трек A') : esc(t.title)}</div>
         <button class="btn btn-primary battle-pick">Цей краще</button>`;
       card.querySelector('.battle-play').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -713,7 +715,13 @@
     fillAvatar,
     onAuthChange,
     onUsernameChange: () => { renderMyAvatar(); pushProfile(); },
-    onProfileRender: renderMyAvatar
+    onProfileRender: renderMyAvatar,
+    renderModes,
+    myAvatar,
+    playPreview,
+    stopModeAudio,
+    isBlind: () => !!LS.get(BLIND_KEY, false),
+    setBlind: (on) => { LS.set(BLIND_KEY, !!on); renderModes(); document.body.classList.toggle('sr-blind-on', !!on); }
   };
 
   function init() {
