@@ -1312,6 +1312,315 @@
         -8px -10px 22px var(--shadow-light);
     }
 
+    /* ===== РОЗВАГИ ПАСХАЛКИ ===== */
+    .easter-puff,
+    .easter-fly {
+      transform-origin: 50% 50%;
+    }
+
+    .easter-fly {
+      will-change: transform;
+    }
+
+    /* Під час польоту картка над кнопками і фразою */
+    .easter-overlay.is-throwing .easter-bounce {
+      z-index: 4;
+    }
+
+    /* Надування: дрижить сильніше з кожним рівнем */
+    .easter-puff.is-inflating {
+      animation: puffTremble 0.12s linear infinite;
+      transition: scale 0.25s cubic-bezier(0.34, 1.6, 0.64, 1), filter 0.25s ease;
+    }
+
+    .easter-puff {
+      transition: scale 0.5s var(--ease-spring), filter 0.5s ease;
+    }
+
+    @keyframes puffTremble {
+      0%   { translate: 0 0; }
+      25%  { translate: var(--amp, 0px) calc(var(--amp, 0px) * -0.6); }
+      50%  { translate: calc(var(--amp, 0px) * -1) calc(var(--amp, 0px) * 0.8); }
+      75%  { translate: calc(var(--amp, 0px) * 0.7) var(--amp, 0px); }
+      100% { translate: 0 0; }
+    }
+
+    .easter-puff.is-popping {
+      animation: puffPop 0.32s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+    }
+
+    @keyframes puffPop {
+      0%   { scale: var(--s, 1.8); opacity: 1; }
+      35%  { scale: calc(var(--s, 1.8) * 1.22); opacity: 1; }
+      100% { scale: 0.05; opacity: 0; }
+    }
+
+    .easter-puff.is-reforming {
+      animation: puffReform 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+    }
+
+    @keyframes puffReform {
+      0%   { scale: 0.1; opacity: 0; }
+      35%  { scale: 1.25 0.75; opacity: 1; }
+      55%  { scale: 0.85 1.18; }
+      75%  { scale: 1.07 0.94; }
+      100% { scale: 1; opacity: 1; }
+    }
+
+    /* Великий комікс-напис при лусканні */
+    .egg-pop-text {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 5;
+      font-size: clamp(3rem, 16vw, 5.5rem);
+      font-weight: 900;
+      color: #ffe14d;
+      -webkit-text-stroke: 3px #1a1a1a;
+      paint-order: stroke fill;
+      text-shadow: 0 6px 0 #1a1a1a, 0 10px 24px rgba(0, 0, 0, 0.5);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      translate: -50% -50%;
+    }
+
+    .egg-pop-text.is-shown {
+      animation: popText 1.1s cubic-bezier(0.3, 0.7, 0.4, 1) forwards;
+    }
+
+    @keyframes popText {
+      0%   { opacity: 0; scale: 0.2; rotate: -25deg; }
+      20%  { opacity: 1; scale: 1.25; rotate: 8deg; }
+      35%  { scale: 0.92; rotate: -4deg; }
+      50%  { scale: 1.05; rotate: 2deg; }
+      80%  { opacity: 1; scale: 1; rotate: 0deg; }
+      100% { opacity: 0; scale: 1.1; translate: -50% -90%; }
+    }
+
+    /* Кнопки під картинкою */
+    .egg-actions {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .egg-trophy-btn.is-bump {
+      animation: trophyBump 0.6s var(--ease-spring);
+    }
+
+    @keyframes trophyBump {
+      0% { scale: 1; }
+      30% { scale: 1.3; rotate: -8deg; }
+      60% { scale: 0.95; rotate: 4deg; }
+      100% { scale: 1; rotate: 0deg; }
+    }
+
+    /* Лічильник для всіх відвідувачів */
+    .egg-counter {
+      position: relative;
+      z-index: 3;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+      text-align: center;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+      margin-top: -8px;
+    }
+
+    .egg-counter b {
+      display: inline-block;
+      color: #ffe14d;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .egg-counter b.is-bump {
+      animation: trophyBump 0.45s var(--ease-spring);
+    }
+
+    /* Список досягнень */
+    .egg-trophies {
+      position: fixed;
+      inset: 0;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    .egg-trophies[hidden] {
+      display: none;
+    }
+
+    .egg-trophies-card {
+      width: 100%;
+      max-width: 420px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 28px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+      animation: quotePop 0.5s var(--ease-spring) both;
+    }
+
+    .egg-trophies-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px 10px;
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+
+    .egg-trophies-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--card-border);
+      background: var(--sub-card-bg);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .egg-trophies-list {
+      overflow-y: auto;
+      padding: 4px 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .egg-trophy {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 18px;
+      background: var(--sub-card-bg);
+      border: 1px solid var(--card-border);
+    }
+
+    .egg-trophy-emoji {
+      font-size: 1.6rem;
+      width: 2rem;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .egg-trophy-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .egg-trophy-desc {
+      font-size: 0.78rem;
+      color: var(--subtext);
+      margin-top: 2px;
+    }
+
+    .egg-trophy.is-locked {
+      opacity: 0.55;
+    }
+
+    .egg-trophy.is-locked .egg-trophy-emoji {
+      filter: grayscale(1);
+    }
+
+    /* Сповіщення про досягнення */
+    .egg-toasts {
+      position: fixed;
+      top: calc(14px + env(safe-area-inset-top, 0px));
+      left: 50%;
+      z-index: 9600;
+      width: min(380px, calc(100vw - 32px));
+      translate: -50% 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .egg-toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 20px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      animation: toastIn 0.6s var(--ease-spring) both;
+    }
+
+    .egg-toast.is-leaving {
+      animation: toastOut 0.35s var(--ease-soft) forwards;
+    }
+
+    @keyframes toastIn {
+      0% { opacity: 0; translate: 0 -40px; scale: 0.8; }
+      100% { opacity: 1; translate: 0 0; scale: 1; }
+    }
+
+    @keyframes toastOut {
+      to { opacity: 0; translate: 0 -30px; scale: 0.9; }
+    }
+
+    .egg-toast-emoji {
+      font-size: 1.8rem;
+      flex-shrink: 0;
+      animation: trophyBump 0.8s var(--ease-spring) 0.2s;
+    }
+
+    .egg-toast-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #e0a400;
+    }
+
+    .egg-toast-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    /* Струсили телефон — плашки на головній підстрибують */
+    body.is-shaken .link-card {
+      animation: shakeHop 0.7s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+    }
+
+    body.is-shaken .link-item-wrapper:nth-child(odd) .link-card {
+      animation-name: shakeHopAlt;
+    }
+
+    @keyframes shakeHop {
+      0%   { translate: 0 0; rotate: 0deg; }
+      20%  { translate: -10px -14px; rotate: -3deg; }
+      40%  { translate: 8px 4px; rotate: 2.5deg; }
+      60%  { translate: -5px -4px; rotate: -1.5deg; }
+      80%  { translate: 2px 1px; rotate: 0.6deg; }
+      100% { translate: 0 0; rotate: 0deg; }
+    }
+
+    @keyframes shakeHopAlt {
+      0%   { translate: 0 0; rotate: 0deg; }
+      20%  { translate: 10px -10px; rotate: 3deg; }
+      40%  { translate: -8px 5px; rotate: -2.5deg; }
+      60%  { translate: 5px -3px; rotate: 1.5deg; }
+      80%  { translate: -2px 1px; rotate: -0.6deg; }
+      100% { translate: 0 0; rotate: 0deg; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -1414,16 +1723,43 @@
   <div class="easter-overlay" id="easterOverlay" role="dialog" aria-label="Пасхалка" aria-hidden="true">
     <div class="easter-quote" id="easterQuote" aria-live="polite"></div>
     <div class="easter-bounce">
-      <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" decoding="async" width="1349" height="600">
+      <div class="easter-puff" id="easterPuff">
+        <div class="easter-fly" id="easterFly">
+          <img src="img/easter-egg.webp" alt="Пасхалка" class="easter-img" decoding="async" width="1349" height="600">
+        </div>
+      </div>
     </div>
 
     <canvas class="egg3d-canvas" id="egg3dCanvas" aria-hidden="true"></canvas>
 
-    <button type="button" class="egg3d-toggle" id="egg3dToggle" aria-pressed="false">
-      <svg viewBox="0 0 24 24"><path d="M12 2.8 20 7.3v9.4L12 21.2 4 16.7V7.3Z"></path><path d="M4 7.3l8 4.5 8-4.5M12 11.8v9.4"></path></svg>
-      <span id="egg3dLabel">3D</span>
-    </button>
+    <div class="egg-actions">
+      <button type="button" class="egg3d-toggle" id="egg3dToggle" aria-pressed="false">
+        <svg viewBox="0 0 24 24"><path d="M12 2.8 20 7.3v9.4L12 21.2 4 16.7V7.3Z"></path><path d="M4 7.3l8 4.5 8-4.5M12 11.8v9.4"></path></svg>
+        <span id="egg3dLabel">3D</span>
+      </button>
+      <button type="button" class="egg3d-toggle egg-trophy-btn" id="eggTrophyBtn" aria-label="Досягнення">
+        <span aria-hidden="true">🏆</span>
+        <span id="eggTrophyCount">0</span>
+      </button>
+    </div>
+
+    <div class="egg-counter" id="eggCounter" hidden></div>
+
+    <div class="egg-pop-text" id="eggPopText" aria-hidden="true">ПУК! 💨</div>
+
+    <div class="egg-trophies" id="eggTrophies" hidden>
+      <div class="egg-trophies-card" role="dialog" aria-label="Досягнення">
+        <div class="egg-trophies-head">
+          <span>Досягнення</span>
+          <button type="button" class="egg-trophies-close" id="eggTrophiesClose" aria-label="Закрити">✕</button>
+        </div>
+        <div class="egg-trophies-list" id="eggTrophiesList"></div>
+      </div>
+    </div>
   </div>
+
+  <!-- Сповіщення про досягнення -->
+  <div class="egg-toasts" id="eggToasts" aria-live="polite"></div>
 
   <script src="js/easter-phrases.js"></script>
   <script>
@@ -2113,6 +2449,7 @@
         Haptics.pattern([18, 45, 35]);
         overlay.classList.add('is-open');
         overlay.setAttribute('aria-hidden', 'false');
+        if (window.EggFun) { window.EggFun.stat('opens'); window.EggFun.onOpen(); }
       }
 
       function closeEgg() {
@@ -2125,7 +2462,7 @@
 
       // Закриваємо тапом по фону (не по картинці — її можна тягати)
       overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) closeEgg();
+        if (e.target === overlay && !(window.EggFun && window.EggFun.busy())) closeEgg();
       });
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeEgg();
@@ -2156,7 +2493,12 @@
       // На iPhone тактильний відгук можливий лише в touchend — "клацаємо" тут
       let openedThisTouch = false;
       document.addEventListener('touchend', () => {
-        if (openedThisTouch) { openedThisTouch = false; Haptics.ios([1, 70, 1]); }
+        if (openedThisTouch) {
+          openedThisTouch = false;
+          Haptics.ios([1, 70, 1]);
+          // iPhone: дозвіл на датчик руху (для струшування) — лише у відповідь на дотик
+          if (window.EggFun) window.EggFun.askMotion();
+        }
         reset();
       }, { passive: true });
       document.addEventListener('touchcancel', reset, { passive: true });
@@ -2190,6 +2532,8 @@
       let lastT = 0;
       let detent = 0;
       let lastDetent = 0;
+      let fv = { x: 0, y: 0 };       // швидкість пальця, px/с (для кидка)
+      let lastMove = null;
 
       // Еластичний "упор": чим далі тягнеш, тим важче
       const soften = (v) => Math.sign(v) * MAX_PULL * (1 - Math.exp(-Math.abs(v) / MAX_PULL));
@@ -2229,10 +2573,23 @@
 
       const is3D = () => document.getElementById('easterOverlay').classList.contains('is-3d');
 
+      // Струс телефона — желе отримує поштовх
+      window.__jellyKick = (kx, ky) => {
+        if (dragging) return;
+        vel.x += kx;
+        vel.y += ky;
+        if (!rafId) { lastT = performance.now(); rafId = requestAnimationFrame(step); }
+      };
+
       img.addEventListener('pointerdown', (e) => {
         if (is3D()) return; // у 3D-режимі картку крутять, а не розтягують
         e.preventDefault();
+        // Картка в польоті або лускає — не чіпаємо
+        if (window.EggFun && window.EggFun.busy()) return;
+        if (window.EggFun && window.EggFun.tap()) return; // надування з'їло дотик
         dragging = true;
+        fv = { x: 0, y: 0 };
+        lastMove = { x: e.clientX, y: e.clientY, t: performance.now() };
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
         const r = img.getBoundingClientRect();
         grab = {
@@ -2253,6 +2610,13 @@
 
       img.addEventListener('pointermove', (e) => {
         if (!dragging) return;
+        const tNow = performance.now();
+        if (lastMove) {
+          const dtm = Math.max((tNow - lastMove.t) / 1000, 0.004);
+          fv.x = fv.x * 0.5 + ((e.clientX - lastMove.x) / dtm) * 0.5;
+          fv.y = fv.y * 0.5 + ((e.clientY - lastMove.y) / dtm) * 0.5;
+        }
+        lastMove = { x: e.clientX, y: e.clientY, t: tNow };
         const nx = soften(e.clientX - start.x);
         const ny = soften(e.clientY - start.y);
         // Швидкість потрібна, щоб відпущена картинка "відстрілювала" природно
@@ -2274,6 +2638,23 @@
         dragging = false;
         img.style.cursor = '';
         const pull = Math.hypot(pos.x, pos.y);
+
+        // Різкий змах — картку жбурнули!
+        const recent = lastMove && performance.now() - lastMove.t < 90;
+        const fspeed = Math.hypot(fv.x, fv.y);
+        if (recent && fspeed > 1100 && pull > 20 && window.EggFun) {
+          pos = { x: 0, y: 0 };
+          vel = { x: 0, y: 0 };
+          apply();
+          window.EggFun.throwCard(fv.x * 0.6, fv.y * 0.6);
+          return;
+        }
+
+        if (pull > 30 && window.EggFun) {
+          window.EggFun.stat('stretches');
+          window.EggFun.statMax('maxPull', pull);
+          window.EggFun.counterHit();
+        }
         if (pull > 30) {
           // Вібрація "пружинить" разом з картинкою: сильний удар і затухаючі відскоки
           const k = Math.min(pull / 220, 1.2);
@@ -2321,6 +2702,7 @@
         if (now - lastShown < PERIOD_MS) return;
         lastShown = now;
         bubble.textContent = nextPhrase();
+        if (window.EggFun) window.EggFun.stat('quotes');
         bubble.classList.remove('is-shown');
         void bubble.offsetWidth; // перезапуск анімації
         bubble.classList.add('is-shown');
@@ -2332,7 +2714,7 @@
       const overlay = document.getElementById('easterOverlay');
       if (overlay) {
         overlay.addEventListener('click', (e) => {
-          if (e.target === overlay) { bubble.classList.remove('is-shown'); lastShown = -Infinity; }
+          if (e.target === overlay && !(window.EggFun && window.EggFun.busy())) { bubble.classList.remove('is-shown'); lastShown = -Infinity; }
         });
       }
     })();
@@ -2664,6 +3046,7 @@
         const face = Math.round(ry / Math.PI);
         if (face !== lastFace) {
           lastFace = face;
+          if (window.EggFun) window.EggFun.stat('flips');
           Haptics.tick(14);
           if (window.easterSound && window.easterSound.flip) window.easterSound.flip();
         }
@@ -2733,6 +3116,7 @@
         resize();
         permission.then((res) => { if (res === 'granted' && on) window.addEventListener('deviceorientation', onOrient); });
         Haptics.pattern([10, 40, 10, 40, 20]);
+        if (window.EggFun) { window.EggFun.stat('threeD'); window.EggFun.askMotion(); }
         startLoop();
       }
 
@@ -2753,6 +3137,16 @@
         e.stopPropagation();
         if (on && !exiting) disable(); else if (!on) enable();
       });
+
+      // Струс телефона в 3D — картка тремтить і крутиться
+      window.__egg3dShake = (power) => {
+        if (!on || exiting || !ready) return false;
+        for (let k = 0; k < V.length; k++) V[k] += (Math.random() * 2 - 1) * 2.2 * power;
+        vry += (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 5) * power;
+        vrx += (Math.random() * 2 - 1) * 3 * power;
+        startLoop();
+        return true;
+      };
 
       // Закрили пасхалку — миттєво виходимо з 3D
       overlay.addEventListener('click', (e) => {
@@ -2846,6 +3240,7 @@
           const len = Math.hypot(grabTarget[0], grabTarget[1], grabTarget[2]);
           W.fill(0);
           if (len > 0.15) {
+            if (window.EggFun) { window.EggFun.stat('stretches'); window.EggFun.counterHit(); }
             const k = Math.min(len / 1.2, 1.2);
             Haptics.pattern([
               Math.round(22 + 30 * k), 55, Math.round(14 + 18 * k), 70,
@@ -2994,6 +3389,94 @@
       ];
 
       return {
+        // Удар об край екрана під час польоту
+        thud(k) {
+          try {
+            if (!getAC()) return;
+            const t = ac.currentTime + 0.005;
+            const d = out(Math.min(0.8, 0.3 + k * 0.5));
+            bloop(d, t, 140 * rand(0.85, 1.2), 60, 0.14, 0.55);
+            wash(d, t, 0.18, 0.12 + k * 0.1, 1600, 300, 2);
+            if (k > 0.5) drops(d, t, 2, 0.3);
+          } catch (e) {}
+        },
+        // Скрип повітряної кульки, що надувається (вище з кожним рівнем)
+        inflate(level) {
+          try {
+            if (!getAC()) return;
+            const t = ac.currentTime + 0.005;
+            const d = out(0.35);
+            const f = 300 + level * 90;
+            const o = ac.createOscillator();
+            const g = ac.createGain();
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(f, t);
+            o.frequency.exponentialRampToValueAtTime(f * 1.35, t + 0.12);
+            const lp = ac.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = 1800;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(0.18, t + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+            o.connect(lp).connect(g).connect(d);
+            o.start(t);
+            o.stop(t + 0.17);
+          } catch (e) {}
+        },
+        // "ПУК": низьке хрипле брр з тремтінням тону + хлопок
+        pop() {
+          try {
+            if (!getAC()) return;
+            const t = ac.currentTime + 0.005;
+            const d = out(0.9);
+            // хлопок кульки
+            wash(d, t, 0.12, 0.6, 6000, 800, 0.7);
+            // брр
+            const o = ac.createOscillator();
+            const lfo = ac.createOscillator();
+            const lfoG = ac.createGain();
+            const g = ac.createGain();
+            const lp = ac.createBiquadFilter();
+            o.type = 'sawtooth';
+            const base = rand(85, 110);
+            o.frequency.setValueAtTime(base * 1.3, t + 0.05);
+            o.frequency.exponentialRampToValueAtTime(base * 0.7, t + 0.75);
+            lfo.type = 'square';
+            lfo.frequency.setValueAtTime(rand(22, 30), t);
+            lfoG.gain.value = base * 0.35;
+            lfo.connect(lfoG).connect(o.frequency);
+            lp.type = 'lowpass';
+            lp.frequency.value = 650;
+            lp.Q.value = 4;
+            g.gain.setValueAtTime(0.0001, t + 0.05);
+            g.gain.exponentialRampToValueAtTime(0.5, t + 0.09);
+            g.gain.setValueAtTime(0.45, t + 0.55);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
+            o.connect(lp).connect(g).connect(d);
+            o.start(t + 0.05); lfo.start(t + 0.05);
+            o.stop(t + 0.9); lfo.stop(t + 0.9);
+          } catch (e) {}
+        },
+        // Дзинь досягнення
+        chime() {
+          try {
+            if (!getAC()) return;
+            const t = ac.currentTime + 0.01;
+            const d = out(0.35);
+            [880, 1320, 1760].forEach((f, i) => {
+              const o = ac.createOscillator();
+              const g = ac.createGain();
+              o.type = 'triangle';
+              o.frequency.value = f;
+              g.gain.setValueAtTime(0.0001, t + i * 0.09);
+              g.gain.exponentialRampToValueAtTime(0.3, t + i * 0.09 + 0.01);
+              g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.09 + 0.5);
+              o.connect(g).connect(d);
+              o.start(t + i * 0.09);
+              o.stop(t + i * 0.09 + 0.55);
+            });
+          } catch (e) {}
+        },
         // Переворот картки в 3D — легкий "свуш" і клац
         flip() {
           try {
@@ -3026,6 +3509,409 @@
             variants[v](d, t, k, rand(0.85, 1.2)); // p — випадкова висота тону
           } catch (e) {}
         }
+      };
+    })();
+
+    // 4.6 Розваги пасхалки: кидок, надування, струшування, досягнення, лічильник
+    window.EggFun = (() => {
+      const overlay = document.getElementById('easterOverlay');
+      const fly = document.getElementById('easterFly');
+      const puff = document.getElementById('easterPuff');
+      const popText = document.getElementById('eggPopText');
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const rand = (a, b) => a + Math.random() * (b - a);
+      const sound = (name, ...args) => { if (window.easterSound && window.easterSound[name]) window.easterSound[name](...args); };
+
+      // ---------- Статистика (зберігається в браузері) ----------
+      const STATS_KEY = 'egg_stats_v1';
+      let stats = {};
+      try { stats = JSON.parse(localStorage.getItem(STATS_KEY) || '{}') || {}; } catch (e) { stats = {}; }
+      if (!Array.isArray(stats.unlocked)) stats.unlocked = [];
+      const save = () => { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) {} };
+
+      const ACH = [
+        { id: 'open',      emoji: '🔍', title: 'Шукач пасхалок',                       desc: 'Знайшов пасхалку',                 ok: (s) => s.opens >= 1 },
+        { id: 'stretch10', emoji: '🫠', title: 'Розтягнув 10 разів',                   desc: 'Розтягни пику 10 разів',           ok: (s) => s.stretches >= 10 },
+        { id: 'stretch100',emoji: '🧘', title: 'Гумовий майстер',                      desc: 'Розтягни пику 100 разів',          ok: (s) => s.stretches >= 100 },
+        { id: 'maxpull',   emoji: '💪', title: 'До упору!',                            desc: 'Розтягни так сильно, як можеш',    ok: (s) => s.maxPull >= 235 },
+        { id: 'quotes20',  emoji: '📖', title: 'Читач тгк',                            desc: 'Прочитай 20 фраз',                 ok: (s) => s.quotes >= 20 },
+        { id: 'quotes100', emoji: '🤨', title: 'Прочитав 100 фраз — ти точно не Влад?', desc: 'Прочитай 100 фраз',               ok: (s) => s.quotes >= 100 },
+        { id: '3d',        emoji: '🧊', title: 'Новий вимір',                          desc: 'Увімкни 3D',                       ok: (s) => s.threeD >= 1 },
+        { id: 'flips50',   emoji: '😵‍💫', title: 'Перевернув 50 разів — голова не крутиться?', desc: 'Переверни картку в 3D 50 разів', ok: (s) => s.flips >= 50 },
+        { id: 'throw',     emoji: '🫳', title: 'Жбурнув пику',                         desc: 'Різко змахни картинкою',           ok: (s) => s.throws >= 1 },
+        { id: 'bounce50',  emoji: '🏓', title: 'Пінг-понг',                            desc: '50 ударів об краї екрана',         ok: (s) => s.bounces >= 50 },
+        { id: 'pop',       emoji: '🎈', title: 'Перегодував',                          desc: 'Швидко тицяй, поки не лусне',      ok: (s) => s.pops >= 1 },
+        { id: 'pop10',     emoji: '💨', title: 'Серійний пукач',                        desc: 'Лусни картинку 10 разів',          ok: (s) => s.pops >= 10 },
+        { id: 'shake',     emoji: '📳', title: 'Струснув як треба',                    desc: 'Струсни телефон',                  ok: (s) => s.shakes >= 1 },
+        { id: 'shake20',   emoji: '🍸', title: 'Шейкер',                               desc: 'Струсни телефон 20 разів',         ok: (s) => s.shakes >= 20 }
+      ];
+      ACH.push({ id: 'all', emoji: '👑', title: 'Еліта телеграм-каналу', desc: 'Відкрий усі досягнення',
+        ok: () => ACH.every((a) => a.id === 'all' || stats.unlocked.includes(a.id)) });
+
+      const trophyCount = document.getElementById('eggTrophyCount');
+      const trophyBtn = document.getElementById('eggTrophyBtn');
+      const updateTrophyCount = () => { if (trophyCount) trophyCount.textContent = `${stats.unlocked.length}/${ACH.length}`; };
+      updateTrophyCount();
+
+      // Черга сповіщень
+      const toasts = document.getElementById('eggToasts');
+      let toastQueue = [];
+      let toastBusy = false;
+      function showNextToast() {
+        if (toastBusy || toastQueue.length === 0 || !toasts) return;
+        toastBusy = true;
+        const a = toastQueue.shift();
+        const el = document.createElement('div');
+        el.className = 'egg-toast';
+        el.innerHTML = '<span class="egg-toast-emoji"></span><div><div class="egg-toast-label">Досягнення!</div><div class="egg-toast-title"></div></div>';
+        el.querySelector('.egg-toast-emoji').textContent = a.emoji;
+        el.querySelector('.egg-toast-title').textContent = a.title;
+        toasts.appendChild(el);
+        sound('chime');
+        Haptics.pattern([15, 50, 15, 50, 40]);
+        if (trophyBtn) { trophyBtn.classList.remove('is-bump'); void trophyBtn.offsetWidth; trophyBtn.classList.add('is-bump'); }
+        setTimeout(() => {
+          el.classList.add('is-leaving');
+          setTimeout(() => { el.remove(); toastBusy = false; showNextToast(); }, 350);
+        }, 2600);
+      }
+
+      function checkAch() {
+        let changed = false;
+        ACH.forEach((a) => {
+          if (!stats.unlocked.includes(a.id) && a.ok(stats)) {
+            stats.unlocked.push(a.id);
+            toastQueue.push(a);
+            changed = true;
+          }
+        });
+        if (changed) { save(); updateTrophyCount(); showNextToast(); }
+      }
+
+      function stat(key, n = 1) {
+        stats[key] = (stats[key] || 0) + n;
+        save();
+        checkAch();
+      }
+      function statMax(key, v) {
+        if (v > (stats[key] || 0)) { stats[key] = v; save(); checkAch(); }
+      }
+
+      // Список досягнень
+      const panel = document.getElementById('eggTrophies');
+      const list = document.getElementById('eggTrophiesList');
+      function renderList() {
+        if (!list) return;
+        list.innerHTML = '';
+        ACH.forEach((a) => {
+          const got = stats.unlocked.includes(a.id);
+          const row = document.createElement('div');
+          row.className = 'egg-trophy' + (got ? '' : ' is-locked');
+          row.innerHTML = '<span class="egg-trophy-emoji"></span><div><div class="egg-trophy-title"></div><div class="egg-trophy-desc"></div></div>';
+          row.querySelector('.egg-trophy-emoji').textContent = got ? a.emoji : '🔒';
+          row.querySelector('.egg-trophy-title').textContent = got ? a.title : '???';
+          row.querySelector('.egg-trophy-desc').textContent = a.desc;
+          list.appendChild(row);
+        });
+      }
+      if (trophyBtn && panel) {
+        trophyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          renderList();
+          panel.hidden = false;
+          Haptics.tick(8);
+        });
+        panel.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (e.target === panel || e.target.closest('.egg-trophies-close')) panel.hidden = true;
+        });
+      }
+
+      // ---------- Лічильник для всіх відвідувачів (сервіс Abacus) ----------
+      const COUNTER_URL = 'https://abacus.jasoncameron.dev';
+      const NS = 'haiduk-top', KEY = 'stretches';
+      const counterEl = document.getElementById('eggCounter');
+      let globalCount = null;
+      let pending = 0, sentThisSession = 0, flushing = false;
+
+      function renderCounter(bump) {
+        if (!counterEl || globalCount === null) return;
+        counterEl.hidden = false;
+        counterEl.innerHTML = 'Цю пику розтягнули вже <b></b> разів 🫠';
+        const b = counterEl.querySelector('b');
+        b.textContent = (globalCount + pending).toLocaleString('uk-UA');
+        if (bump) b.classList.add('is-bump');
+      }
+
+      async function loadCounter() {
+        try {
+          const r = await fetch(`${COUNTER_URL}/get/${NS}/${KEY}`, { cache: 'no-store' });
+          if (r.status === 404) { globalCount = 0; renderCounter(); return; }
+          if (!r.ok) throw new Error('bad');
+          const j = await r.json();
+          globalCount = Number(j.value) || 0;
+          renderCounter();
+        } catch (e) {
+          if (counterEl) counterEl.hidden = true;
+        }
+      }
+
+      // Не частіше ніж раз на 1.2 с, і не більше 40 за сесію — щоб не спамити сервіс
+      async function flush() {
+        if (flushing || pending <= 0 || sentThisSession >= 40) return;
+        flushing = true;
+        try {
+          const r = await fetch(`${COUNTER_URL}/hit/${NS}/${KEY}`, { cache: 'no-store' });
+          if (r.ok) {
+            const j = await r.json();
+            pending = Math.max(0, pending - 1);
+            sentThisSession++;
+            globalCount = Number(j.value) || globalCount;
+            renderCounter();
+          } else {
+            pending = 0;
+          }
+        } catch (e) {
+          pending = 0;
+        }
+        setTimeout(() => { flushing = false; flush(); }, 1200);
+      }
+
+      function counterHit() {
+        if (globalCount === null) return;
+        if (sentThisSession + pending < 40) pending++;
+        renderCounter(true);
+        flush();
+      }
+
+      // ---------- Кидок картки ----------
+      let flying = false;
+      let throwRaf = null;
+      const T = { x: 0, y: 0, vx: 0, vy: 0, rot: 0, vrot: 0, sx: 1, sy: 1, vsx: 0, vsy: 0, t0: 0, last: 0, rest: null };
+
+      function throwCard(vx, vy) {
+        if (flying || !fly || reduceMotion) return;
+        flying = true;
+        stat('throws');
+        counterHit();
+        const r = fly.getBoundingClientRect();
+        Object.assign(T, {
+          x: 0, y: 0, vx: Math.max(-3500, Math.min(3500, vx)), vy: Math.max(-3500, Math.min(3500, vy)),
+          rot: 0, vrot: (vx / 6) * (Math.random() < 0.5 ? 1 : -1) + rand(-200, 200),
+          sx: 1, sy: 1, vsx: 0, vsy: 0, t0: performance.now(), last: performance.now(), rest: r
+        });
+        sound('splash', 0.6);
+        Haptics.pattern([25, 30, 15]);
+        fly.style.transition = '';
+        overlay.classList.add('is-throwing');
+        throwRaf = requestAnimationFrame(throwStep);
+      }
+
+      function impact(speed, axis) {
+        const k = Math.min(speed / 2200, 1);
+        if (speed < 180) return;
+        stat('bounces');
+        sound('thud', k);
+        Haptics.tick(Math.round(8 + k * 30));
+        // Сплющуємо вздовж осі удару
+        if (axis === 'x') { T.sx = 1 - 0.35 * k; T.sy = 1 + 0.25 * k; }
+        else { T.sy = 1 - 0.35 * k; T.sx = 1 + 0.25 * k; }
+      }
+
+      function throwStep(t) {
+        const dt = Math.min((t - T.last) / 1000, 0.032);
+        T.last = t;
+        const W = window.innerWidth, H = window.innerHeight;
+        const r = T.rest;
+        const pad = 6;
+        const minX = -r.left + pad, maxX = W - r.right - pad;
+        const minY = -r.top + pad, maxY = H - r.bottom - pad;
+
+        T.vy += 2600 * dt;
+        T.vx *= Math.pow(0.7, dt);
+        T.x += T.vx * dt;
+        T.y += T.vy * dt;
+        T.rot += T.vrot * dt;
+        T.vrot *= Math.pow(0.5, dt);
+
+        if (T.x < minX) { T.x = minX; impact(Math.abs(T.vx), 'x'); T.vx = -T.vx * 0.62; T.vrot += T.vy * 0.05; }
+        if (T.x > maxX) { T.x = maxX; impact(Math.abs(T.vx), 'x'); T.vx = -T.vx * 0.62; T.vrot -= T.vy * 0.05; }
+        if (T.y < minY) { T.y = minY; impact(Math.abs(T.vy), 'y'); T.vy = -T.vy * 0.55; }
+        if (T.y > maxY) { T.y = maxY; impact(Math.abs(T.vy), 'y'); T.vy = -T.vy * 0.52; T.vx *= 0.85; T.vrot *= 0.7; }
+
+        // Пружинне відновлення після сплющення
+        T.vsx += (-(T.sx - 1) * 900 - T.vsx * 18) * dt;
+        T.vsy += (-(T.sy - 1) * 900 - T.vsy * 18) * dt;
+        T.sx += T.vsx * dt;
+        T.sy += T.vsy * dt;
+
+        fly.style.transform = `translate(${T.x.toFixed(1)}px, ${T.y.toFixed(1)}px) scale(${T.sx.toFixed(3)}, ${T.sy.toFixed(3)}) rotate(${T.rot.toFixed(1)}deg)`;
+
+        const onFloor = T.y >= maxY - 1;
+        const settled = onFloor && Math.abs(T.vy) < 120 && Math.abs(T.vx) < 60;
+        if (settled || t - T.t0 > 4000) { comeBack(); return; }
+        throwRaf = requestAnimationFrame(throwStep);
+      }
+
+      // Картка повертається на місце з пружинкою
+      function comeBack() {
+        cancelAnimationFrame(throwRaf);
+        throwRaf = null;
+        const turns = Math.round(T.rot / 360) * 360;
+        fly.style.transform = `translate(${T.x}px, ${T.y}px) rotate(${T.rot - turns}deg)`;
+        void fly.offsetWidth;
+        fly.style.transition = 'transform 0.75s cubic-bezier(0.34, 1.45, 0.64, 1)';
+        fly.style.transform = '';
+        Haptics.pattern([8, 60, 8]);
+        setTimeout(() => {
+          fly.style.transition = '';
+          overlay.classList.remove('is-throwing');
+          flying = false;
+        }, 760);
+      }
+
+      // ---------- Надування до "ПУК" ----------
+      let taps = [];
+      let level = 0;
+      let popping = false;
+      let deflateTimer = null;
+      const POP_LEVEL = 8;
+
+      function applyPuff() {
+        if (!puff) return;
+        if (level <= 0) {
+          puff.classList.remove('is-inflating');
+          puff.style.scale = '';
+          puff.style.filter = '';
+          puff.style.removeProperty('--amp');
+          return;
+        }
+        puff.classList.add('is-inflating');
+        puff.style.scale = String(1 + level * 0.095);
+        puff.style.setProperty('--amp', `${(level * 0.7).toFixed(1)}px`);
+        puff.style.filter = `saturate(${1 + level * 0.18}) sepia(${level * 0.05}) hue-rotate(${-level * 5}deg) brightness(${1 + level * 0.015})`;
+      }
+
+      function scheduleDeflate() {
+        clearTimeout(deflateTimer);
+        deflateTimer = setTimeout(function deflate() {
+          if (popping || level <= 0) return;
+          level--;
+          applyPuff();
+          if (level > 0) deflateTimer = setTimeout(deflate, 450);
+        }, 900);
+      }
+
+      // Повертає true, якщо дотик пішов на надування (і розтягувати не треба)
+      function tap() {
+        if (popping) return true;
+        const now = performance.now();
+        taps = taps.filter((t) => now - t < 1300);
+        taps.push(now);
+        if (level === 0 && taps.length < 5) return false;
+        level++;
+        sound('inflate', level);
+        Haptics.tick(6 + level * 3);
+        applyPuff();
+        if (level >= POP_LEVEL) { pop(); return true; }
+        scheduleDeflate();
+        return true;
+      }
+
+      function pop() {
+        popping = true;
+        clearTimeout(deflateTimer);
+        stat('pops');
+        sound('pop');
+        Haptics.pattern([90, 30, 50, 30, 140]);
+        puff.style.setProperty('--s', puff.style.scale || '1.7');
+        puff.classList.remove('is-inflating');
+        puff.style.filter = '';
+        puff.classList.add('is-popping');
+        if (popText) { popText.classList.remove('is-shown'); void popText.offsetWidth; popText.classList.add('is-shown'); }
+        setTimeout(() => {
+          puff.classList.remove('is-popping');
+          puff.style.scale = '';
+          puff.classList.add('is-reforming');
+          sound('splash', 0.4);
+          setTimeout(() => {
+            puff.classList.remove('is-reforming');
+            level = 0;
+            taps = [];
+            applyPuff();
+            popping = false;
+          }, 950);
+        }, 1000);
+      }
+
+      // ---------- Струс телефона ----------
+      let motionOn = false;
+      let lastShake = 0;
+      let hits = [];
+      let prevA = null;
+
+      function onMotion(e) {
+        const a = e.accelerationIncludingGravity || e.acceleration;
+        if (!a || a.x == null) return;
+        if (prevA) {
+          const d = Math.abs(a.x - prevA.x) + Math.abs(a.y - prevA.y) + Math.abs(a.z - prevA.z);
+          const now = performance.now();
+          if (d > 28) {
+            hits = hits.filter((t) => now - t < 700);
+            hits.push(now);
+            if (hits.length >= 3 && now - lastShake > 1200) {
+              lastShake = now;
+              hits = [];
+              shaken(Math.min(d / 45, 1.6));
+            }
+          }
+        }
+        prevA = { x: a.x, y: a.y, z: a.z };
+      }
+
+      function shaken(power) {
+        stat('shakes');
+        Haptics.pattern([30, 40, 30, 40, 60]);
+        const eggOpen = overlay && overlay.classList.contains('is-open');
+        if (eggOpen) {
+          if (window.__egg3dShake && window.__egg3dShake(power)) return;
+          if (!flying && !popping && window.__jellyKick) {
+            window.__jellyKick(rand(-1, 1) * 900 * power, rand(-1, 1) * 900 * power);
+            sound('splash', 0.5);
+          }
+          return;
+        }
+        // Головна сторінка — плашки підстрибують
+        document.body.classList.remove('is-shaken');
+        void document.body.offsetWidth;
+        document.body.classList.add('is-shaken');
+        setTimeout(() => document.body.classList.remove('is-shaken'), 1000);
+      }
+
+      function listenMotion() {
+        if (motionOn || !('DeviceMotionEvent' in window)) return;
+        motionOn = true;
+        window.addEventListener('devicemotion', onMotion);
+      }
+
+      // Android — слухаємо одразу; iPhone — після дозволу
+      if ('DeviceMotionEvent' in window && typeof DeviceMotionEvent.requestPermission !== 'function') listenMotion();
+
+      function askMotion() {
+        try {
+          if (window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function' && !motionOn) {
+            DeviceMotionEvent.requestPermission().then((r) => { if (r === 'granted') listenMotion(); }).catch(() => {});
+          }
+        } catch (e) {}
+      }
+
+      function onOpen() {
+        if (globalCount === null) loadCounter(); else renderCounter();
+      }
+
+      return {
+        stat, statMax, counterHit, throwCard, tap, askMotion, onOpen,
+        busy: () => flying || popping
       };
     })();
 
