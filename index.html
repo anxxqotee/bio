@@ -1475,6 +1475,50 @@
       to { filter: hue-rotate(360deg) saturate(1.4); }
     }
 
+    /* Кнопка виходу з пасхалки (справа зверху) */
+    .egg-close {
+      position: fixed;
+      top: calc(14px + env(safe-area-inset-top, 0px));
+      right: 14px;
+      z-index: 7;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--card-border);
+      background: var(--egg-surface);
+      color: var(--text);
+      box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.35), -3px -3px 10px var(--shadow-light);
+      transition: transform 0.5s var(--ease-spring), box-shadow 0.4s var(--ease-smooth);
+    }
+
+    [data-theme="aqua"] .egg-close {
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .egg-close svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      transition: transform 0.6s var(--ease-spring);
+    }
+
+    .egg-close:active {
+      transform: scale(0.9);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .egg-close:hover svg {
+        transform: rotate(90deg);
+      }
+    }
+
     /* Кнопки під картинкою */
     .egg-actions {
       position: relative;
@@ -1614,7 +1658,7 @@
     /* Сповіщення про досягнення */
     .egg-toasts {
       position: fixed;
-      top: calc(14px + env(safe-area-inset-top, 0px));
+      top: calc(68px + env(safe-area-inset-top, 0px));
       left: 50%;
       z-index: 9600;
       width: min(380px, calc(100vw - 32px));
@@ -1798,6 +1842,9 @@
   </div>
 
   <div class="easter-overlay" id="easterOverlay" role="dialog" aria-label="Пасхалка" aria-hidden="true">
+    <button type="button" class="egg-close" id="eggClose" aria-label="Закрити пасхалку">
+      <svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+    </button>
     <div class="easter-quote" id="easterQuote" aria-live="polite"></div>
     <div class="easter-bounce">
       <div class="easter-puff" id="easterPuff">
@@ -1850,12 +1897,12 @@
        👇 ЄДИНИЙ БЛОК НАЛАШТУВАННЯ ТЕКСТІВ ТА ПОСИЛАНЬ 👇
     ========================================================== */
     // 🔢 Лічильник розтягувань у пасхалці (Supabase).
-    //    url — Project URL, anonKey — "anon public" ключ (Project Settings → API).
+    //    url — Project URL, anonKey — "publishable" (або старий "anon public") ключ (Project Settings → API).
     //    Анонімний ключ публічний за задумом, його можна тримати тут. НІКОЛИ не вставляй сюди service_role!
     //    Якщо поля порожні — лічильник просто не показується.
     const SUPABASE_CONFIG = {
-      url: '',
-      anonKey: ''
+      url: 'https://uldidiwmyhojyjatpwud.supabase.co',
+      anonKey: 'sb_publishable_92VCW9pqVze2MfwF3tRHIA_Bu5tYUto'
     };
 
     const PAGE_DATA = {
@@ -2543,6 +2590,7 @@
       }
 
       function closeEgg() {
+        overlay.dispatchEvent(new CustomEvent('eggclose'));
         if (window.EggFun) window.EggFun.onClose();
         overlay.classList.remove('is-open');
         overlay.setAttribute('aria-hidden', 'true');
@@ -2551,10 +2599,15 @@
         render(0, false);
       }
 
-      // Закриваємо тапом по фону (не по картинці — її можна тягати)
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay && !(window.EggFun && window.EggFun.busy())) closeEgg();
-      });
+      // Вихід — лише кнопкою справа зверху (або Esc на ПК); тап по фону нічого не закриває
+      const closeBtn = document.getElementById('eggClose');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          Haptics.tick(10);
+          closeEgg();
+        });
+      }
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeEgg();
       });
@@ -2844,9 +2897,7 @@
       // При закритті пасхалки ховаємо бульбашку
       const overlay = document.getElementById('easterOverlay');
       if (overlay) {
-        overlay.addEventListener('click', (e) => {
-          if (e.target === overlay && !(window.EggFun && window.EggFun.busy())) { bubble.classList.remove('is-shown'); lastShown = -Infinity; }
-        });
+        overlay.addEventListener('eggclose', () => { bubble.classList.remove('is-shown'); lastShown = -Infinity; });
       }
     })();
 
@@ -3556,8 +3607,8 @@
       };
 
       // Закрили пасхалку — миттєво виходимо з 3D
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay && on) {
+      overlay.addEventListener('eggclose', () => {
+        if (on) {
           window.removeEventListener('deviceorientation', onOrient);
           btn.setAttribute('aria-pressed', 'false');
           label.textContent = '3D';
@@ -3691,8 +3742,6 @@
             }
           }
         } else if (wasMode === 'orbit') {
-          // Короткий тап по фону без руху — назад у 2D
-          if (quick) { disable(); return; }
           if (lastPt && performance.now() - lastPt.t > 80) { camVYaw = camVPitch = 0; }
           camVYaw = clamp(camVYaw, -8, 8);
           camVPitch = clamp(camVPitch, -3, 3);
@@ -4154,11 +4203,12 @@
       let pending = 0, sentThisSession = 0, flushing = false, flushTimer = null;
       const SESSION_CAP = 300;   // не більше стільки розтягувань за одне відвідування
 
-      const sbHeaders = () => ({
-        apikey: SB.anonKey,
-        Authorization: `Bearer ${SB.anonKey}`,
-        'Content-Type': 'application/json'
-      });
+      // Нові ключі (sb_publishable_...) передаються лише в apikey; старий anon (JWT) — ще й як Bearer
+      const sbHeaders = () => {
+        const h = { apikey: SB.anonKey, 'Content-Type': 'application/json' };
+        if (!SB.anonKey.startsWith('sb_')) h.Authorization = `Bearer ${SB.anonKey}`;
+        return h;
+      };
 
       function renderCounter(bump) {
         if (!counterEl || globalCount === null) return;
