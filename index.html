@@ -29,6 +29,10 @@
     }
 
     :root {
+      /* Поверхні інтерфейсу пасхалки (у темі Aqua — непрозорі) */
+      --egg-surface: var(--bg);
+      --egg-pressed-bg: var(--text);
+      --egg-pressed-fg: var(--bg);
       /* Плавні криві для всіх анімацій */
       --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
       --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
@@ -123,6 +127,9 @@
       --copied-bg: #197278;
       --copied-text: #ffffff;
       --copied-badge-bg: rgba(255, 255, 255, 0.25);
+      --egg-surface: rgba(18, 62, 84, 0.94);
+      --egg-pressed-bg: #ffffff;
+      --egg-pressed-fg: #16425b;
     }
 
     body {
@@ -742,6 +749,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
       padding: 10px 16px;
       border-radius: 20px;
       background-color: var(--sub-card-bg);
@@ -1049,7 +1057,7 @@
       height: 68px;
       margin-left: -34px;
       border-radius: 50%;
-      background: var(--bg);
+      background: var(--egg-surface);
       box-shadow: 
         5px 5px 14px var(--shadow-dark),
         -5px -5px 14px var(--shadow-light);
@@ -1147,7 +1155,7 @@
       min-height: 1px;
       padding: 12px 18px;
       border-radius: 22px;
-      background: var(--bg);
+      background: var(--egg-surface);
       color: var(--text);
       font-size: 1rem;
       font-weight: 700;
@@ -1166,6 +1174,14 @@
       z-index: 3;
     }
 
+    [data-theme="aqua"] .easter-quote,
+    [data-theme="aqua"] .egg3d-toggle,
+    [data-theme="aqua"] .egg-trophies-card,
+    [data-theme="aqua"] .egg-toast {
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
     /* Хвостик бульбашки */
     .easter-quote::after {
       content: "";
@@ -1175,7 +1191,7 @@
       width: 16px;
       height: 16px;
       margin-left: -8px;
-      background: var(--bg);
+      background: var(--egg-surface);
       border-right: 1px solid var(--card-border);
       border-bottom: 1px solid var(--card-border);
       transform: rotate(45deg);
@@ -1235,7 +1251,7 @@
       padding: 10px 18px;
       border-radius: 9999px;
       border: 1px solid var(--card-border);
-      background: var(--bg);
+      background: var(--egg-surface);
       color: var(--text);
       font-size: 0.9rem;
       font-weight: 700;
@@ -1258,8 +1274,8 @@
     }
 
     .egg3d-toggle[aria-pressed="true"] {
-      background: var(--text);
-      color: var(--bg);
+      background: var(--egg-pressed-bg);
+      color: var(--egg-pressed-fg);
     }
 
     .egg3d-toggle[aria-pressed="true"] svg {
@@ -1524,7 +1540,7 @@
       display: flex;
       flex-direction: column;
       border-radius: 28px;
-      background: var(--bg);
+      background: var(--egg-surface);
       color: var(--text);
       border: 1px solid var(--card-border);
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
@@ -1615,7 +1631,7 @@
       gap: 12px;
       padding: 10px 14px;
       border-radius: 20px;
-      background: var(--bg);
+      background: var(--egg-surface);
       color: var(--text);
       border: 1px solid var(--card-border);
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
@@ -1833,6 +1849,15 @@
     /* ==========================================================
        👇 ЄДИНИЙ БЛОК НАЛАШТУВАННЯ ТЕКСТІВ ТА ПОСИЛАНЬ 👇
     ========================================================== */
+    // 🔢 Лічильник розтягувань у пасхалці (Supabase).
+    //    url — Project URL, anonKey — "anon public" ключ (Project Settings → API).
+    //    Анонімний ключ публічний за задумом, його можна тримати тут. НІКОЛИ не вставляй сюди service_role!
+    //    Якщо поля порожні — лічильник просто не показується.
+    const SUPABASE_CONFIG = {
+      url: '',
+      anonKey: ''
+    };
+
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
@@ -2745,15 +2770,6 @@
 
         holdStart = 0;
 
-        // Різкий змах — картка по інерції вилітає і вмикається "Політ"
-        const fling = tracker.get();
-        if (Math.hypot(fling.x, fling.y) > 1200 && window.EggFun && window.EggFun.launchWith) {
-          pos = { x: 0, y: 0 };
-          vel = { x: 0, y: 0 };
-          apply();
-          if (window.EggFun.launchWith(fling.x, fling.y)) return;
-        }
-
         if (pull > 30 && window.EggFun) {
           window.EggFun.stat('stretches');
           window.EggFun.statMax('maxPull', pull);
@@ -2834,9 +2850,10 @@
       }
     })();
 
-    // 4.5 3D-режим на WebGL (three.js підвантажується лише при натисканні "3D").
-    //     Картка — товста, з заокругленими кутами, гнеться як желе:
-    //     тягнеш по картці — деформується, тягнеш по фону — крутиться.
+    // 4.5 3D-арена на WebGL (three.js підвантажується лише при натисканні "3D").
+    //     Картка висить над підлогою з тінню. Повільно тягнеш — гнеться як желе;
+    //     змахнув — злітає, крутиться, падає, відскакує і повертається;
+    //     тап — підстрибує з сальто; тягнеш по фону — камера облітає арену.
     (() => {
       const overlay = document.getElementById('easterOverlay');
       const canvas = document.getElementById('egg3dCanvas');
@@ -2870,16 +2887,35 @@
       let rafId = null, prevT = 0;
 
       // Обертання
-      let rx = 0, ry = 0, vrx = 0, vry = 0;
       let tiltX = 0, tiltY = 0, gx = 0, gy = 0, baseBeta = null;
-      let lastFace = 0;
       let spinLog = [];
+      let lastFaceSign = 1;
+
+      // Арена
+      const FLOOR = -1.35;              // висота підлоги
+      const HOVER = 0.15;               // висота, на якій картка висить
+      const ARENA_R = 3.0;              // межа арени
+      const GRAV = 15;
+
+      // Тверде тіло картки
+      let state = 'hover';              // hover | air | rise
+      let pos3, vel3, quat, angVel;     // THREE-вектори (створюються після завантаження)
+      let groundTime = 0, riseT = 0, airTime = 0;
+      let riseFrom = null;
+
+      // Камера, що облітає арену
+      let camYaw = 0, camPitch = 0.2, camVYaw = 0, camVPitch = 0, camR = 12;
+      let idleT = 0;
+
+      // Іскри
+      let sparks = null, sparkData = [];
 
       // Взаємодія
-      let mode = null;                  // 'deform' | 'rotate' | null
+      let mode = null;                  // 'deform' | 'orbit' | null
       let startPt = null, lastPt = null, downTime = 0, moved = false;
       let grabTarget = [0, 0, 0];
       let detent = 0, lastDetent = 0;
+      const tracker = makeVelTracker();
 
       const onOrient = (e) => {
         if (e.beta == null || e.gamma == null) return;
@@ -3004,17 +3040,74 @@
         camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
         scene.add(camera);
 
-        // Світло прив'язане до камери — обидві сторони картки гарно освітлені
-        scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-        const key = new THREE.DirectionalLight(0xffffff, 2.2);
-        key.position.set(-2.5, 3, 6);
-        camera.add(key);
-        const rim = new THREE.DirectionalLight(0x9fd0ff, 0.9);
-        rim.position.set(4, -2, 3);
-        camera.add(rim);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Світло: верхнє (дає тінь на підлогу) + м'яке від камери, щоб обидві сторони гарно видно
+        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+        const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+        sun.position.set(-2, 7, 3);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(1024, 1024);
+        const sc = sun.shadow.camera;
+        sc.left = -5; sc.right = 5; sc.top = 5; sc.bottom = -5; sc.near = 1; sc.far = 20;
+        sun.shadow.radius = 6;
+        scene.add(sun);
+        const fill = new THREE.DirectionalLight(0xffffff, 1.3);
+        fill.position.set(-1.5, 2, 6);
+        camera.add(fill);
+        const rimL = new THREE.DirectionalLight(0x9fd0ff, 0.8);
+        rimL.position.set(4, -1, 2);
+        camera.add(rimL);
+
+        // Підлога: лише тінь + світний ореол арени
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(ARENA_R + 1.5, 64), new THREE.ShadowMaterial({ opacity: 0.45 }));
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = FLOOR;
+        floor.receiveShadow = true;
+        scene.add(floor);
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(ARENA_R - 0.04, ARENA_R + 0.04, 96),
+          new THREE.MeshBasicMaterial({ color: 0x7fd6ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+        );
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = FLOOR + 0.002;
+        scene.add(ring);
+        arenaRing = ring;
+
+        // Зірки навколо — для відчуття глибини
+        const starN = 260;
+        const starPos = new Float32Array(starN * 3);
+        for (let i = 0; i < starN; i++) {
+          const r = 9 + Math.random() * 14, a = Math.random() * Math.PI * 2, y = (Math.random() - 0.3) * 14;
+          starPos.set([Math.cos(a) * r, y, Math.sin(a) * r], i * 3);
+        }
+        const starGeo = new THREE.BufferGeometry();
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+          color: 0xcfe8ff, size: 0.07, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending
+        }));
+        scene.add(stars);
+
+        // Пул іскор (спалахують при ударі об підлогу і при кидку)
+        const SPARK_N = 160;
+        const sp = new Float32Array(SPARK_N * 3);
+        const sc2 = new Float32Array(SPARK_N * 3);
+        const sGeo = new THREE.BufferGeometry();
+        sGeo.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+        sGeo.setAttribute('color', new THREE.BufferAttribute(sc2, 3));
+        sparks = new THREE.Points(sGeo, new THREE.PointsMaterial({
+          size: 0.09, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+        }));
+        for (let i = 0; i < SPARK_N; i++) sparkData.push({ life: 0, x: 0, y: -99, z: 0, vx: 0, vy: 0, vz: 0, c: [1, 1, 1] });
+        scene.add(sparks);
 
         group = new THREE.Group();
         scene.add(group);
+        pos3 = new THREE.Vector3(0, HOVER, 0);
+        vel3 = new THREE.Vector3();
+        quat = new THREE.Quaternion();
+        angVel = new THREE.Vector3();
 
         const frontTex = makeFrontTexture();
         const alpha = makeAlphaMap();
@@ -3045,11 +3138,12 @@
         rimGeo.setIndex(idx);
         rimGeo.computeVertexNormals();
 
-        group.add(new THREE.Mesh(front, faceMat(frontTex)));
-        group.add(new THREE.Mesh(back, faceMat(makeBackTexture())));
-        group.add(new THREE.Mesh(rimGeo, new THREE.MeshStandardMaterial({
+        const mFront = new THREE.Mesh(front, faceMat(frontTex));
+        const mBack = new THREE.Mesh(back, faceMat(makeBackTexture()));
+        const mRim = new THREE.Mesh(rimGeo, new THREE.MeshStandardMaterial({
           color: 0x3b3e48, roughness: 0.5, metalness: 0.2, side: THREE.DoubleSide
-        })));
+        }));
+        [mFront, mBack, mRim].forEach((m) => { m.castShadow = true; group.add(m); });
         [front, back, rimGeo].forEach(register);
 
         // Невидима площина для визначення, куди саме торкнулись
@@ -3067,15 +3161,28 @@
         const w = window.innerWidth, h = window.innerHeight;
         renderer.setSize(w, h, false);
         camera.aspect = w / h;
-        // Відстань камери, щоб картка займала ~88% ширини (але не більше 460px)
-        const targetFrac = Math.min(0.88, 460 / w);
+        // Відстань камери, щоб картка займала ~80% ширини (але не більше 440px)
+        const targetFrac = Math.min(0.8, 440 / w);
         const tanH = Math.tan((camera.fov * Math.PI) / 360);
-        camera.position.set(0, 0, CW / targetFrac / (2 * tanH * camera.aspect));
+        camR = CW / targetFrac / (2 * tanH * camera.aspect);
         camera.updateProjectionMatrix();
+        placeCamera();
+      }
+
+      function placeCamera() {
+        const yaw = camYaw + gy, pitch = clamp(camPitch + gx, 0.02, 1.1);
+        const target = new THREE.Vector3(0, -0.15, 0);
+        camera.position.set(
+          target.x + Math.sin(yaw) * Math.cos(pitch) * camR,
+          target.y + Math.sin(pitch) * camR,
+          target.z + Math.cos(yaw) * Math.cos(pitch) * camR
+        );
+        camera.lookAt(target);
       }
 
       // Скільки світових одиниць в одному пікселі на глибині картки
-      const unitsPerPx = () => (2 * camera.position.z * Math.tan((camera.fov * Math.PI) / 360)) / window.innerHeight;
+      const unitsPerPx = () => (2 * camR * Math.tan((camera.fov * Math.PI) / 360)) / window.innerHeight;
+      let stars = null, arenaRing = null;
 
       // ---------- Фізика м'якого тіла ----------
       function physics(dt) {
@@ -3125,69 +3232,233 @@
         }
       }
 
+      // ---------- Іскри ----------
+      function burst(at, n, power) {
+        let made = 0;
+        for (const p of sparkData) {
+          if (p.life > 0) continue;
+          const a = Math.random() * Math.PI * 2, sp = (1.5 + Math.random() * 3.5) * power;
+          p.x = at.x; p.y = at.y; p.z = at.z;
+          p.vx = Math.cos(a) * sp; p.vz = Math.sin(a) * sp; p.vy = 1 + Math.random() * 4 * power;
+          p.life = 0.5 + Math.random() * 0.6;
+          const hue = Math.random();
+          p.c = hue < 0.33 ? [1, 0.85, 0.4] : hue < 0.66 ? [0.5, 0.85, 1] : [1, 0.5, 0.85];
+          if (++made >= n) break;
+        }
+      }
+
+      function updateSparks(dt) {
+        const pos = sparks.geometry.attributes.position.array;
+        const col = sparks.geometry.attributes.color.array;
+        sparkData.forEach((p, i) => {
+          if (p.life > 0) {
+            p.life -= dt;
+            p.vy -= 9 * dt;
+            p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+            if (p.y < FLOOR) { p.y = FLOOR; p.vy *= -0.4; }
+          }
+          const k = Math.max(0, Math.min(1, p.life * 2));
+          pos[i * 3] = p.x; pos[i * 3 + 1] = p.life > 0 ? p.y : -99; pos[i * 3 + 2] = p.z;
+          col[i * 3] = p.c[0] * k; col[i * 3 + 1] = p.c[1] * k; col[i * 3 + 2] = p.c[2] * k;
+        });
+        sparks.geometry.attributes.position.needsUpdate = true;
+        sparks.geometry.attributes.color.needsUpdate = true;
+      }
+
+      // Желейне тремтіння від удару: плавні хвилі по картці (а не шум)
+      function jiggle(power) {
+        const fx = 0.8 + Math.random() * 1.4, fy = 0.6 + Math.random();
+        const p1 = Math.random() * Math.PI * 2, p2 = Math.random() * Math.PI * 2;
+        for (let j = 0; j < GY; j++) {
+          for (let i = 0; i < GX; i++) {
+            const u = i / (GX - 1), v = j / (GY - 1);
+            const k = (j * GX + i) * 3;
+            const wave = Math.sin(u * Math.PI * fx * 2 + p1) * Math.cos(v * Math.PI * fy + p2);
+            V[k + 2] += wave * power;
+            V[k + 1] += Math.sin(u * Math.PI * 2 + p2) * power * 0.15;
+          }
+        }
+      }
+
+      // Найнижча точка картки (8 кутів коробки після повороту)
+      let _c = null;
+      function lowestPoint() {
+        if (!_c) _c = new THREE.Vector3();
+        let minY = Infinity, at = null;
+        for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+          _c.set(sx * CW / 2, sy * CH / 2, sz * TH / 2).applyQuaternion(quat);
+          if (_c.y < minY) { minY = _c.y; at = _c.clone(); }
+        }
+        return { minY, at };
+      }
+
+      // Цільова орієнтація у "висінні": стоїть рівно, лицем (або зворотом) до камери
+      const _tq = () => new THREE.Quaternion();
+      function hoverQuat() {
+        const n = new THREE.Vector3(0, 0, 1).applyQuaternion(quat);
+        const toCam = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw));
+        const faceBack = n.dot(toCam) < 0;
+        return _tq().setFromEuler(new THREE.Euler(0, camYaw + (faceBack ? Math.PI : 0), 0));
+      }
+
+      // ---------- Підкидання ----------
+      function toss(v, w) {
+        // Не вище за верхній край екрана
+        v.y = Math.min(v.y, 9.5);
+        state = 'air';
+        airTime = 0;
+        groundTime = 0;
+        vel3.copy(v);
+        angVel.copy(w);
+        W.fill(0);
+        jiggle(1.2);
+        burst(pos3, 18, 0.7);
+        if (window.EggFun) window.EggFun.stat('throws');
+        if (window.easterSound) window.easterSound.splash(Math.min(v.length() / 12, 1));
+        Haptics.pattern([25, 30, 15]);
+      }
+
+      // Підстрибнути із сальто (тап)
+      function hop() {
+        const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
+        const spin = right.multiplyScalar(Math.random() < 0.5 ? -9 : 9);
+        spin.y += (Math.random() * 2 - 1) * 3;
+        toss(new THREE.Vector3((Math.random() - 0.5) * 1.2, 8.5, (Math.random() - 0.5) * 1.2), spin);
+      }
+
       // ---------- Кадр ----------
+      let exitStart = 0;
       function frame(t) {
         const dt = Math.min((t - prevT) / 1000, 0.033);
         prevT = t;
 
-        if (mode !== 'rotate') {
+        // Камера: інерція облітання, легкий автоповорот, коли нічого не робиш
+        if (mode !== 'orbit') {
+          camYaw += camVYaw * dt;
+          camPitch = clamp(camPitch + camVPitch * dt, 0.02, 1.1);
+          camVYaw *= Math.pow(0.12, dt);
+          camVPitch *= Math.pow(0.12, dt);
+          idleT += dt;
           if (exiting) {
-            const target = Math.round(ry / (Math.PI * 2)) * Math.PI * 2;
-            vry += ((target - ry) * 60 - vry * 11) * dt;
-          } else {
-            vry *= Math.pow(0.15, dt);
-            if (Math.abs(vry) < 0.7) {
-              const target = Math.round(ry / Math.PI) * Math.PI;
-              vry += ((target - ry) * 28 - vry * 6) * dt;
-            }
+            const tgt = Math.round(camYaw / (Math.PI * 2)) * Math.PI * 2;
+            camYaw += (tgt - camYaw) * Math.min(1, dt * 6);
+            camPitch += (0.2 - camPitch) * Math.min(1, dt * 6);
+          } else if (idleT > 4 && state === 'hover') {
+            camYaw += dt * 0.25;
           }
-          ry += vry * dt;
-          vrx += (-rx * 40 - vrx * 8) * dt;
-          rx += vrx * dt;
         }
-
         const ti = exiting ? 0 : 1;
         gx += (tiltX * ti - gx) * Math.min(1, dt * 8);
         gy += (tiltY * ti - gy) * Math.min(1, dt * 8);
+        placeCamera();
+
+        // Тверде тіло картки
+        if (state === 'hover') {
+          const bob = Math.sin(t / 900) * 0.06;
+          pos3.x += (0 - pos3.x) * Math.min(1, dt * 6);
+          pos3.z += (0 - pos3.z) * Math.min(1, dt * 6);
+          pos3.y += (HOVER + bob - pos3.y) * Math.min(1, dt * 6);
+          quat.slerp(hoverQuat(), Math.min(1, dt * 5));
+        } else if (state === 'air') {
+          airTime += dt;
+          vel3.y -= GRAV * dt;
+          pos3.addScaledVector(vel3, dt);
+          // Обертання: q += 0.5 * w * q * dt
+          const wl = angVel.length();
+          if (wl > 1e-4) {
+            const dq = new THREE.Quaternion().setFromAxisAngle(angVel.clone().divideScalar(wl), wl * dt);
+            quat.premultiply(dq).normalize();
+          }
+          // Секрет "Вертоліт": 15 обертів за 4 секунди (треба жонглювати)
+          spinLog.push([t, wl * dt]);
+          while (spinLog.length && t - spinLog[0][0] > 4000) spinLog.shift();
+          if (spinLog.reduce((a, b) => a + b[1], 0) > Math.PI * 30 && window.EggFun) { window.EggFun.secret('heli'); spinLog = []; }
+
+          // Стінки арени
+          const rxz = Math.hypot(pos3.x, pos3.z);
+          if (rxz > ARENA_R - 0.6) {
+            const nx = pos3.x / rxz, nz = pos3.z / rxz;
+            pos3.x = nx * (ARENA_R - 0.6); pos3.z = nz * (ARENA_R - 0.6);
+            const vn = vel3.x * nx + vel3.z * nz;
+            if (vn > 0) { vel3.x -= 1.7 * vn * nx; vel3.z -= 1.7 * vn * nz; }
+          }
+
+          // Підлога
+          const { minY, at } = lowestPoint();
+          if (pos3.y + minY < FLOOR) {
+            pos3.y = FLOOR - minY;
+            if (vel3.y < 0) {
+              const impact = -vel3.y;
+              vel3.y = impact * 0.42;
+              vel3.x *= 0.7; vel3.z *= 0.7;
+              angVel.multiplyScalar(0.55);
+              // Удар не по центру — картка закручується
+              angVel.add(new THREE.Vector3(at.z, 0, -at.x).multiplyScalar(impact * 0.25));
+              if (impact > 1.2) {
+                const k = Math.min(impact / 12, 1);
+                jiggle(0.8 + k * 2.2);
+                burst(new THREE.Vector3(pos3.x + at.x, FLOOR + 0.02, pos3.z + at.z), Math.round(8 + k * 24), 0.5 + k);
+                if (window.easterSound) window.easterSound.thud(k);
+                Haptics.tick(Math.round(10 + k * 35));
+                if (window.EggFun) window.EggFun.stat('bounces');
+              }
+            }
+            // На підлозі — тертя і поступове "лягання"
+            vel3.x *= Math.pow(0.05, dt); vel3.z *= Math.pow(0.05, dt);
+            angVel.multiplyScalar(Math.pow(0.02, dt));
+            const n = new THREE.Vector3(0, 0, 1).applyQuaternion(quat);
+            const up = new THREE.Vector3(0, n.y >= 0 ? 1 : -1, 0);
+            angVel.add(new THREE.Vector3().crossVectors(n, up).multiplyScalar(14 * dt));
+            groundTime += dt;
+          } else {
+            groundTime = Math.max(0, groundTime - dt * 0.3);
+          }
+
+          // Полежала — підіймається назад
+          if ((groundTime > 0.8 && vel3.length() < 2) || airTime > 4.5) {
+            state = 'rise';
+            riseT = 0;
+            riseFrom = { p: pos3.clone(), q: quat.clone() };
+            if (window.easterSound) window.easterSound.flip();
+            Haptics.pattern([8, 50, 8]);
+          }
+        } else if (state === 'rise') {
+          riseT = Math.min(1, riseT + dt / 0.9);
+          const e = 1 - Math.pow(1 - riseT, 3);
+          const target = new THREE.Vector3(0, HOVER, 0);
+          pos3.lerpVectors(riseFrom.p, target, e);
+          pos3.y += Math.sin(riseT * Math.PI) * 0.6;
+          quat.slerpQuaternions(riseFrom.q, hoverQuat(), e);
+          if (riseT >= 1) { state = 'hover'; jiggle(1.2); }
+        }
+
+        group.position.copy(pos3);
+        group.quaternion.copy(quat);
+
+        // Перевороти відносно камери (для досягнення)
+        const nrm = new THREE.Vector3(0, 0, 1).applyQuaternion(quat);
+        const camDir = camera.position.clone().sub(pos3).normalize();
+        const sign = nrm.dot(camDir) >= 0 ? 1 : -1;
+        if (sign !== lastFaceSign) {
+          lastFaceSign = sign;
+          if (window.EggFun) window.EggFun.stat('flips');
+        }
+
+        if (arenaRing) arenaRing.material.opacity = 0.35 + Math.sin(t / 600) * 0.15;
+        if (stars) stars.rotation.y = t / 40000;
 
         physics(dt);
         deformGeometry();
-
-        group.rotation.x = rx + gx;
-        group.rotation.y = ry + gy;
-        group.position.y = exiting ? 0 : Math.sin(t / 900) * 0.05;
+        updateSparks(dt);
         renderer.render(scene, camera);
 
-        // Секрет "Вертоліт": 6 повних обертів за 4 секунди
-        spinLog.push([t, ry]);
-        while (spinLog.length && t - spinLog[0][0] > 4000) spinLog.shift();
-        if (spinLog.length > 1 && Math.abs(ry - spinLog[0][1]) > Math.PI * 12 && window.EggFun) {
-          window.EggFun.secret('heli');
-          spinLog = [];
-        }
-
-        // Переворот — тік і "свуш"
-        const face = Math.round(ry / Math.PI);
-        if (face !== lastFace) {
-          lastFace = face;
-          if (window.EggFun) window.EggFun.stat('flips');
-          Haptics.tick(14);
-          if (window.easterSound && window.easterSound.flip) window.easterSound.flip();
-        }
-
-        if (exiting) {
-          let energy = 0;
-          for (let k = 0; k < P.length; k++) energy += Math.abs(P[k]);
-          const target = Math.round(ry / (Math.PI * 2)) * Math.PI * 2;
-          if ((Math.abs(ry - target) < 0.01 && Math.abs(rx) < 0.01 && energy < 0.5) || t - exitStart > 1400) {
-            finishExit();
-            return;
-          }
+        if (exiting && (t - exitStart > 900 || (state === 'hover' && t - exitStart > 500))) {
+          finishExit();
+          return;
         }
         rafId = requestAnimationFrame(frame);
       }
 
-      let exitStart = 0;
       function finishExit() {
         exiting = false;
         on = false;
@@ -3231,9 +3502,15 @@
         on = true;
         exiting = false;
         P.fill(0); V.fill(0);
-        rx = 0; vrx = 0; ry = 0; lastFace = 0;
-        vry = reduceMotion ? 0 : Math.PI * 4;   // ефектне розкручування на вході
+        camYaw = 0; camPitch = 0.2; camVYaw = camVPitch = 0; idleT = 0;
         baseBeta = null;
+        // Ефектний вхід: картка падає згори з обертом
+        pos3.set(0, 4.5, 0);
+        quat.identity();
+        state = 'air';
+        airTime = 0; groundTime = 0;
+        vel3.set(0, -2, 0);
+        angVel.set(reduceMotion ? 0 : 6, reduceMotion ? 0 : 3, 0);
         overlay.classList.add('is-3d');
         btn.setAttribute('aria-pressed', 'true');
         label.textContent = '2D';
@@ -3249,6 +3526,7 @@
         exiting = true;
         exitStart = performance.now();
         mode = null;
+        if (state === 'air') { state = 'rise'; riseT = 0; riseFrom = { p: pos3.clone(), q: quat.clone() }; }
         window.removeEventListener('deviceorientation', onOrient);
         tiltX = tiltY = 0;
         btn.setAttribute('aria-pressed', 'false');
@@ -3262,13 +3540,18 @@
         if (on && !exiting) disable(); else if (!on) enable();
       });
 
-      // Струс телефона в 3D — картка тремтить і крутиться
+      // Струс телефона в 3D — картку підкидає
       window.__egg3dShake = (power) => {
         if (!on || exiting || !ready) return false;
-        for (let k = 0; k < V.length; k++) V[k] += (Math.random() * 2 - 1) * 2.2 * power;
-        vry += (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 5) * power;
-        vrx += (Math.random() * 2 - 1) * 3 * power;
-        startLoop();
+        const a = Math.random() * Math.PI * 2;
+        if (state === 'air') {
+          vel3.add(new THREE.Vector3(Math.cos(a) * 3, 5, Math.sin(a) * 3).multiplyScalar(power));
+          angVel.add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(14 * power));
+        } else {
+          toss(new THREE.Vector3(Math.cos(a) * 2 * power, 7 + 4 * power, Math.sin(a) * 2 * power),
+               new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(18 * power));
+        }
+        jiggle(1.5 * power);
         return true;
       };
 
@@ -3283,7 +3566,7 @@
       });
 
       // ---------- Дотики ----------
-      function hitUV(clientX, clientY) {
+      function hitPoint(clientX, clientY) {
         const ndc = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
         raycaster.setFromCamera(ndc, camera);
         const hit = raycaster.intersectObject(hitMesh, false)[0];
@@ -3299,10 +3582,20 @@
         startPt = lastPt = { x: e.clientX, y: e.clientY, t: performance.now() };
         downTime = performance.now();
         moved = false;
-        const hit = hitUV(e.clientX, e.clientY);
+        idleT = 0;
+        tracker.reset();
+        tracker.push(e.clientX, e.clientY);
+        const hit = hitPoint(e.clientX, e.clientY);
+        if (hit && state !== 'hover') {
+          // Картка в повітрі/на підлозі — тап підкидає її знову (жонглювання)
+          mode = null;
+          const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
+          toss(new THREE.Vector3(vel3.x * 0.3, 8, vel3.z * 0.3), angVel.clone().multiplyScalar(0.3).add(right.multiplyScalar(8)));
+          if (window.easterQuote) window.easterQuote();
+          return;
+        }
         if (hit) {
           mode = 'deform';
-          // Вага кожного вузла — гаусіана навколо місця дотику
           const sigma = 0.36;
           for (let j = 0; j < GY; j++) {
             for (let i = 0; i < GX; i++) {
@@ -3317,8 +3610,8 @@
           Haptics.tick(10);
           if (window.easterSound) window.easterSound.grab();
         } else {
-          mode = 'rotate';
-          vrx = vry = 0;
+          mode = 'orbit';
+          camVYaw = camVPitch = 0;
         }
       });
 
@@ -3327,28 +3620,31 @@
         const now = performance.now();
         const dx = e.clientX - lastPt.x, dy = e.clientY - lastPt.y;
         if (Math.hypot(e.clientX - startPt.x, e.clientY - startPt.y) > 6) moved = true;
+        tracker.push(e.clientX, e.clientY);
 
-        if (mode === 'rotate') {
+        if (mode === 'orbit') {
           const dt = Math.max((now - lastPt.t) / 1000, 0.001);
-          ry += dx * 0.009;
-          rx = clamp(rx + dy * 0.009, -1.2, 1.2);
-          vry = vry * 0.6 + ((dx * 0.009) / dt) * 0.4;
-          vrx = vrx * 0.6 + ((dy * 0.009) / dt) * 0.4;
+          camYaw -= dx * 0.008;
+          camPitch = clamp(camPitch + dy * 0.006, 0.02, 1.1);
+          camVYaw = camVYaw * 0.6 + ((-dx * 0.008) / dt) * 0.4;
+          camVPitch = camVPitch * 0.6 + ((dy * 0.006) / dt) * 0.4;
         } else {
           // Розтяг за пальцем + "витягування" до глядача
           const upp = unitsPerPx();
-          let wx = (e.clientX - startPt.x) * upp;
-          let wy = -(e.clientY - startPt.y) * upp;
-          const len = Math.hypot(wx, wy);
+          const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+          const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+          const back = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 2);
+          let px = (e.clientX - startPt.x) * upp;
+          let py = -(e.clientY - startPt.y) * upp;
+          const len = Math.hypot(px, py);
           const L = 1.5;
           const soft = len > 0 ? (L * (1 - Math.exp(-len / L))) / len : 0;
-          wx *= soft; wy *= soft;
+          px *= soft; py *= soft;
           const pull = Math.min(len, 2) * 0.85;
-          const v = new THREE.Vector3(wx, wy, pull);
-          v.applyQuaternion(group.quaternion.clone().invert());
+          const v = right.multiplyScalar(px).add(up.multiplyScalar(py)).add(back.multiplyScalar(pull));
+          v.applyQuaternion(quat.clone().invert());
           grabTarget = [v.x, v.y, v.z];
 
-          // Тіки при натягуванні
           const level = Math.floor(len / upp / 40);
           if (level > detent && now - lastDetent > 45) { Haptics.tick(4 + level * 2); lastDetent = now; }
           detent = level;
@@ -3356,30 +3652,52 @@
         lastPt = { x: e.clientX, y: e.clientY, t: now };
       });
 
-      const end = (e) => {
-        if (!mode) return;
+      const end = () => {
+        if (!mode && !startPt) return;
         const wasMode = mode;
         mode = null;
+        const quick = !moved && performance.now() - downTime < 300;
         if (wasMode === 'deform') {
-          const len = Math.hypot(grabTarget[0], grabTarget[1], grabTarget[2]);
           W.fill(0);
-          if (len > 0.15) {
-            if (window.EggFun) { window.EggFun.stat('stretches'); window.EggFun.counterHit(); }
-            const k = Math.min(len / 1.2, 1.2);
-            Haptics.pattern([
-              Math.round(22 + 30 * k), 55, Math.round(14 + 18 * k), 70,
-              Math.round(8 + 10 * k), 85, Math.round(5 + 4 * k)
-            ]);
-            if (window.easterSound) window.easterSound.splash(k);
+          const fling = tracker.get();
+          const sp = Math.hypot(fling.x, fling.y);
+          if (quick) {
+            // Тап по картці — сальто
+            hop();
+          } else if (sp > 700) {
+            // Змах — картка летить по інерції
+            const upp = unitsPerPx();
+            const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).setY(0).normalize();
+            const fwd = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw));
+            const k = clamp(sp * upp, 0, 18) / Math.max(sp * upp, 1e-6);
+            const vx = fling.x * upp * k, vy = -fling.y * upp * k;
+            const v = right.clone().multiplyScalar(vx * 0.8)
+              .add(fwd.clone().multiplyScalar(Math.max(0, vy) * 0.35))
+              .add(new THREE.Vector3(0, Math.max(4, vy * 0.9 + 3), 0));
+            const w = right.clone().multiplyScalar(-vy * 1.2).add(new THREE.Vector3(0, vx * 1.5, 0))
+              .add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(4));
+            toss(v, w);
+            if (window.EggFun) window.EggFun.counterHit();
+          } else {
+            const len = Math.hypot(grabTarget[0], grabTarget[1], grabTarget[2]);
+            if (len > 0.15) {
+              if (window.EggFun) { window.EggFun.stat('stretches'); window.EggFun.counterHit(); }
+              const k = Math.min(len / 1.2, 1.2);
+              Haptics.pattern([
+                Math.round(22 + 30 * k), 55, Math.round(14 + 18 * k), 70,
+                Math.round(8 + 10 * k), 85, Math.round(5 + 4 * k)
+              ]);
+              if (window.easterSound) window.easterSound.splash(k);
+            }
           }
-        } else {
+        } else if (wasMode === 'orbit') {
           // Короткий тап по фону без руху — назад у 2D
-          if (!moved && performance.now() - downTime < 300) { disable(); return; }
-          if (lastPt && performance.now() - lastPt.t > 80) { vrx = vry = 0; }
-          vry = clamp(vry, -25, 25);
-          vrx = clamp(vrx, -8, 8);
-          if (Math.abs(vry) > 6) Haptics.pattern([12, 30, 8]);
+          if (quick) { disable(); return; }
+          if (lastPt && performance.now() - lastPt.t > 80) { camVYaw = camVPitch = 0; }
+          camVYaw = clamp(camVYaw, -8, 8);
+          camVPitch = clamp(camVPitch, -3, 3);
         }
+        startPt = null;
       };
       canvas.addEventListener('pointerup', end);
       canvas.addEventListener('pointercancel', end);
@@ -3740,7 +4058,7 @@
         { id: 's_hold',   secret: true, emoji: '😖', title: 'Ай блеее',            desc: 'Тримав розтягнутою до упору 2.5 секунди', ok: hasSecret('hold') },
         { id: 's_dvd',    secret: true, emoji: '📀', title: 'DVD-логотип',         desc: 'Влучив карткою точно в кут екрана',      ok: hasSecret('dvd') },
         { id: 's_night',  secret: true, emoji: '🌙', title: 'Нічний валік',        desc: 'Відкрив пасхалку між 00:00 і 05:00',     ok: hasSecret('night') },
-        { id: 's_heli',   secret: true, emoji: '🚁', title: 'Вертоліт',            desc: 'Розкрутив 3D-картку на 6 обертів за 4 с', ok: hasSecret('heli') },
+        { id: 's_heli',   secret: true, emoji: '🚁', title: 'Вертоліт',            desc: 'Розкрутив 3D-картку на 15 обертів за 4 с', ok: hasSecret('heli') },
         { id: 's_avatar', secret: true, emoji: '👾', title: 'Хакер аватарки',      desc: '7 разів тапнув по аватарці',             ok: hasSecret('avatar') },
         { id: 's_footer', secret: true, emoji: '🧐', title: 'Читаю дрібний шрифт', desc: '5 разів тапнув по підпису внизу сайту',  ok: hasSecret('footer') },
         { id: 's_disco',  secret: true, emoji: '🪩', title: 'Дискотека',           desc: '8 разів швидко перемкнув тему',          ok: hasSecret('disco') }
@@ -3827,12 +4145,20 @@
         });
       }
 
-      // ---------- Лічильник для всіх відвідувачів (сервіс Abacus) ----------
-      const COUNTER_URL = 'https://abacus.jasoncameron.dev';
-      const NS = 'haiduk-top', KEY = 'stretches';
+      // ---------- Лічильник для всіх відвідувачів (Supabase) ----------
+      // Налаштування — в SUPABASE_CONFIG на початку скрипта. Таблиця й функція — supabase/counter.sql
+      const SB = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey) ? SUPABASE_CONFIG : null;
+      const KEY = 'stretches';
       const counterEl = document.getElementById('eggCounter');
       let globalCount = null;
-      let pending = 0, sentThisSession = 0, flushing = false;
+      let pending = 0, sentThisSession = 0, flushing = false, flushTimer = null;
+      const SESSION_CAP = 300;   // не більше стільки розтягувань за одне відвідування
+
+      const sbHeaders = () => ({
+        apikey: SB.anonKey,
+        Authorization: `Bearer ${SB.anonKey}`,
+        'Content-Type': 'application/json'
+      });
 
       function renderCounter(bump) {
         if (!counterEl || globalCount === null) return;
@@ -3844,45 +4170,60 @@
       }
 
       async function loadCounter() {
+        if (!SB) { if (counterEl) counterEl.hidden = true; return; }
         try {
-          const r = await fetch(`${COUNTER_URL}/get/${NS}/${KEY}`, { cache: 'no-store' });
-          if (r.status === 404) { globalCount = 0; renderCounter(); return; }
+          const r = await fetch(`${SB.url}/rest/v1/counters?key=eq.${KEY}&select=value`, { headers: sbHeaders(), cache: 'no-store' });
           if (!r.ok) throw new Error('bad');
-          const j = await r.json();
-          globalCount = Number(j.value) || 0;
+          const rows = await r.json();
+          globalCount = rows.length ? Number(rows[0].value) || 0 : 0;
           renderCounter();
         } catch (e) {
           if (counterEl) counterEl.hidden = true;
         }
       }
 
-      // Не частіше ніж раз на 1.2 с, і не більше 40 за сесію — щоб не спамити сервіс
+      // Збираємо розтягування пачками і відправляємо раз на 2 секунди
       async function flush() {
-        if (flushing || pending <= 0 || sentThisSession >= 40) return;
+        flushTimer = null;
+        if (!SB || flushing || pending <= 0) return;
         flushing = true;
+        const amount = Math.min(pending, 20);
         try {
-          const r = await fetch(`${COUNTER_URL}/hit/${NS}/${KEY}`, { cache: 'no-store' });
-          if (r.ok) {
-            const j = await r.json();
-            pending = Math.max(0, pending - 1);
-            sentThisSession++;
-            globalCount = Number(j.value) || globalCount;
-            renderCounter();
-          } else {
-            pending = 0;
-          }
+          const r = await fetch(`${SB.url}/rest/v1/rpc/increment_counter`, {
+            method: 'POST',
+            headers: sbHeaders(),
+            body: JSON.stringify({ counter_key: KEY, amount })
+          });
+          if (!r.ok) throw new Error('bad');
+          const value = Number(await r.json());
+          pending = Math.max(0, pending - amount);
+          if (Number.isFinite(value)) globalCount = value;
+          renderCounter();
         } catch (e) {
-          pending = 0;
+          // не вдалося — спробуємо з наступною пачкою
         }
-        setTimeout(() => { flushing = false; flush(); }, 1200);
+        flushing = false;
+        if (pending > 0) flushTimer = setTimeout(flush, 2000);
       }
 
       function counterHit() {
-        if (globalCount === null) return;
-        if (sentThisSession + pending < 40) pending++;
+        if (globalCount === null || sentThisSession >= SESSION_CAP) return;
+        sentThisSession++;
+        pending++;
         renderCounter(true);
-        flush();
+        if (!flushTimer) flushTimer = setTimeout(flush, 2000);
       }
+
+      // Не губимо останню пачку при закритті сторінки
+      window.addEventListener('pagehide', () => {
+        if (!SB || pending <= 0) return;
+        try {
+          fetch(`${SB.url}/rest/v1/rpc/increment_counter`, {
+            method: 'POST', headers: sbHeaders(), keepalive: true,
+            body: JSON.stringify({ counter_key: KEY, amount: Math.min(pending, 20) })
+          });
+        } catch (e) {}
+      });
 
       // ---------- Режим "Політ": картка вільно стрибає по екрану ----------
       // Без цього режиму картку можна лише розтягувати.
@@ -3896,7 +4237,7 @@
       // У польоті картка трохи менша — вміщується під будь-яким кутом і має де стрибати
       const FLY_SCALE = 0.72;
       let grav = { x: 0, y: 2600 };        // гравітація (від нахилу телефона)
-      let lastHitX = -1e9, lastHitY = -1e9;
+      let lastHitX = -1e9, lastHitY = -1e9, lastHitXSpeed = 0, lastHitYSpeed = 0;
       let carry = null;
       const carryTracker = makeVelTracker();
       const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -3933,10 +4274,15 @@
         stat('bounces');
         sound('thud', k);
         Haptics.tick(Math.round(8 + k * 30));
-        if (axis === 'x') { T.sx = 1 - 0.3 * k; T.sy = 1 + 0.2 * k; lastHitX = performance.now(); }
-        else { T.sy = 1 - 0.3 * k; T.sx = 1 + 0.2 * k; lastHitY = performance.now(); }
-        // Секрет "DVD": влучив точно в кут
-        if (Math.abs(lastHitX - lastHitY) < 90 && speed > 300) { secret('dvd'); lastHitX = lastHitY = -1e9; }
+        const now = performance.now();
+        if (axis === 'x') { T.sx = 1 - 0.3 * k; T.sy = 1 + 0.2 * k; lastHitX = now; lastHitXSpeed = speed; }
+        else { T.sy = 1 - 0.3 * k; T.sx = 1 + 0.2 * k; lastHitY = now; lastHitYSpeed = speed; }
+        // Секрет "DVD": справжнє влучання в кут — обидві стінки майже одночасно і на швидкості,
+        // а не коли картка просто лежить у кутку
+        if (Math.abs(lastHitX - lastHitY) < 50 && lastHitXSpeed > 700 && lastHitYSpeed > 700) {
+          secret('dvd');
+          lastHitX = lastHitY = -1e9;
+        }
       }
 
       function physStep(t) {
@@ -4276,14 +4622,15 @@
       };
 
       function secret(id) {
-        const key = 'secret_' + id;
         if (!stats.secrets) stats.secrets = [];
         const first = !stats.secrets.includes(id);
-        if (first) { stats.secrets.push(id); save(); }
+        if (!first) return false;   // повторно нічого не показуємо — секрет уже знайдено
+        stats.secrets.push(id);
+        save();
         if (SECRET_QUOTES[id] && window.easterQuoteForce && overlay.classList.contains('is-open')) window.easterQuoteForce(SECRET_QUOTES[id]);
         Haptics.pattern([20, 40, 20, 40, 20, 40, 60]);
         checkAch();
-        return first || key;
+        return true;
       }
 
       // Секрет: 7 тапів по аватарці — глітч
