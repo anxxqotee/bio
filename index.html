@@ -407,29 +407,36 @@
       display: block;
       transform: none !important;
       will-change: opacity;
-      transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      /* Неактивна: лежить знизу і зникає вже ПІСЛЯ того, як нова повністю її перекрила */
+      opacity: 0;
+      z-index: 1;
+      transition: opacity 0s linear 0.5s;
     }
 
-    .avatar-light { opacity: 1; z-index: 2; }
-    .avatar-dark { opacity: 0; z-index: 1; }
-    .avatar-aqua { opacity: 0; z-index: 1; }
+    /* Активна: одразу піднімається нагору і плавно проявляється поверх старої —
+       без "провалу" крізь фон посередині переходу */
+    .avatar-light,
+    :root[data-theme="light"] .avatar-light,
+    :root[data-theme="dark"] .avatar-dark,
+    :root[data-theme="aqua"] .avatar-aqua {
+      opacity: 1;
+      z-index: 3;
+      transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    }
 
     @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]):not([data-theme="aqua"]) .avatar-light { opacity: 0; z-index: 1; }
-      :root:not([data-theme="light"]):not([data-theme="aqua"]) .avatar-dark { opacity: 1; z-index: 2; }
+      :root:not([data-theme]) .avatar-light { opacity: 0; z-index: 1; }
+      :root:not([data-theme]) .avatar-dark { opacity: 1; z-index: 3; }
     }
 
-    [data-theme="dark"] .avatar-light { opacity: 0 !important; z-index: 1 !important; }
-    [data-theme="dark"] .avatar-dark { opacity: 1 !important; z-index: 2 !important; }
-    [data-theme="dark"] .avatar-aqua { opacity: 0 !important; z-index: 1 !important; }
+    :root[data-theme="dark"] .avatar-light,
+    :root[data-theme="aqua"] .avatar-light { opacity: 0; z-index: 1; transition: opacity 0s linear 0.5s; }
 
-    [data-theme="aqua"] .avatar-light { opacity: 0 !important; z-index: 1 !important; }
-    [data-theme="aqua"] .avatar-dark { opacity: 0 !important; z-index: 1 !important; }
-    [data-theme="aqua"] .avatar-aqua { opacity: 1 !important; z-index: 3 !important; }
-
-    [data-theme="light"] .avatar-light { opacity: 1 !important; z-index: 2 !important; }
-    [data-theme="light"] .avatar-dark { opacity: 0 !important; z-index: 1 !important; }
-    [data-theme="light"] .avatar-aqua { opacity: 0 !important; z-index: 1 !important; }
+    /* Aqua-лого прозоре й не перекриває попереднє — тому старе тане разом з появою нового */
+    :root[data-theme="aqua"] .avatar-light,
+    :root[data-theme="aqua"] .avatar-dark {
+      transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    }
 
     .avatar-placeholder-svg {
       width: 54px;
@@ -2615,6 +2622,12 @@
     }
 
     syncTheme();
+
+    // Декодуємо всі три аватарки заздалегідь — щоб при першій зміні теми не було "блимання"
+    document.querySelectorAll('.avatar-img').forEach((img) => {
+      img.decoding = 'sync';
+      if (img.decode) img.decode().catch(() => {});
+    });
 
     // 4. Анімація за скролом (мобільні): картка стає випуклою лише під час гортання.
     //    Угорі сторінки активна перша картка, далі — по черзі до останньої.
