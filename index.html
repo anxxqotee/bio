@@ -247,7 +247,8 @@
     }
 
     @media (hover: hover) and (pointer: fine) {
-      body, a, button, [role="button"], input {
+      /* Системний курсор (зокрема "рука" Windows) не показуємо ніде — є свій */
+      *, *::before, *::after {
         cursor: none !important;
       }
     }
@@ -1349,7 +1350,6 @@
 
     .easter-img {
       touch-action: none;
-      cursor: grab;
       will-change: transform;
       -webkit-user-drag: none;
       user-select: none;
@@ -2808,7 +2808,6 @@
         img.style.transformOrigin = `${50 - grab.x * 50}% ${50 - grab.y * 50}%`;
         start = { x: e.clientX - pos.x, y: e.clientY - pos.y };
         vel = { x: 0, y: 0 };
-        img.style.cursor = 'grabbing';
         try { img.setPointerCapture(e.pointerId); } catch (err) {}
         if (window.easterQuote) window.easterQuote();
         detent = 0;
@@ -2853,7 +2852,6 @@
       const release = (e) => {
         if (!dragging) return;
         dragging = false;
-        img.style.cursor = '';
         const pull = Math.hypot(pos.x, pos.y);
 
         holdStart = 0;
@@ -4958,25 +4956,41 @@
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
 
-      let mouse = { x: -200, y: -200, active: false, clicking: false, hovering: false };
+      let mouse = { x: -200, y: -200, active: false, clicking: false, hovering: false, grabbable: false, grabbing: false };
+      let vel = { x: 0, y: 0 };
+      let prevMouse = { x: -200, y: -200 };
+      let spin = 0;
+      // Те, що можна схопити й тягати: картинка пасхалки, 3D-сцена, кільце "потягни"
+      const GRAB_SELECTOR = '.easter-img, .easter-fly, .egg3d-canvas';
       let cursorDot = { x: -200, y: -200 };
       let cursorRing = { x: -200, y: -200, size: 24 };
 
-      window.addEventListener('mousemove', (e) => {
+      // Pointer-події: вони приходять навіть коли елемент блокує звичайні події миші (перетягування)
+      window.addEventListener('pointermove', (e) => {
+        if (e.pointerType !== 'mouse') return;
         mouse.x = e.clientX;
         mouse.y = e.clientY;
         mouse.active = true;
 
         const target = e.target.closest('a, button, [role="button"], .username-badge, .nested-btn, .link-main-row, .insta-preview-card');
-        mouse.hovering = !!target;
+        mouse.grabbable = !!e.target.closest(GRAB_SELECTOR);
+        mouse.hovering = !!target && !mouse.grabbable;
       });
 
-      window.addEventListener('mousedown', () => { mouse.clicking = true; });
-      window.addEventListener('mouseup', () => { mouse.clicking = false; });
+      window.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'mouse') return;
+        mouse.clicking = true;
+        mouse.grabbing = mouse.grabbable;
+      }, true);
+      window.addEventListener('pointerup', (e) => {
+        if (e.pointerType !== 'mouse') return;
+        mouse.clicking = false;
+        mouse.grabbing = false;
+      }, true);
       document.addEventListener('mouseout', (e) => {
         if (!e.relatedTarget) mouse.active = false; // курсор пішов за межі вікна
       });
-      window.addEventListener('blur', () => { mouse.active = false; mouse.clicking = false; });
+      window.addEventListener('blur', () => { mouse.active = false; mouse.clicking = false; mouse.grabbing = false; });
 
       function renderFrame() {
         ctx.clearRect(0, 0, cssWidth, cssHeight);
@@ -4988,8 +5002,15 @@
           cursorRing.x += (mouse.x - cursorRing.x) * 0.28;
           cursorRing.y += (mouse.y - cursorRing.y) * 0.28;
 
-          let targetSize = mouse.clicking ? 18 : (mouse.hovering ? 38 : 24);
+          let targetSize = mouse.grabbing ? 20 : mouse.clicking ? 18 : mouse.grabbable ? 46 : (mouse.hovering ? 38 : 24);
           cursorRing.size += (targetSize - cursorRing.size) * 0.25;
+
+          // Швидкість курсора — для желейного розтягування кільця під час перетягування
+          vel.x += ((mouse.x - prevMouse.x) - vel.x) * 0.3;
+          vel.y += ((mouse.y - prevMouse.y) - vel.y) * 0.3;
+          prevMouse.x = mouse.x;
+          prevMouse.y = mouse.y;
+          spin += mouse.grabbable && !mouse.grabbing ? 0.03 : 0;
 
           const currentTheme = htmlEl.getAttribute('data-theme') || getSystemTheme();
 
@@ -5007,16 +5028,50 @@
             dotColor = '#23252a';
           }
 
-          ctx.beginPath();
-          ctx.arc(cursorRing.x, cursorRing.y, cursorRing.size / 2, 0, Math.PI * 2);
+          const grabMode = mouse.grabbable || mouse.grabbing;
+          if (grabMode) {
+            // Над фото: біле кільце з тінню — видно на будь-якому фоні
+            ringColor = '#ffffff';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+            ctx.shadowBlur = 6;
+          }
+
           ctx.strokeStyle = ringColor;
-          ctx.lineWidth = mouse.hovering ? 1.5 : 1.1;
-          ctx.stroke();
+          if (mouse.grabbing) {
+            // Тягнеш — кільце стиснуте і розтягнуте вздовж руху, як желе
+            const sp = Math.min(Math.hypot(vel.x, vel.y), 40);
+            const stretch = 1 + sp / 22;
+            const angle = Math.atan2(vel.y, vel.x);
+            ctx.save();
+            ctx.translate(cursorRing.x, cursorRing.y);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, (cursorRing.size / 2) * stretch, (cursorRing.size / 2) / Math.sqrt(stretch), 0, 0, Math.PI * 2);
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+          } else if (mouse.grabbable) {
+            // Можна хапати — кільце з 4 дуг, що повільно обертаються
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            for (let i = 0; i < 4; i++) {
+              const a0 = spin + i * Math.PI / 2 + 0.25;
+              ctx.beginPath();
+              ctx.arc(cursorRing.x, cursorRing.y, cursorRing.size / 2, a0, a0 + Math.PI / 2 - 0.5);
+              ctx.stroke();
+            }
+          } else {
+            ctx.beginPath();
+            ctx.arc(cursorRing.x, cursorRing.y, cursorRing.size / 2, 0, Math.PI * 2);
+            ctx.lineWidth = mouse.hovering ? 1.5 : 1.1;
+            ctx.stroke();
+          }
 
           ctx.beginPath();
-          ctx.arc(cursorDot.x, cursorDot.y, mouse.hovering ? 3.5 : 3, 0, Math.PI * 2);
-          ctx.fillStyle = dotColor;
+          ctx.arc(cursorDot.x, cursorDot.y, mouse.grabbing ? 4.5 : (mouse.hovering || mouse.grabbable ? 3.5 : 3), 0, Math.PI * 2);
+          ctx.fillStyle = grabMode ? '#ffffff' : dotColor;
           ctx.fill();
+          ctx.shadowBlur = 0;
         }
 
         requestAnimationFrame(renderFrame);
