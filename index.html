@@ -1878,6 +1878,30 @@
       visibility: hidden;
     }
 
+    .site-wrecked #mainContainer .wreck-body {
+      pointer-events: auto !important;
+      touch-action: none;
+      z-index: 1;
+    }
+
+    .site-wrecked #mainContainer .wreck-body.is-grabbed {
+      z-index: 5;
+    }
+
+    .wreck-flash {
+      position: fixed;
+      inset: 0;
+      z-index: 9400;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 50%, #fff 0%, #ffe9a8 30%, rgba(255, 140, 40, 0.6) 60%, rgba(255, 80, 0, 0) 100%);
+      animation: wreckFlash 0.6s ease-out forwards;
+    }
+
+    @keyframes wreckFlash {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
     .wreck-crack {
       position: absolute;
       inset: 0;
@@ -2863,6 +2887,7 @@
         overlay.classList.add('is-open');
         overlay.setAttribute('aria-hidden', 'false');
         if (window.EggFun) { window.EggFun.stat('opens'); window.EggFun.onOpen(); }
+        if (window.__loadMatter) window.__loadMatter().catch(() => {});
       }
 
       function closeEgg() {
@@ -4251,6 +4276,23 @@
           `<g stroke="rgba(0,0,0,0.55)" stroke-width="2.4">${paths}</g><g stroke="rgba(255,255,255,0.85)" stroke-width="1" transform="translate(-0.8 -0.8)">${paths}</g></svg>`;
       }
 
+      // Фізичний рушій (matter.js) вантажиться лише коли відкрили пасхалку
+      let matterPromise = null;
+      function loadMatter() {
+        if (window.Matter) return Promise.resolve(window.Matter);
+        if (!matterPromise) {
+          matterPromise = new Promise((res, rej) => {
+            const sc = document.createElement('script');
+            sc.src = 'js/vendor/matter.min.js';
+            sc.onload = () => res(window.Matter);
+            sc.onerror = rej;
+            document.head.appendChild(sc);
+          });
+        }
+        return matterPromise;
+      }
+      window.__loadMatter = loadMatter;
+
       function wreckSite() {
         if (window.__siteWrecked) return;
         window.__siteWrecked = true;
@@ -4259,134 +4301,202 @@
         const ringEl = document.getElementById('pullRing');
         if (ringEl) ringEl.style.display = 'none';
 
+        // Спалах на весь екран
+        const fl = document.createElement('div');
+        fl.className = 'wreck-flash';
+        document.body.appendChild(fl);
+        setTimeout(() => fl.remove(), 700);
+
+        // Кліки по уламках нічого не відкривають (крім кнопки перезапуску)
+        document.addEventListener('click', (e) => {
+          if (e.target.closest && e.target.closest('.wreck-restart')) return;
+          e.preventDefault();
+          e.stopPropagation();
+        }, true);
+
         const sel = ['.theme-toggle', '.avatar-wrapper', '.profile-title', '.username-badge', '.profile-desc', '.link-item-wrapper', '.footer'];
         const els = [];
         sel.forEach((q) => document.querySelectorAll('#mainContainer ' + q).forEach((el) => els.push(el)));
-        const W = window.innerWidth, H = window.innerHeight;
-        const cx = W / 2, cy = H * 0.45;
+        let W = window.innerWidth, H = window.innerHeight;
 
-        const bodies = els.map((el) => {
+        // Замірюємо все ДО будь-яких змін
+        const items = els.map((el) => {
           const r = el.getBoundingClientRect();
+          return { el, w: r.width, h: r.height, x0: r.left + r.width / 2, y0: r.top + r.height / 2 };
+        }).filter((it) => it.w > 2 && it.h > 2);
+        items.forEach((it) => {
+          const el = it.el;
           el.style.animation = 'none';
           el.style.opacity = '1';
           el.style.transition = 'none';
           el.style.willChange = 'transform';
-          const b = { el, w: r.width, h: r.height, x0: r.left + r.width / 2, y0: r.top + r.height / 2 };
-          b.x = b.x0; b.y = b.y0;
-          // Те, що далеко за екраном, падає згори з невеликою затримкою
-          if (b.y > H + b.h) { b.y = -b.h - rand(0, H * 0.5); }
-          else if (b.y < -H * 0.6) { b.y = -b.h - rand(0, H * 0.6); }
-          const dx = b.x - cx, dy = b.y - cy, dist = Math.hypot(dx, dy) || 1;
-          const sp = rand(500, 1300) * (b.w > W * 0.6 ? 0.6 : 1);
-          b.vx = (dx / dist) * sp + rand(-200, 200);
-          b.vy = (dy / dist) * sp - rand(300, 800);
-          b.a = 0;
-          b.va = rand(-7, 7) * (b.w > W * 0.6 ? 0.35 : 1);
-          b.rest = false;
-          return b;
+          el.classList.add('wreck-body');
+          if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
         });
 
         // Частина блоків ламається: тріщини і відколотий кут
-        const breakable = bodies.filter((b) => b.el.matches('.link-item-wrapper, .avatar-wrapper, .username-badge'));
-        breakable.forEach((b) => {
-          if (Math.random() > 0.55) return;
-          const target = b.el.querySelector('.link-card') || b.el;
+        items.forEach((it) => {
+          if (!it.el.matches('.link-item-wrapper, .avatar-wrapper, .username-badge') || Math.random() > 0.55) return;
+          const target = it.el.querySelector('.link-card') || it.el;
           if (getComputedStyle(target).position === 'static') target.style.position = 'relative';
           const crack = document.createElement('div');
           crack.className = 'wreck-crack';
-          crack.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(crackSVG(Math.round(b.w), Math.round(b.h)))}")`;
+          crack.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(crackSVG(Math.round(it.w), Math.round(it.h)))}")`;
           target.appendChild(crack);
-          if (Math.random() < 0.6) {
-            const c = Math.floor(Math.random() * 4), k = rand(10, 22);
+          if (!it.el.matches('.avatar-wrapper') && Math.random() < 0.6) {
+            const c = Math.floor(Math.random() * 4), k = rand(8, 16);
             const poly = [
               `${c === 0 ? k : 0}% 0%`, `${c === 1 ? 100 - k : 100}% 0%`,
-              ...(c === 1 ? [`100% ${k * 1.6}%`] : []), `100% ${c === 2 ? 100 - k * 1.6 : 100}%`,
+              ...(c === 1 ? [`100% ${k * 2.2}%`] : []), `100% ${c === 2 ? 100 - k * 2.2 : 100}%`,
               ...(c === 2 ? [`${100 - k}% 100%`] : []), `${c === 3 ? k : 0}% 100%`,
-              ...(c === 3 ? [`0% ${100 - k * 1.6}%`] : []), ...(c === 0 ? [`0% ${k * 1.6}%`] : [])
+              ...(c === 3 ? [`0% ${100 - k * 2.2}%`] : []), ...(c === 0 ? [`0% ${k * 2.2}%`] : [])
             ];
             target.style.clipPath = `polygon(${poly.join(',')})`;
           }
           target.classList.add('is-wrecked');
         });
 
-        // Купа: карта висот по колонках шириною 4px
-        const COL = 4, cols = Math.ceil(W / COL) + 1;
-        const surf = new Array(cols).fill(H);
-        const span = (b) => {
-          const c = Math.abs(Math.cos(b.a)), s = Math.abs(Math.sin(b.a));
-          return { hw: (b.w * c + b.h * s) / 2, hh: (b.w * s + b.h * c) / 2 };
-        };
-        const surfaceUnder = (x0, x1) => {
-          let m = H;
-          for (let i = Math.max(0, Math.floor(x0 / COL)); i <= Math.min(cols - 1, Math.floor(x1 / COL)); i++) m = Math.min(m, surf[i]);
-          return m;
-        };
+        loadMatter().then((M) => startPhysics(M)).catch(() => {});
 
-        let last = performance.now();
-        const G = 2600;
-        function step(now) {
-          const dt = Math.min((now - last) / 1000, 0.033);
-          last = now;
-          let moving = 0;
-          // Ті, що нижче, лягають першими
-          bodies.sort((p, q) => q.y - p.y);
-          for (const b of bodies) {
-            if (b.rest) {
-              if (b.settle < 1) {
-                b.settle = Math.min(1, b.settle + dt * 6);
-                b.a += (b.ta - b.a) * Math.min(1, dt * 14);
-                b.y += (b.ty - b.y) * Math.min(1, dt * 14);
-                moving++;
+        function startPhysics(M) {
+          const { Engine, Bodies, Body, Composite, Constraint, Events, Sleeping } = M;
+          const engine = Engine.create({ enableSleeping: true });
+          engine.gravity.y = 2.4;
+          engine.positionIterations = 10;
+          engine.velocityIterations = 8;
+
+          const T = 200;
+          const walls = [
+            Bodies.rectangle(W / 2, H + T / 2, W * 3, T, { isStatic: true }),
+            Bodies.rectangle(-T / 2, H / 2 - H, T, H * 4, { isStatic: true }),
+            Bodies.rectangle(W + T / 2, H / 2 - H, T, H * 4, { isStatic: true }),
+            Bodies.rectangle(W / 2, -H * 2 - T / 2, W * 3, T, { isStatic: true })
+          ];
+          Composite.add(engine.world, walls);
+          window.addEventListener('resize', () => {
+            W = window.innerWidth; H = window.innerHeight;
+            Body.setPosition(walls[0], { x: W / 2, y: H + T / 2 });
+            Body.setPosition(walls[2], { x: W + T / 2, y: H / 2 - H });
+            Composite.allBodies(engine.world).forEach((b) => Sleeping.set(b, false));
+          });
+
+          const cx = W / 2, cy = H * 0.5;
+          const bodies = items.map((it) => {
+            let x = it.x0, y = it.y0;
+            // Те, що далеко за екраном, падає згори
+            if (y > H + it.h / 2 || y < -H * 0.8) { y = -it.h - rand(0, H * 0.6); x = rand(it.w / 2, Math.max(it.w / 2, W - it.w / 2)); }
+            const round = it.el.matches('.avatar-wrapper');
+            const opts = { friction: 0.5, frictionAir: 0.012, restitution: 0.25, slop: 0.02 };
+            const radius = Math.min(it.h / 2 - 1, 30, it.w / 2 - 1);
+            const b = round
+              ? Bodies.circle(x, y, it.w / 2, opts)
+              : Bodies.rectangle(x, y, it.w, it.h, { ...opts, chamfer: { radius: Math.max(0, radius) } });
+            b.plugin = { it };
+            const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) || 1;
+            const big = it.w > W * 0.6;
+            const sp = rand(9, 20) * (big ? 0.65 : 1);
+            Body.setVelocity(b, { x: (dx / d) * sp + rand(-3, 3), y: (dy / d) * sp - rand(6, 13) });
+            Body.setAngularVelocity(b, rand(-0.3, 0.3) * (big ? 0.3 : 1));
+            it.body = b;
+            return b;
+          });
+          Composite.add(engine.world, bodies);
+
+          // Звук ударів
+          let lastHit = 0;
+          Events.on(engine, 'collisionStart', (ev) => {
+            const now = performance.now();
+            if (now - lastHit < 55) return;
+            for (const pair of ev.pairs) {
+              const a = pair.bodyA, c = pair.bodyB;
+              const v = Math.hypot(a.velocity.x - c.velocity.x, a.velocity.y - c.velocity.y);
+              if (v > 5) {
+                lastHit = now;
+                sound('clack', Math.min(v / 22, 1));
+                Haptics.tick(Math.round(6 + Math.min(v, 22)));
+                break;
               }
-              continue;
             }
-            moving++;
-            b.vy += G * dt;
-            b.vx *= 0.995;
-            b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.va * dt;
-            let { hw, hh } = span(b);
-            // Стіни
-            if (b.x - hw < 0) { b.x = Math.min(hw, W / 2); b.vx = Math.abs(b.vx) * 0.4; b.va *= -0.6; }
-            if (b.x + hw > W) { b.x = Math.max(W - hw, W / 2); b.vx = -Math.abs(b.vx) * 0.4; b.va *= -0.6; }
-            if (b.vy <= 0) continue;
-            const floor = surfaceUnder(b.x - hw, b.x + hw);
-            if (b.y + hh >= floor) {
-              if (b.vy > 520) {
-                b.y = floor - hh;
-                b.vy = -b.vy * 0.28;
-                b.vx *= 0.6;
-                b.va = b.va * 0.5 + rand(-3, 3) * (b.w > W * 0.6 ? 0.3 : 1);
-                if (b.w > 120) { sound('thud', Math.min(b.vy / -500, 1)); Haptics.tick(10); }
-                continue;
-              }
-              // Лягає: найближче "плоске" положення + нахил по нерівній купі
-              const flat = Math.round(b.a / Math.PI) * Math.PI;
-              const l = surfaceUnder(b.x - b.w / 2, b.x), r = surfaceUnder(b.x, b.x + b.w / 2);
-              let tilt = Math.atan2(r - l, b.w) * 0.8 + rand(-0.2, 0.2);
-              tilt = Math.max(-0.45, Math.min(0.45, tilt));
-              b.ta = flat + tilt;
-              b.rest = true; b.settle = 0;
-              const cs = Math.max(Math.abs(Math.cos(tilt)), 0.3), tn = Math.tan(tilt);
-              const half = (b.w / 2) * cs + (b.h / 2) * Math.abs(Math.sin(tilt));
-              b.x = Math.max(half, Math.min(W - half, b.x));
-              const i0 = Math.max(0, Math.floor((b.x - half) / COL)), i1 = Math.min(cols - 1, Math.floor((b.x + half) / COL));
-              // Нижня і верхня грані нахиленого прямокутника відносно центру
-              const bot = (x) => b.h / (2 * cs) + (x - b.x) * tn;
-              let ty = Infinity;
-              for (let i = i0; i <= i1; i++) ty = Math.min(ty, surf[i] - bot(i * COL));
-              b.ty = ty;
-              for (let i = i0; i <= i1; i++) {
-                const x = i * COL;
-                surf[i] = Math.min(surf[i], ty - b.h / (2 * cs) + (x - b.x) * tn);
-              }
+          });
+
+          // Хапати і жбурляти уламки
+          let drag = null;
+          const pointerDown = (e) => {
+            const el = e.target.closest && e.target.closest('.wreck-body');
+            if (!el || drag) return;
+            const it = items.find((i) => i.el === el);
+            if (!it || !it.body) return;
+            e.preventDefault();
+            const b = it.body;
+            Sleeping.set(b, false);
+            const c = Constraint.create({
+              pointA: { x: e.clientX, y: e.clientY },
+              bodyB: b,
+              pointB: { x: e.clientX - b.position.x, y: e.clientY - b.position.y },
+              stiffness: 0.18,
+              damping: 0.12,
+              length: 0
+            });
+            Composite.add(engine.world, c);
+            drag = { c, id: e.pointerId, b };
+            el.classList.add('is-grabbed');
+            try { el.setPointerCapture(e.pointerId); } catch (_) {}
+            sound('pick');
+            Haptics.tick(10);
+          };
+          const pointerMove = (e) => {
+            if (!drag || e.pointerId !== drag.id) return;
+            drag.c.pointA.x = e.clientX;
+            drag.c.pointA.y = e.clientY;
+            Sleeping.set(drag.b, false);
+          };
+          const pointerUp = (e) => {
+            if (!drag || e.pointerId !== drag.id) return;
+            Composite.remove(engine.world, drag.c);
+            drag.b.plugin.it.el.classList.remove('is-grabbed');
+            // Трохи обмежуємо швидкість кидка, щоб не прошивало стіни
+            const v = drag.b.velocity, sp = Math.hypot(v.x, v.y);
+            if (sp > 45) Body.setVelocity(drag.b, { x: v.x * 45 / sp, y: v.y * 45 / sp });
+            drag = null;
+          };
+          document.addEventListener('pointerdown', pointerDown, { passive: false });
+          document.addEventListener('pointermove', pointerMove);
+          document.addEventListener('pointerup', pointerUp);
+          document.addEventListener('pointercancel', pointerUp);
+
+          // Нахил телефона керує гравітацією, струс — підкидає все
+          window.__wreckTilt = (gx, gy) => {
+            const k = 2.4 / 9.8;
+            engine.gravity.x += (gx * k - engine.gravity.x) * 0.2;
+            engine.gravity.y += (gy * k - engine.gravity.y) * 0.2;
+            if (Math.abs(gx) > 2) bodies.forEach((b) => { if (b.isSleeping) Sleeping.set(b, false); });
+          };
+          window.__wreckShake = (power) => {
+            bodies.forEach((b) => {
+              Sleeping.set(b, false);
+              const big = b.plugin.it.w > W * 0.6;
+              Body.setVelocity(b, { x: b.velocity.x + rand(-8, 8) * power, y: b.velocity.y - rand(8, 16) * power * (big ? 0.7 : 1) });
+              Body.setAngularVelocity(b, b.angularVelocity + rand(-0.2, 0.2) * power * (big ? 0.3 : 1));
+            });
+            sound('clack', 1);
+          };
+
+          // Фіксований крок 60 Гц — стабільно і на 120 Гц екранах
+          let last = performance.now(), acc = 0;
+          const STEP = 1000 / 60;
+          function frame(now) {
+            acc += Math.min(now - last, 100);
+            last = now;
+            while (acc >= STEP) { Engine.update(engine, STEP); acc -= STEP; }
+            for (const it of items) {
+              const b = it.body;
+              if (!b) continue;
+              it.el.style.transform = `translate3d(${(b.position.x - it.x0).toFixed(1)}px, ${(b.position.y - it.y0).toFixed(1)}px, 0) rotate(${b.angle.toFixed(4)}rad)`;
             }
+            requestAnimationFrame(frame);
           }
-          for (const b of bodies) {
-            b.el.style.transform = `translate3d(${(b.x - b.x0).toFixed(1)}px, ${(b.y - b.y0).toFixed(1)}px, 0) rotate(${b.a.toFixed(4)}rad)`;
-          }
-          if (moving) requestAnimationFrame(step);
+          requestAnimationFrame(frame);
         }
-        requestAnimationFrame(step);
 
         // Кнопка перезапуску
         setTimeout(() => {
@@ -4412,12 +4522,10 @@
         puff.classList.remove('is-inflating');
         puff.style.filter = '';
         puff.classList.add('is-popping');
-        // Вибух зносить увесь сайт
-        setTimeout(() => {
-          if (window.__closeEgg) window.__closeEgg();
-          wreckSite();
-          secret('wreck');
-        }, 420);
+        // Вибух одразу зносить увесь сайт
+        if (window.__closeEgg) window.__closeEgg();
+        wreckSite();
+        secret('wreck');
         setTimeout(() => {
           puff.classList.remove('is-popping');
           puff.style.scale = '';
@@ -4461,6 +4569,11 @@
         prevA = { x: a.x, y: a.y, z: a.z };
 
         // У режимі "Кидання" гравітація йде за нахилом телефона — картка їздить по екрану
+        if (window.__wreckTilt && e.accelerationIncludingGravity && e.accelerationIncludingGravity.x != null) {
+          const sign = isIOS ? -1 : 1;
+          window.__wreckTilt(-e.accelerationIncludingGravity.x * sign, e.accelerationIncludingGravity.y * sign);
+        }
+
         if (free && e.accelerationIncludingGravity && e.accelerationIncludingGravity.x != null) {
           const sign = isIOS ? -1 : 1;
           const gx = -e.accelerationIncludingGravity.x * sign;
@@ -4473,6 +4586,7 @@
 
       function shaken(power, dir) {
         stat('shakes');
+        if (window.__wreckShake) { window.__wreckShake(Math.min(power, 1.4)); return; }
         Haptics.pattern([30, 40, 30, 40, 60]);
         const eggOpen = overlay && overlay.classList.contains('is-open');
         if (eggOpen) {
