@@ -2883,10 +2883,26 @@
         }
         detent = level;
 
-        // Секрет: тримаєш розтягнутою майже до упору 2.5 секунди
-        if (Math.hypot(nx, ny) > 215) {
+        // Рогатка: сильно тримаєш розтягнутою понад секунду — картка пуляється
+        // в протилежний бік і вмикається "Кидання"
+        const pullNow = Math.hypot(nx, ny);
+        if (pullNow > 160) {
           if (!holdStart) holdStart = now;
-          else if (now - holdStart > 2500 && window.EggFun) { window.EggFun.secret('hold'); holdStart = now + 1e9; }
+          else if (now - holdStart > 1000 && window.EggFun && window.EggFun.launchWith) {
+            holdStart = 0;
+            const k = 2600 + (pullNow - 160) * 12;
+            const dx = -nx / pullNow, dy = -ny / pullNow;
+            dragging = false;
+            try { img.releasePointerCapture(e.pointerId); } catch (err) {}
+            pos = { x: 0, y: 0 };
+            vel = { x: 0, y: 0 };
+            apply();
+            if (window.EggFun.launchWith(dx * k, dy * k)) {
+              window.EggFun.secret('hold');
+              Haptics.pattern([60, 30, 30]);
+              if (window.easterSound) window.easterSound.splash(1);
+            }
+          }
         } else {
           holdStart = 0;
         }
@@ -4311,7 +4327,7 @@
       // Секретні — в списку показуються як "Секретна пасхалка", поки не знайдеш
       const hasSecret = (id) => (s) => Array.isArray(s.secrets) && s.secrets.includes(id);
       ACH.push(
-        { id: 's_hold',   secret: true, emoji: '😖', title: 'Ай блеее',            desc: 'Тримав розтягнутою до упору 2.5 секунди', ok: hasSecret('hold') },
+        { id: 's_hold',   secret: true, emoji: '😖', title: 'Ай блеее',            desc: 'Запульнув картку з рогатки', ok: hasSecret('hold') },
         { id: 's_dvd',    secret: true, emoji: '📀', title: 'DVD-логотип',         desc: 'Влучив карткою точно в кут екрана',      ok: hasSecret('dvd') },
         { id: 's_night',  secret: true, emoji: '🌙', title: 'Нічний валік',        desc: 'Відкрив пасхалку між 00:00 і 05:00',     ok: hasSecret('night') },
         { id: 's_heli',   secret: true, emoji: '🚁', title: 'Вертоліт',            desc: 'Розкрутив 3D-картку на 15 обертів за 4 с', ok: hasSecret('heli') },
@@ -4507,33 +4523,37 @@
       const DEG = Math.PI / 180;
       const flyImg = fly.querySelector('.easter-img');
       // Желейне розтягування картки: len — наскільки витягнута (px), ang — напрямок у координатах картки
-      const J = { len: 0, v: 0, ang: 0, ox: 50, oy: 50 };
+      // Розтяг як вектор у координатах картки — напрям змінюється плавно, без стрибків
+      const J = { x: 0, y: 0, vx: 0, vy: 0, ox: 50, oy: 50 };
 
       function updateJelly(dt) {
-        let target = 0;
+        let tx = 0, ty = 0, k = 320, c = 11;
         if (carrying && carry) {
-          const c = Math.cos(T.rot * DEG), sn = Math.sin(T.rot * DEG);
-          const rx = carry.ax * c - carry.ay * sn, ry = carry.ax * sn + carry.ay * c;
+          const co = Math.cos(T.rot * DEG), sn = Math.sin(T.rot * DEG);
+          const rx = carry.ax * co - carry.ay * sn, ry = carry.ax * sn + carry.ay * co;
           const ex = carry.fx - (T.cx + T.x + rx), ey = carry.fy - (T.cy + T.y + ry);
           const L = Math.hypot(ex, ey);
-          // Еластичний упор, як у звичайному режимі
-          target = 110 * (1 - Math.exp(-L / 160));
-          if (L > 2) J.ang = Math.atan2(ey, ex) - T.rot * DEG;
-          // Тягнеться схоплений бік, протилежний наче "прибитий"
+          if (L > 0.5) {
+            // Еластичний упор і переведення у координати картки
+            const mag = 110 * (1 - Math.exp(-L / 160));
+            const lx = (ex * co + ey * sn) / L, ly = (-ex * sn + ey * co) / L;
+            tx = lx * mag; ty = ly * mag;
+          }
           const hw = (T.w / 2) * T.base || 1, hh = (T.h / 2) * T.base || 1;
           J.ox = 50 - (carry.ax / hw) * 50;
           J.oy = 50 - (carry.ay / hh) * 50;
-          J.v += ((target - J.len) * 260 - J.v * 34) * dt;
-        } else {
-          // Відпустили — пружинить назад з тремтінням
-          J.v += (-J.len * 320 - J.v * 11) * dt;
+          k = 260; c = 34;   // у руці — без коливань
         }
-        J.len += J.v * dt;
+        J.vx += ((tx - J.x) * k - J.vx * c) * dt;
+        J.vy += ((ty - J.y) * k - J.vy * c) * dt;
+        J.x += J.vx * dt;
+        J.y += J.vy * dt;
         if (!flyImg) return;
-        if (Math.abs(J.len) < 0.3 && Math.abs(J.v) < 2 && !carrying) { flyImg.style.transform = ''; return; }
-        const st = 1 + J.len / 260;
+        const len = Math.hypot(J.x, J.y);
+        if (len < 0.3 && Math.hypot(J.vx, J.vy) < 2 && !carrying) { flyImg.style.transform = ''; return; }
+        const st = 1 + len / 260;
         const sq = 1 / Math.sqrt(Math.max(0.4, st));
-        const a = J.ang / DEG;
+        const a = Math.atan2(J.y, J.x) / DEG;
         flyImg.style.transformOrigin = `${J.ox}% ${J.oy}%`;
         flyImg.style.transform = `rotate(${a.toFixed(1)}deg) scale(${st.toFixed(3)}, ${sq.toFixed(3)}) rotate(${(-a).toFixed(1)}deg)`;
       }
@@ -4572,7 +4592,9 @@
         Haptics.tick(Math.round(8 + k * 30));
         if (side === 'left' || side === 'right') { T.sx = 1 - 0.34 * k; T.sy = 1 + 0.24 * k; }
         else { T.sy = 1 - 0.34 * k; T.sx = 1 + 0.24 * k; }
-        J.v += 900 * k;   // і желейне тремтіння після удару
+        // і желейне тремтіння після удару
+        if (side === 'left' || side === 'right') J.vx += (side === 'left' ? 1 : -1) * 700 * k;
+        else J.vy += (side === 'top' ? 1 : -1) * 700 * k;
         // Секрет "DVD": дві різні перпендикулярні стінки майже одночасно і на швидкості
         const now = performance.now();
         const perp = lastWallHit.side && ((/left|right/.test(side)) !== (/left|right/.test(lastWallHit.side)));
@@ -4650,7 +4672,7 @@
             T.vx += (fx + grav.x * 0.35) * h;
             T.vy += (fy + grav.y * 0.35) * h;
             T.vrot += (((rx * fy - ry * fx) / inertia()) * h) / DEG;
-            T.vrot *= Math.pow(0.2, h);
+            T.vrot *= Math.pow(0.004, h);   // у руці не розгойдується маятником
           } else {
             T.vx += grav.x * h;
             T.vy += grav.y * h;
@@ -4714,7 +4736,7 @@
         } else {
           free = false;
           carrying = false;
-          J.len = 0; J.v = 0;
+          J.x = 0; J.y = 0; J.vx = 0; J.vy = 0;
           if (flyImg) { flyImg.style.transform = ''; flyImg.style.transformOrigin = ''; }
           if (physRaf) cancelAnimationFrame(physRaf);
           physRaf = null;
