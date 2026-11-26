@@ -779,6 +779,11 @@
       padding: 14px 10px 14px;
     }
 
+    /* Кнопки не стискаються, поки картка розкривається (інакше підсвічена з overflow:hidden сплющується) */
+    .inner-tray-content > * {
+      flex-shrink: 0;
+    }
+
     /* МЕНШІ КНОПКИ */
     .nested-btn {
       width: 100%;
