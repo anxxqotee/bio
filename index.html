@@ -928,6 +928,68 @@
       padding: 3px 7px;
     }
 
+    /* Фіолетова плашка (SongRate) — градієнт, що переливається */
+    .new-pill.is-purple {
+      background: linear-gradient(120deg, #a855f7, #6366f1, #d946ef, #a855f7);
+      background-size: 300% 100%;
+      box-shadow: 0 2px 10px rgba(168, 85, 247, 0.45);
+      animation: purpleFlow 4s linear infinite, purpleGlow 2.6s var(--ease-soft) infinite;
+    }
+
+    @keyframes purpleFlow {
+      to { background-position: 300% 0; }
+    }
+
+    @keyframes purpleGlow {
+      0%, 100% { box-shadow: 0 2px 10px rgba(168, 85, 247, 0.45), 0 0 0 0 rgba(168, 85, 247, 0.4); }
+      50% { box-shadow: 0 2px 10px rgba(168, 85, 247, 0.45), 0 0 0 5px rgba(168, 85, 247, 0); }
+    }
+
+    /* Кнопка SongRate у відкритій картці — плавне фіолетове підсвічування всієї кнопки */
+    .nested-btn.is-highlight-purple {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+    }
+
+    .nested-btn.is-highlight-purple::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      background: linear-gradient(120deg, rgba(168, 85, 247, 0.55), rgba(99, 102, 241, 0.45), rgba(217, 70, 239, 0.5), rgba(168, 85, 247, 0.55));
+      background-size: 300% 100%;
+      opacity: 0;
+      transition: opacity 1.1s var(--ease-soft) 0.35s;
+      animation: purpleFlow 5s linear infinite;
+    }
+
+    .link-card.is-open .nested-btn.is-highlight-purple::before {
+      opacity: 1;
+    }
+
+    .link-card.is-open .nested-btn.is-highlight-purple {
+      outline-color: rgba(192, 132, 252, 0.75) !important;
+      color: #fff;
+      animation: songrateGlow 2.8s var(--ease-soft) 0.4s infinite;
+    }
+
+    .link-card.is-open .nested-btn.is-highlight-purple .nested-btn-badge {
+      background-color: rgba(255, 255, 255, 0.18);
+      color: #fff;
+      outline-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .link-card.is-open .nested-btn.is-highlight-purple .nested-btn-right {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    @keyframes songrateGlow {
+      0%, 100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.35), 0 0 0 rgba(168, 85, 247, 0); }
+      50% { box-shadow: 0 0 22px rgba(168, 85, 247, 0.65), 0 0 44px rgba(99, 102, 241, 0.3); }
+    }
+
     /* На закритій картці плашка видна, при відкритті переїжджає всередину */
     .link-card.is-open .link-main-row .new-pill {
       opacity: 0;
@@ -2094,6 +2156,8 @@
           title: "Вайбкодинг",
           subtitle: "Веб-ігри та проекти",
           icon: "img/code.svg",
+          newLabel: "SongRate",       // фіолетова плашка на закритій картці
+          newStyle: "purple",
           nestedButtons: [
             {
               title: "Star Collector 2025",
@@ -2113,6 +2177,7 @@
             {
               title: "SongRate",
               badge: "Оцінка треків",
+              highlight: "purple",        // кнопка плавно підсвічується, коли картку відкрито
               url: "SongRate/",
               actionText: "Відкрити",
               actionType: "external"
@@ -2162,7 +2227,7 @@
 
     const linksBox = document.getElementById('linksContainer');
 
-    const newPill = (label) => label ? `<span class="new-pill">${label}</span>` : '';
+    const newPill = (label, style) => label ? `<span class="new-pill${style ? ' is-' + style : ''}">${label}</span>` : '';
 
     // Розкриття / закриття картки (лише одна відкрита одночасно)
     function setCardOpen(card, open) {
@@ -2233,7 +2298,7 @@
               <span class="link-icon-masked" style="-webkit-mask-image: url('${btn.icon}'); mask-image: url('${btn.icon}');"></span>
             </div>
             <div class="link-content">
-              <span class="link-title-row"><span class="link-title">${btn.title}</span>${newPill(btn.newLabel)}</span>
+              <span class="link-title-row"><span class="link-title">${btn.title}</span>${newPill(btn.newLabel, btn.newStyle)}</span>
               <span class="link-subtitle">${btn.subtitle}</span>
             </div>
             ${arrowIcon}
@@ -2280,7 +2345,7 @@
             `;
           } else {
             nestedHTML += `
-              <a href="${sub.url}" target="_blank" rel="noopener noreferrer" class="nested-btn" style="--n:${subIdx}">
+              <a href="${sub.url}" target="_blank" rel="noopener noreferrer" class="nested-btn${sub.highlight ? ' is-highlight-' + sub.highlight : ''}" style="--n:${subIdx}">
                 <div class="nested-btn-left">
                   <span>${sub.title}</span>
                   <span class="nested-btn-badge">${sub.badge}</span>${newPill(sub.newLabel)}
@@ -2303,7 +2368,7 @@
               <span class="link-icon-masked" style="-webkit-mask-image: url('${btn.icon}'); mask-image: url('${btn.icon}');"></span>
             </div>
             <div class="link-content">
-              <span class="link-title-row"><span class="link-title">${btn.title}</span>${newPill(btn.newLabel)}</span>
+              <span class="link-title-row"><span class="link-title">${btn.title}</span>${newPill(btn.newLabel, btn.newStyle)}</span>
               <span class="link-subtitle">${btn.subtitle}</span>
             </div>
             ${arrowIcon}
@@ -2326,7 +2391,7 @@
                 <span class="link-icon-masked" style="-webkit-mask-image: url('${btn.icon}'); mask-image: url('${btn.icon}');"></span>
               </div>
               <div class="link-content">
-                <span class="link-title-row"><span class="link-title">${btn.title}</span>${newPill(btn.newLabel)}</span>
+                <span class="link-title-row"><span class="link-title">${btn.title}</span>${newPill(btn.newLabel, btn.newStyle)}</span>
                 <span class="link-subtitle">${btn.subtitle}</span>
               </div>
               ${arrowIcon}
@@ -4328,6 +4393,6 @@
     }
   </script>
   <!-- 3D-режим пасхалки (модель телефона) -->
-  <script src="js/egg3d.js?v=20261126b"></script>
+  <script src="js/egg3d.js?v=20261126d"></script>
 </body>
 </html>
