@@ -228,9 +228,11 @@
     }
     if (impact > 7) {
       sound('crack', k);
-      // Секрет: 5 сильних ударів, поки телефон не встиг відновитись
+      // Секрет: 20 сильних ударів, поки телефон не встиг відновитись
       crackHits++;
-      if (crackHits >= 5 && fun()) fun().secret('heli');
+      if (crackHits === 10 && window.easterQuoteForce) window.easterQuoteForce('Ти ж навмисно?');
+      if (crackHits === 15 && window.easterQuoteForce) window.easterQuoteForce('Ну точно навмисно...');
+      if (crackHits >= 20 && fun()) fun().secret('heli');
     }
   }
 
