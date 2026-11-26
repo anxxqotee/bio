@@ -166,10 +166,30 @@
       position: relative;
     }
 
-    [data-theme="aqua"] body {
+    /* Градієнт Aqua — окремий шар, що плавно проявляється (градієнт сам по собі не анімується) */
+    body::before {
+      content: "";
+      position: fixed;
+      top: -20vh;
+      left: 0;
+      right: 0;
+      bottom: -20vh;
+      z-index: -1;
+      pointer-events: none;
       background: linear-gradient(135deg, #16425b 0%, #216383 38%, #3f8f97 70%, #71bfbc 100%);
       background-size: 260% 260%;
       animation: aquaGradientFlow 14s ease infinite alternate;
+      opacity: 0;
+      transition: opacity 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    [data-theme="aqua"] body {
+      /* не прозорий — інакше на мить просвітить білий фон браузера */
+      background-color: #1f5a74;
+    }
+
+    [data-theme="aqua"] body::before {
+      opacity: 1;
     }
 
     [data-theme="aqua"] .link-card,
@@ -188,6 +208,15 @@
 
     [data-theme="aqua"] .avatar-inner {
       background: transparent !important;
+    }
+
+    /* Підкладка аватарки змінюється в такт з колом і лого */
+    .avatar-wrapper,
+    .avatar-inner {
+      transition:
+        background-color 0.7s cubic-bezier(0.25, 1, 0.5, 1),
+        border-color 0.7s cubic-bezier(0.25, 1, 0.5, 1),
+        box-shadow 0.7s cubic-bezier(0.25, 1, 0.5, 1) !important;
     }
 
     @keyframes aquaGradientFlow {
@@ -406,37 +435,29 @@
       object-fit: cover;
       display: block;
       transform: none !important;
-      will-change: opacity;
-      /* Неактивна: лежить знизу і зникає вже ПІСЛЯ того, як нова повністю її перекрила */
-      opacity: 0;
-      z-index: 1;
-      transition: opacity 0s linear 0.5s;
+      will-change: opacity, filter;
     }
 
-    /* Активна: одразу піднімається нагору і плавно проявляється поверх старої —
-       без "провалу" крізь фон посередині переходу */
-    .avatar-light,
-    :root[data-theme="light"] .avatar-light,
-    :root[data-theme="dark"] .avatar-dark,
-    :root[data-theme="aqua"] .avatar-aqua {
+    /* Аватар зібраний з двох шарів: бірюзове коло + лого.
+       Теми лише плавно міняють прозорість кола і колір лого — без накладання різних картинок. */
+    .avatar-bg {
+      z-index: 1;
       opacity: 1;
-      z-index: 3;
-      transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: opacity 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .avatar-mark {
+      z-index: 2;
+      filter: brightness(1);
+      transition: filter 0.7s cubic-bezier(0.25, 1, 0.5, 1);
     }
 
     @media (prefers-color-scheme: dark) {
-      :root:not([data-theme]) .avatar-light { opacity: 0; z-index: 1; }
-      :root:not([data-theme]) .avatar-dark { opacity: 1; z-index: 3; }
+      :root:not([data-theme]) .avatar-mark { filter: brightness(0.1); }
     }
 
-    :root[data-theme="dark"] .avatar-light,
-    :root[data-theme="aqua"] .avatar-light { opacity: 0; z-index: 1; transition: opacity 0s linear 0.5s; }
-
-    /* Aqua-лого прозоре й не перекриває попереднє — тому старе тане разом з появою нового */
-    :root[data-theme="aqua"] .avatar-light,
-    :root[data-theme="aqua"] .avatar-dark {
-      transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    }
+    :root[data-theme="dark"] .avatar-mark { filter: brightness(0.1); }
+    :root[data-theme="aqua"] .avatar-bg { opacity: 0; }
 
     .avatar-placeholder-svg {
       width: 54px;
@@ -1970,22 +1991,16 @@
     <div class="avatar-wrapper">
       <div class="avatar-inner">
         <img 
-          src="img/logo.png" 
-          alt="Logo Light" 
-          class="avatar-img avatar-light"
-          onerror="this.onerror=null; this.style.display='none'; document.getElementById('fallback-avatar').style.display='block';"
-        >
-        <img 
-          src="img/logo-dark.png" 
-          alt="Logo Dark" 
-          class="avatar-img avatar-dark"
+          src="img/logo-bg.jpg" 
+          alt="" 
+          class="avatar-img avatar-bg"
           onerror="this.onerror=null; this.src='img/logo.png';"
         >
         <img 
           src="img/logo-trn.png" 
-          alt="Logo Aqua Transparent" 
-          class="avatar-img avatar-aqua"
-          onerror="this.onerror=null; this.src='img/logo-dark.png';"
+          alt="Logo" 
+          class="avatar-img avatar-mark"
+          onerror="this.onerror=null; this.style.display='none'; document.getElementById('fallback-avatar').style.display='block';"
         >
         <svg id="fallback-avatar" class="avatar-placeholder-svg" style="display: none;" viewBox="0 0 24 24">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
