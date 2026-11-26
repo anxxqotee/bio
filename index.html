@@ -4517,21 +4517,21 @@
           const ex = carry.fx - (T.cx + T.x + rx), ey = carry.fy - (T.cy + T.y + ry);
           const L = Math.hypot(ex, ey);
           // Еластичний упор, як у звичайному режимі
-          target = 230 * (1 - Math.exp(-L / 140));
+          target = 110 * (1 - Math.exp(-L / 160));
           if (L > 2) J.ang = Math.atan2(ey, ex) - T.rot * DEG;
           // Тягнеться схоплений бік, протилежний наче "прибитий"
           const hw = (T.w / 2) * T.base || 1, hh = (T.h / 2) * T.base || 1;
           J.ox = 50 - (carry.ax / hw) * 50;
           J.oy = 50 - (carry.ay / hh) * 50;
-          J.v += ((target - J.len) * 260 - J.v * 16) * dt;
+          J.v += ((target - J.len) * 260 - J.v * 34) * dt;
         } else {
           // Відпустили — пружинить назад з тремтінням
-          J.v += (-J.len * 320 - J.v * 7) * dt;
+          J.v += (-J.len * 320 - J.v * 11) * dt;
         }
         J.len += J.v * dt;
         if (!flyImg) return;
         if (Math.abs(J.len) < 0.3 && Math.abs(J.v) < 2 && !carrying) { flyImg.style.transform = ''; return; }
-        const st = 1 + J.len / 200;
+        const st = 1 + J.len / 260;
         const sq = 1 / Math.sqrt(Math.max(0.4, st));
         const a = J.ang / DEG;
         flyImg.style.transformOrigin = `${J.ox}% ${J.oy}%`;
@@ -4644,8 +4644,9 @@
             const px = T.cx + T.x + rx, py = T.cy + T.y + ry;
             const w = T.vrot * DEG;
             const vpx = T.vx - w * ry, vpy = T.vy + w * rx;
-            const fx = (carry.fx - px) * 420 - vpx * 26;
-            const fy = (carry.fy - py) * 420 - vpy * 26;
+            // Критичне гасіння (c ≈ 2√k): картка плавно доїжджає до пальця без смикання
+            const fx = (carry.fx - px) * 500 - vpx * 46;
+            const fy = (carry.fy - py) * 500 - vpy * 46;
             T.vx += (fx + grav.x * 0.35) * h;
             T.vy += (fy + grav.y * 0.35) * h;
             T.vrot += (((rx * fy - ry * fx) / inertia()) * h) / DEG;
