@@ -1869,17 +1869,11 @@
       overscroll-behavior: none;
     }
 
-    .site-wrecked #mainContainer,
-    .site-wrecked #mainContainer * {
-      pointer-events: none !important;
-    }
-
     .site-wrecked .easter-spacer {
       visibility: hidden;
     }
 
     .site-wrecked #mainContainer .wreck-body {
-      pointer-events: auto !important;
       touch-action: none;
       z-index: 1;
     }
@@ -4307,9 +4301,11 @@
         document.body.appendChild(fl);
         setTimeout(() => fl.remove(), 700);
 
-        // Кліки по уламках нічого не відкривають (крім кнопки перезапуску)
+        // Клік після перетягування не повинен нічого відкривати; звичайний тап — працює як завжди
+        let suppressClick = false;
         document.addEventListener('click', (e) => {
-          if (e.target.closest && e.target.closest('.wreck-restart')) return;
+          if (!suppressClick) return;
+          suppressClick = false;
           e.preventDefault();
           e.stopPropagation();
         }, true);
@@ -4324,14 +4320,34 @@
           const r = el.getBoundingClientRect();
           return { el, w: r.width, h: r.height, x0: r.left + r.width / 2, y0: r.top + r.height / 2 };
         }).filter((it) => it.w > 2 && it.h > 2);
+        // Кожен блок виймаємо з потоку (position: fixed на тому ж місці),
+        // щоб розкриття однієї картки не зсувало інші
         items.forEach((it) => {
           const el = it.el;
           el.style.animation = 'none';
           el.style.opacity = '1';
           el.style.transition = 'none';
           el.style.willChange = 'transform';
+          el.style.transform = 'none';
           el.classList.add('wreck-body');
-          if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        });
+        items.forEach((it) => {
+          const el = it.el;
+          el.style.position = 'fixed';
+          el.style.margin = '0';
+          el.style.width = it.w + 'px';
+          el.style.left = (it.x0 - it.w / 2) + 'px';
+          el.style.top = (it.y0 - it.h / 2) + 'px';
+          el.style.right = 'auto';
+          el.style.bottom = 'auto';
+        });
+        // Поправка, якщо якийсь предок зсуває fixed-систему координат
+        items.forEach((it) => {
+          const r = it.el.getBoundingClientRect();
+          const dx = (it.x0 - it.w / 2) - r.left, dy = (it.y0 - it.h / 2) - r.top;
+          if (Math.abs(dx) > 0.5) it.el.style.left = (parseFloat(it.el.style.left) + dx) + 'px';
+          if (Math.abs(dy) > 0.5) it.el.style.top = (parseFloat(it.el.style.top) + dy) + 'px';
+          it.top = it.y0 - it.h / 2;
         });
 
         // Частина блоків ламається: тріщини і відколотий кут
@@ -4380,11 +4396,7 @@
             Composite.allBodies(engine.world).forEach((b) => Sleeping.set(b, false));
           });
 
-          const cx = W / 2, cy = H * 0.5;
-          const bodies = items.map((it) => {
-            let x = it.x0, y = it.y0;
-            // Те, що далеко за екраном, падає згори
-            if (y > H + it.h / 2 || y < -H * 0.8) { y = -it.h - rand(0, H * 0.6); x = rand(it.w / 2, Math.max(it.w / 2, W - it.w / 2)); }
+          function makeBody(it, x, y) {
             const round = it.el.matches('.avatar-wrapper');
             const opts = { friction: 0.5, frictionAir: 0.012, restitution: 0.25, slop: 0.02 };
             const radius = Math.min(it.h / 2 - 1, 30, it.w / 2 - 1);
@@ -4392,6 +4404,15 @@
               ? Bodies.circle(x, y, it.w / 2, opts)
               : Bodies.rectangle(x, y, it.w, it.h, { ...opts, chamfer: { radius: Math.max(0, radius) } });
             b.plugin = { it };
+            return b;
+          }
+
+          const cx = W / 2, cy = H * 0.5;
+          const bodies = items.map((it) => {
+            let x = it.x0, y = it.y0;
+            // Те, що далеко за екраном, падає згори
+            if (y > H + it.h / 2 || y < -H * 0.8) { y = -it.h - rand(0, H * 0.6); x = rand(it.w / 2, Math.max(it.w / 2, W - it.w / 2)); }
+            const b = makeBody(it, x, y);
             const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) || 1;
             const big = it.w > W * 0.6;
             const sp = rand(9, 20) * (big ? 0.65 : 1);
@@ -4419,44 +4440,78 @@
             }
           });
 
-          // Хапати і жбурляти уламки
+          // Картка розкрилась/закрилась — тіло міняє розмір, верхній край лишається на місці
+          const ro = new ResizeObserver(() => {
+            for (const it of items) {
+              const nh = it.el.offsetHeight;
+              if (!it.body || Math.abs(nh - it.h) < 1) continue;
+              const old = it.body, dh = nh - it.h;
+              const ang = old.angle;
+              const nx = old.position.x - Math.sin(ang) * dh / 2;
+              const ny = old.position.y + Math.cos(ang) * dh / 2;
+              it.h = nh;
+              it.y0 = it.top + nh / 2;
+              const nb = makeBody(it, nx, ny);
+              Body.setAngle(nb, ang);
+              Body.setVelocity(nb, old.velocity);
+              Body.setAngularVelocity(nb, old.angularVelocity);
+              Composite.remove(engine.world, old);
+              Composite.add(engine.world, nb);
+              bodies[bodies.indexOf(old)] = nb;
+              it.body = nb;
+              if (drag && drag.b === old) { drag.b = nb; if (drag.c) drag.c.bodyB = nb; }
+              // Сусіди можуть лежати на ній — будимо всіх
+              bodies.forEach((b) => Sleeping.set(b, false));
+            }
+          });
+          items.forEach((it) => ro.observe(it.el));
+
+          // Тап — звичайне натискання; потягнув — хапаєш уламок і жбурляєш
           let drag = null;
           const pointerDown = (e) => {
+            if (e.target.closest && e.target.closest('.wreck-restart')) return;
             const el = e.target.closest && e.target.closest('.wreck-body');
             if (!el || drag) return;
             const it = items.find((i) => i.el === el);
             if (!it || !it.body) return;
-            e.preventDefault();
-            const b = it.body;
-            Sleeping.set(b, false);
-            const c = Constraint.create({
-              pointA: { x: e.clientX, y: e.clientY },
-              bodyB: b,
-              pointB: { x: e.clientX - b.position.x, y: e.clientY - b.position.y },
-              stiffness: 0.18,
-              damping: 0.12,
-              length: 0
-            });
-            Composite.add(engine.world, c);
-            drag = { c, id: e.pointerId, b };
-            el.classList.add('is-grabbed');
-            try { el.setPointerCapture(e.pointerId); } catch (_) {}
-            sound('pick');
-            Haptics.tick(10);
+            if (e.pointerType === 'mouse') e.preventDefault();   // без виділення тексту
+            drag = { c: null, id: e.pointerId, b: it.body, sx: e.clientX, sy: e.clientY, el };
           };
           const pointerMove = (e) => {
             if (!drag || e.pointerId !== drag.id) return;
+            if (!drag.c) {
+              if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 8) return;
+              const b = drag.b;
+              Sleeping.set(b, false);
+              drag.c = Constraint.create({
+                pointA: { x: e.clientX, y: e.clientY },
+                bodyB: b,
+                pointB: { x: drag.sx - b.position.x, y: drag.sy - b.position.y },
+                stiffness: 0.18,
+                damping: 0.12,
+                length: 0
+              });
+              Composite.add(engine.world, drag.c);
+              drag.el.classList.add('is-grabbed');
+              try { drag.el.setPointerCapture(e.pointerId); } catch (_) {}
+              sound('pick');
+              Haptics.tick(10);
+            }
             drag.c.pointA.x = e.clientX;
             drag.c.pointA.y = e.clientY;
             Sleeping.set(drag.b, false);
           };
           const pointerUp = (e) => {
             if (!drag || e.pointerId !== drag.id) return;
-            Composite.remove(engine.world, drag.c);
-            drag.b.plugin.it.el.classList.remove('is-grabbed');
-            // Трохи обмежуємо швидкість кидка, щоб не прошивало стіни
-            const v = drag.b.velocity, sp = Math.hypot(v.x, v.y);
-            if (sp > 45) Body.setVelocity(drag.b, { x: v.x * 45 / sp, y: v.y * 45 / sp });
+            if (drag.c) {
+              Composite.remove(engine.world, drag.c);
+              drag.el.classList.remove('is-grabbed');
+              // Трохи обмежуємо швидкість кидка, щоб не прошивало стіни
+              const v = drag.b.velocity, sp = Math.hypot(v.x, v.y);
+              if (sp > 45) Body.setVelocity(drag.b, { x: v.x * 45 / sp, y: v.y * 45 / sp });
+              suppressClick = true;
+              setTimeout(() => { suppressClick = false; }, 400);
+            }
             drag = null;
           };
           document.addEventListener('pointerdown', pointerDown, { passive: false });
