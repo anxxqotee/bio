@@ -4505,6 +4505,38 @@
       const carryTracker = makeVelTracker();
       const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       const DEG = Math.PI / 180;
+      const flyImg = fly.querySelector('.easter-img');
+      // Желейне розтягування картки: len — наскільки витягнута (px), ang — напрямок у координатах картки
+      const J = { len: 0, v: 0, ang: 0, ox: 50, oy: 50 };
+
+      function updateJelly(dt) {
+        let target = 0;
+        if (carrying && carry) {
+          const c = Math.cos(T.rot * DEG), sn = Math.sin(T.rot * DEG);
+          const rx = carry.ax * c - carry.ay * sn, ry = carry.ax * sn + carry.ay * c;
+          const ex = carry.fx - (T.cx + T.x + rx), ey = carry.fy - (T.cy + T.y + ry);
+          const L = Math.hypot(ex, ey);
+          // Еластичний упор, як у звичайному режимі
+          target = 230 * (1 - Math.exp(-L / 140));
+          if (L > 2) J.ang = Math.atan2(ey, ex) - T.rot * DEG;
+          // Тягнеться схоплений бік, протилежний наче "прибитий"
+          const hw = (T.w / 2) * T.base || 1, hh = (T.h / 2) * T.base || 1;
+          J.ox = 50 - (carry.ax / hw) * 50;
+          J.oy = 50 - (carry.ay / hh) * 50;
+          J.v += ((target - J.len) * 260 - J.v * 16) * dt;
+        } else {
+          // Відпустили — пружинить назад з тремтінням
+          J.v += (-J.len * 320 - J.v * 7) * dt;
+        }
+        J.len += J.v * dt;
+        if (!flyImg) return;
+        if (Math.abs(J.len) < 0.3 && Math.abs(J.v) < 2 && !carrying) { flyImg.style.transform = ''; return; }
+        const st = 1 + J.len / 200;
+        const sq = 1 / Math.sqrt(Math.max(0.4, st));
+        const a = J.ang / DEG;
+        flyImg.style.transformOrigin = `${J.ox}% ${J.oy}%`;
+        flyImg.style.transform = `rotate(${a.toFixed(1)}deg) scale(${st.toFixed(3)}, ${sq.toFixed(3)}) rotate(${(-a).toFixed(1)}deg)`;
+      }
 
       function render() {
         fly.style.transform = `translate(${T.x.toFixed(1)}px, ${T.y.toFixed(1)}px) rotate(${T.rot.toFixed(2)}deg) scale(${(T.sx * T.base).toFixed(3)}, ${(T.sy * T.base).toFixed(3)})`;
@@ -4538,8 +4570,9 @@
         stat('bounces');
         sound('thud', k);
         Haptics.tick(Math.round(8 + k * 30));
-        if (side === 'left' || side === 'right') { T.sx = 1 - 0.22 * k; T.sy = 1 + 0.14 * k; }
-        else { T.sy = 1 - 0.22 * k; T.sx = 1 + 0.14 * k; }
+        if (side === 'left' || side === 'right') { T.sx = 1 - 0.34 * k; T.sy = 1 + 0.24 * k; }
+        else { T.sy = 1 - 0.34 * k; T.sx = 1 + 0.24 * k; }
+        J.v += 900 * k;   // і желейне тремтіння після удару
         // Секрет "DVD": дві різні перпендикулярні стінки майже одночасно і на швидкості
         const now = performance.now();
         const perp = lastWallHit.side && ((/left|right/.test(side)) !== (/left|right/.test(lastWallHit.side)));
@@ -4611,8 +4644,8 @@
             const px = T.cx + T.x + rx, py = T.cy + T.y + ry;
             const w = T.vrot * DEG;
             const vpx = T.vx - w * ry, vpy = T.vy + w * rx;
-            const fx = (carry.fx - px) * 900 - vpx * 38;
-            const fy = (carry.fy - py) * 900 - vpy * 38;
+            const fx = (carry.fx - px) * 420 - vpx * 26;
+            const fy = (carry.fy - py) * 420 - vpy * 26;
             T.vx += (fx + grav.x * 0.35) * h;
             T.vy += (fy + grav.y * 0.35) * h;
             T.vrot += (((rx * fy - ry * fx) / inertia()) * h) / DEG;
@@ -4639,11 +4672,12 @@
           T.vx = 0; T.vy = 0; T.vrot = 0;
         }
 
-        // Пружне відновлення після сплющення
-        T.vsx += (-(T.sx - 1) * 900 - T.vsx * 18) * dt;
-        T.vsy += (-(T.sy - 1) * 900 - T.vsy * 18) * dt;
+        // Пружне відновлення після сплющення (менше гасіння — довше желейно тремтить)
+        T.vsx += (-(T.sx - 1) * 700 - T.vsx * 9) * dt;
+        T.vsy += (-(T.sy - 1) * 700 - T.vsy * 9) * dt;
         T.sx += T.vsx * dt;
         T.sy += T.vsy * dt;
+        updateJelly(dt);
 
         render();
         physRaf = free ? requestAnimationFrame(physStep) : null;
@@ -4679,6 +4713,8 @@
         } else {
           free = false;
           carrying = false;
+          J.len = 0; J.v = 0;
+          if (flyImg) { flyImg.style.transform = ''; flyImg.style.transformOrigin = ''; }
           if (physRaf) cancelAnimationFrame(physRaf);
           physRaf = null;
           if (launchBtn) launchBtn.setAttribute('aria-pressed', 'false');
