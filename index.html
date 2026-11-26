@@ -1314,7 +1314,7 @@
       color: var(--egg-pressed-fg);
     }
 
-    .egg3d-toggle[aria-pressed="true"] svg {
+    #egg3dToggle[aria-pressed="true"] svg {
       transform: rotate(180deg);
     }
 
@@ -1454,7 +1454,7 @@
       85% { translate: -2px 2px; }
     }
 
-    /* Кнопка "Політ" вимкнена в 3D */
+    /* Кнопка "Кидання" вимкнена в 3D */
     .easter-overlay.is-3d .egg-launch {
       opacity: 0.4;
       pointer-events: none;
@@ -1673,11 +1673,49 @@
       border: 1px solid var(--card-border);
     }
 
-    .egg-trophy-emoji {
-      font-size: 1.6rem;
-      width: 2rem;
-      text-align: center;
+    /* Значок досягнення — золотий кружечок з векторною іконкою */
+    .egg-trophy-emoji,
+    .egg-toast-emoji {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
+      color: #3a2400;
+      background: linear-gradient(135deg, #ffe27a, #f5a524);
+      box-shadow: 0 4px 12px rgba(245, 165, 36, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .egg-trophy-emoji .ic,
+    .egg-toast-emoji .ic {
+      width: 21px;
+      height: 21px;
+    }
+
+    .egg-trophy.is-locked .egg-trophy-emoji {
+      color: var(--subtext);
+      background: var(--sub-card-bg);
+      box-shadow: inset 0 0 0 1px var(--card-border);
+    }
+
+    /* Векторні іконки на кнопках */
+    .egg3d-toggle .ic {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .egg-trophies-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .egg-trophies-close .ic {
+      width: 16px;
+      height: 16px;
     }
 
     .egg-trophy-title {
@@ -1695,9 +1733,7 @@
       opacity: 0.55;
     }
 
-    .egg-trophy.is-locked .egg-trophy-emoji {
-      filter: grayscale(1);
-    }
+
 
     /* Сповіщення про досягнення */
     .egg-toasts {
@@ -1740,8 +1776,6 @@
     }
 
     .egg-toast-emoji {
-      font-size: 1.8rem;
-      flex-shrink: 0;
       animation: trophyBump 0.8s var(--ease-spring) 0.2s;
     }
 
@@ -1906,11 +1940,11 @@
         <span id="egg3dLabel">3D</span>
       </button>
       <button type="button" class="egg3d-toggle egg-launch" id="eggLaunchBtn" aria-pressed="false">
-        <span aria-hidden="true">🚀</span>
-        <span id="eggLaunchLabel">Політ</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
+        <span id="eggLaunchLabel">Кидання</span>
       </button>
       <button type="button" class="egg3d-toggle egg-trophy-btn" id="eggTrophyBtn" aria-label="Досягнення">
-        <span aria-hidden="true">🏆</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M17 5h3a3 3 0 0 1-3 4M7 5H4a3 3 0 0 0 3 4"/></svg>
         <span id="eggTrophyCount">0</span>
       </button>
     </div>
@@ -1923,7 +1957,7 @@
       <div class="egg-trophies-card" role="dialog" aria-label="Досягнення">
         <div class="egg-trophies-head">
           <span>Досягнення</span>
-          <button type="button" class="egg-trophies-close" id="eggTrophiesClose" aria-label="Закрити">✕</button>
+          <button type="button" class="egg-trophies-close" id="eggTrophiesClose" aria-label="Закрити"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
         </div>
         <div class="egg-trophies-list" id="eggTrophiesList"></div>
       </div>
@@ -2797,7 +2831,7 @@
       img.addEventListener('pointerdown', (e) => {
         if (is3D()) return; // у 3D-режимі картку крутять, а не розтягують
         e.preventDefault();
-        // Режим "Політ" — картку носять і жбурляють (це робить EggFun)
+        // Режим "Кидання" — картку носять і жбурляють (це робить EggFun)
         if (window.EggFun && window.EggFun.isFree()) return;
         // Картка лускає — не чіпаємо
         if (window.EggFun && window.EggFun.busy()) return;
@@ -3655,7 +3689,7 @@
           } catch (e) {
             loading = false;
             btn.classList.remove('is-loading');
-            label.textContent = '3D ✕';
+            label.textContent = 'Без 3D';
             setTimeout(() => { label.textContent = '3D'; }, 1500);
             return;
           }
@@ -4216,6 +4250,41 @@
       const rand = (a, b) => a + Math.random() * (b - a);
       const sound = (name, ...args) => { if (window.easterSound && window.easterSound[name]) window.easterSound[name](...args); };
 
+      // ---------- Векторні іконки досягнень ----------
+      const ICON_PATHS = {
+        search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+        stretch: '<path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4"/>',
+        infinity: '<path d="M12 12c-2-2.7-4-4-6-4a4 4 0 0 0 0 8c2 0 4-1.3 6-4Zm0 0c2 2.7 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.3-6 4Z"/>',
+        dumbbell: '<path d="M6 7v10M18 7v10M3 9v6M21 9v6M6 12h12"/>',
+        book: '<path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2Z"/><path d="M22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8Z"/>',
+        chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12Z"/>',
+        cube: '<path d="M12 2.8 20 7.3v9.4L12 21.2 4 16.7V7.3Z"/><path d="M4 7.3l8 4.5 8-4.5M12 11.8v9.4"/>',
+        refresh: '<path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/>',
+        throw: '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/>',
+        bounce: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+        bomb: '<circle cx="11" cy="14" r="7"/><path d="m16 9 3-3M19 2v2M22 5h-2M15 5l1 1"/>',
+        flame: '<path d="M12 22a7 7 0 0 0 7-7c0-4-3-6-4-9-1 2-2 3-4 4 0-2-1-4-2-6-2 3-4 6-4 11a7 7 0 0 0 7 7Z"/>',
+        phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2M3 8v8M21 8v8"/>',
+        cocktail: '<path d="M4 3h16l-8 9Z"/><path d="M12 12v8M8 21h8"/>',
+        hand: '<path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2a8 8 0 0 1-6-3l-3-4.5a2 2 0 0 1 3-2.5L6 14"/>',
+        disc: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>',
+        moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
+        fan: '<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-7 4-7s2 4-2 7M14 12c4 0 7 1 7 4s-4 2-7-2M12 14c0 4-1 7-4 7s-2-4 2-7M10 12c-4 0-7-1-7-4s4-2 7 2"/>',
+        chip: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+        eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+        sparkles: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8Z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8Z"/>',
+        crown: '<path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5Z"/>',
+        lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+        help: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>'
+      };
+      const svgIcon = (name) => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ICON_PATHS.sparkles}</svg>`;
+      const ACH_ICON = {
+        open: 'search', stretch10: 'stretch', stretch100: 'infinity', maxpull: 'dumbbell', quotes20: 'book', quotes100: 'chat',
+        '3d': 'cube', flips50: 'refresh', throw: 'throw', bounce50: 'bounce', pop: 'bomb', pop10: 'flame', shake: 'phone',
+        shake20: 'cocktail', s_hold: 'hand', s_dvd: 'disc', s_night: 'moon', s_heli: 'fan', s_avatar: 'chip', s_footer: 'eye',
+        s_disco: 'sparkles', all: 'crown'
+      };
+
       // ---------- Статистика (зберігається в браузері) ----------
       const STATS_KEY = 'egg_stats_v1';
       let stats = {};
@@ -4232,7 +4301,7 @@
         { id: 'quotes100', emoji: '🤨', title: 'Прочитав 100 фраз — ти точно не Влад?', desc: 'Прочитай 100 фраз',               ok: (s) => s.quotes >= 100 },
         { id: '3d',        emoji: '🧊', title: 'Новий вимір',                          desc: 'Увімкни 3D',                       ok: (s) => s.threeD >= 1 },
         { id: 'flips50',   emoji: '😵‍💫', title: 'Перевернув 50 разів — голова не крутиться?', desc: 'Переверни картку в 3D 50 разів', ok: (s) => s.flips >= 50 },
-        { id: 'throw',     emoji: '🚀', title: 'Пика полетіла',                         desc: 'Увімкни «Політ» і пожбурляй картку',           ok: (s) => s.throws >= 1 },
+        { id: 'throw',     emoji: '🚀', title: 'Пика полетіла',                         desc: 'Увімкни «Кидання» і пожбурляй картку',           ok: (s) => s.throws >= 1 },
         { id: 'bounce50',  emoji: '🏓', title: 'Пінг-понг',                            desc: '50 ударів об краї екрана',         ok: (s) => s.bounces >= 50 },
         { id: 'pop',       emoji: '🎈', title: 'Перегодував',                          desc: 'Швидко тицяй, поки не лусне',      ok: (s) => s.pops >= 1 },
         { id: 'pop10',     emoji: '💨', title: 'Серійний пукач',                        desc: 'Лусни картинку 10 разів',          ok: (s) => s.pops >= 10 },
@@ -4269,7 +4338,7 @@
         const el = document.createElement('div');
         el.className = 'egg-toast';
         el.innerHTML = '<span class="egg-toast-emoji"></span><div><div class="egg-toast-label">Досягнення!</div><div class="egg-toast-title"></div></div>';
-        el.querySelector('.egg-toast-emoji').textContent = a.emoji;
+        el.querySelector('.egg-toast-emoji').innerHTML = svgIcon(ACH_ICON[a.id]);
         el.querySelector('.egg-toast-title').textContent = a.title;
         toasts.appendChild(el);
         sound('chime');
@@ -4313,7 +4382,7 @@
           const row = document.createElement('div');
           row.className = 'egg-trophy' + (got ? '' : ' is-locked');
           row.innerHTML = '<span class="egg-trophy-emoji"></span><div><div class="egg-trophy-title"></div><div class="egg-trophy-desc"></div></div>';
-          row.querySelector('.egg-trophy-emoji').textContent = got ? a.emoji : (a.secret ? '❓' : '🔒');
+          row.querySelector('.egg-trophy-emoji').innerHTML = svgIcon(got ? ACH_ICON[a.id] : (a.secret ? 'help' : 'lock'));
           row.querySelector('.egg-trophy-title').textContent = got ? a.title : (a.secret ? 'Секретна пасхалка' : '???');
           row.querySelector('.egg-trophy-desc').textContent = got || !a.secret ? a.desc : 'Шукай сам 🤫';
           list.appendChild(row);
@@ -4413,102 +4482,168 @@
         } catch (e) {}
       });
 
-      // ---------- Режим "Політ": картка вільно стрибає по екрану ----------
+      // ---------- Режим "Кидання": картка — тверде тіло, що літає по екрану ----------
       // Без цього режиму картку можна лише розтягувати.
+      // Фізика: прямокутник з масою і моментом інерції; кути б'ються об краї екрана,
+      // удари дають імпульс з пружністю і тертям, тож картка обертається від ударів,
+      // котиться, перевертається і лягає. Схоплену картку несе за точку, де її взяли.
       const launchBtn = document.getElementById('eggLaunchBtn');
       const launchLabel = document.getElementById('eggLaunchLabel');
       let free = false;          // режим увімкнено
       let carrying = false;      // тримаємо пальцем
       let returning = false;
       let physRaf = null;
+      // x,y — зсув центру від місця спокою (px); rot — кут (град); vrot — кутова швидкість (град/с)
       const T = { x: 0, y: 0, vx: 0, vy: 0, rot: 0, vrot: 0, sx: 1, sy: 1, vsx: 0, vsy: 0, last: 0, w: 0, h: 0, cx: 0, cy: 0, base: 1 };
       // У польоті картка трохи менша — вміщується під будь-яким кутом і має де стрибати
       const FLY_SCALE = 0.72;
+      const RESTITUTION = 0.5;   // пружність удару
+      const FRICTION = 0.45;     // тертя об край
       let grav = { x: 0, y: 2600 };        // гравітація (від нахилу телефона)
-      let lastHitX = -1e9, lastHitY = -1e9, lastHitXSpeed = 0, lastHitYSpeed = 0;
+      let lastWallHit = { side: null, t: -1e9, speed: 0 };
       let carry = null;
       const carryTracker = makeVelTracker();
       const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-      // Хітбокс з урахуванням повороту: напівширина/напіввисота повернутого прямокутника
-      function halfExtents() {
-        const a = (T.rot * Math.PI) / 180;
-        const c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
-        // + запас на сплющення від удару
-        const k = Math.max(1, T.sx, T.sy) * T.base;
-        const hw = (T.w / 2) * k, hh = (T.h / 2) * k;
-        return [hw * c + hh * s, hw * s + hh * c];
-      }
-
-      function bounds() {
-        const [ex, ey] = halfExtents();
-        const pad = 6;
-        const W = window.innerWidth, H = window.innerHeight;
-        let minX = ex + pad - T.cx, maxX = W - ex - pad - T.cx;
-        let minY = ey + pad - T.cy, maxY = H - ey - pad - T.cy;
-        // Якщо картка взагалі не вміщується — тримаємо її по центру
-        if (minX > maxX) minX = maxX = (minX + maxX) / 2;
-        if (minY > maxY) minY = maxY = (minY + maxY) / 2;
-        return { minX, maxX, minY, maxY };
-      }
+      const DEG = Math.PI / 180;
 
       function render() {
-        fly.style.transform = `translate(${T.x.toFixed(1)}px, ${T.y.toFixed(1)}px) scale(${(T.sx * T.base).toFixed(3)}, ${(T.sy * T.base).toFixed(3)}) rotate(${T.rot.toFixed(1)}deg)`;
+        fly.style.transform = `translate(${T.x.toFixed(1)}px, ${T.y.toFixed(1)}px) rotate(${T.rot.toFixed(2)}deg) scale(${(T.sx * T.base).toFixed(3)}, ${(T.sy * T.base).toFixed(3)})`;
       }
 
-      function impact(speed, axis) {
-        if (speed < 180) return;
+      // Кути картки у координатах екрана
+      function corners() {
+        const hw = (T.w / 2) * T.base, hh = (T.h / 2) * T.base;
+        const c = Math.cos(T.rot * DEG), s = Math.sin(T.rot * DEG);
+        const cx = T.cx + T.x, cy = T.cy + T.y;
+        return [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([lx, ly]) => ({
+          rx: lx * c - ly * s, ry: lx * s + ly * c, px: cx + lx * c - ly * s, py: cy + lx * s + ly * c
+        }));
+      }
+
+      const inertia = () => {
+        const w = T.w * T.base, h = T.h * T.base;
+        return (w * w + h * h) / 12;   // маса = 1
+      };
+
+      // Імпульс у точці r (відносно центру) по нормалі n
+      function applyImpulse(rx, ry, jx, jy) {
+        T.vx += jx;
+        T.vy += jy;
+        T.vrot += ((rx * jy - ry * jx) / inertia()) / DEG;
+      }
+
+      function onWallHit(side, speed) {
+        if (speed < 160) return;
         const k = Math.min(speed / 2200, 1);
         stat('bounces');
         sound('thud', k);
         Haptics.tick(Math.round(8 + k * 30));
+        if (side === 'left' || side === 'right') { T.sx = 1 - 0.22 * k; T.sy = 1 + 0.14 * k; }
+        else { T.sy = 1 - 0.22 * k; T.sx = 1 + 0.14 * k; }
+        // Секрет "DVD": дві різні перпендикулярні стінки майже одночасно і на швидкості
         const now = performance.now();
-        if (axis === 'x') { T.sx = 1 - 0.3 * k; T.sy = 1 + 0.2 * k; lastHitX = now; lastHitXSpeed = speed; }
-        else { T.sy = 1 - 0.3 * k; T.sx = 1 + 0.2 * k; lastHitY = now; lastHitYSpeed = speed; }
-        // Секрет "DVD": справжнє влучання в кут — обидві стінки майже одночасно і на швидкості,
-        // а не коли картка просто лежить у кутку
-        if (Math.abs(lastHitX - lastHitY) < 50 && lastHitXSpeed > 700 && lastHitYSpeed > 700) {
-          secret('dvd');
-          lastHitX = lastHitY = -1e9;
+        const perp = lastWallHit.side && ((/left|right/.test(side)) !== (/left|right/.test(lastWallHit.side)));
+        if (perp && now - lastWallHit.t < 60 && speed > 700 && lastWallHit.speed > 700) secret('dvd');
+        lastWallHit = { side, t: now, speed };
+      }
+
+      function collide() {
+        const W = window.innerWidth, pad = 6;
+        // "Підлога" — над кнопками внизу, щоб картка їх не закривала
+        const actions = document.querySelector('.egg-actions');
+        const H = actions ? Math.min(window.innerHeight, actions.getBoundingClientRect().top - 4) : window.innerHeight;
+        const walls = [
+          { side: 'left', nx: 1, ny: 0, d: pad },
+          { side: 'right', nx: -1, ny: 0, d: -(W - pad) },
+          { side: 'top', nx: 0, ny: 1, d: pad },
+          { side: 'bottom', nx: 0, ny: -1, d: -(H - pad) }
+        ];
+        let touching = false;
+        for (const wall of walls) {
+          // Найглибше занурений кут у цю стінку
+          let worst = null, depth = 0;
+          for (const p of corners()) {
+            const pen = wall.d - (p.px * wall.nx + p.py * wall.ny);
+            if (pen > depth) { depth = pen; worst = p; }
+          }
+          if (!worst) continue;
+          touching = true;
+          // Виштовхуємо з стінки
+          T.x += wall.nx * depth;
+          T.y += wall.ny * depth;
+          if (carrying) continue;
+          // Швидкість точки удару: v + ω × r
+          const w = T.vrot * DEG;
+          const vpx = T.vx - w * worst.ry, vpy = T.vy + w * worst.rx;
+          const vn = vpx * wall.nx + vpy * wall.ny;
+          if (vn >= 0) continue;
+          const I = inertia();
+          const rn = worst.rx * wall.ny - worst.ry * wall.nx;
+          const e = -vn < 120 ? 0 : RESTITUTION;     // повільні дотики не підстрибують — картка лягає
+          const j = (-(1 + e) * vn) / (1 + (rn * rn) / I);
+          applyImpulse(worst.rx, worst.ry, j * wall.nx, j * wall.ny);
+          // Тертя вздовж стінки
+          const tx = -wall.ny, ty = wall.nx;
+          const w2 = T.vrot * DEG;
+          const vt = (T.vx - w2 * worst.ry) * tx + (T.vy + w2 * worst.rx) * ty;
+          const rt = worst.rx * ty - worst.ry * tx;
+          let jt = -vt / (1 + (rt * rt) / I);
+          jt = Math.max(-FRICTION * j, Math.min(FRICTION * j, jt));
+          applyImpulse(worst.rx, worst.ry, jt * tx, jt * ty);
+          onWallHit(wall.side, -vn);
         }
+        return touching;
       }
 
       function physStep(t) {
-        const dt = Math.min((t - T.last) / 1000, 0.032);
+        const dt = Math.min((t - T.last) / 1000, 0.033);
         T.last = t;
         T.base += (FLY_SCALE - T.base) * Math.min(1, dt * 8);
 
-        if (!carrying) {
-          T.vx += grav.x * dt;
-          T.vy += grav.y * dt;
-          T.vx *= Math.pow(0.85, dt);
-          T.vy *= Math.pow(0.85, dt);
-          T.x += T.vx * dt;
-          T.y += T.vy * dt;
-          T.rot += T.vrot * dt;
-          T.vrot *= Math.pow(0.4, dt);
+        const STEPS = 4;
+        const h = dt / STEPS;
+        let touching = false;
+        for (let s = 0; s < STEPS; s++) {
+          if (carrying && carry) {
+            // Пружина між точкою, за яку тримаємо, і пальцем: картка висить і розгойдується
+            const c = Math.cos(T.rot * DEG), sn = Math.sin(T.rot * DEG);
+            const rx = carry.ax * c - carry.ay * sn, ry = carry.ax * sn + carry.ay * c;
+            const px = T.cx + T.x + rx, py = T.cy + T.y + ry;
+            const w = T.vrot * DEG;
+            const vpx = T.vx - w * ry, vpy = T.vy + w * rx;
+            const fx = (carry.fx - px) * 900 - vpx * 38;
+            const fy = (carry.fy - py) * 900 - vpy * 38;
+            T.vx += (fx + grav.x * 0.35) * h;
+            T.vy += (fy + grav.y * 0.35) * h;
+            T.vrot += (((rx * fy - ry * fx) / inertia()) * h) / DEG;
+            T.vrot *= Math.pow(0.2, h);
+          } else {
+            T.vx += grav.x * h;
+            T.vy += grav.y * h;
+            // Опір повітря
+            T.vx *= Math.pow(0.88, h);
+            T.vy *= Math.pow(0.88, h);
+            T.vrot *= Math.pow(0.55, h);
+          }
+          T.x += T.vx * h;
+          T.y += T.vy * h;
+          T.rot += T.vrot * h;
+          touching = collide() || touching;
         }
 
-        // Пружинне відновлення після сплющення (до перевірки меж, щоб хітбокс був точним)
+        // Спокій: дуже повільна картка на краю завмирає (без дрижання)
+        // Лише коли лежить рівно на боці — інакше має докотитися і впасти
+        const tilt = ((T.rot % 90) + 90) % 90;
+        const flat = tilt < 2 || tilt > 88;
+        if (touching && !carrying && flat && Math.hypot(T.vx, T.vy) < 12 && Math.abs(T.vrot) < 8) {
+          T.vx = 0; T.vy = 0; T.vrot = 0;
+        }
+
+        // Пружне відновлення після сплющення
         T.vsx += (-(T.sx - 1) * 900 - T.vsx * 18) * dt;
         T.vsy += (-(T.sy - 1) * 900 - T.vsy * 18) * dt;
         T.sx += T.vsx * dt;
         T.sy += T.vsy * dt;
-
-        // Зіткнення з краями (хітбокс рахується для поточного повороту)
-        let b = bounds();
-        let touching = false;
-        if (T.x < b.minX) { T.x = b.minX; if (!carrying) { impact(Math.abs(T.vx), 'x'); T.vx = Math.abs(T.vx) * 0.6; T.vrot += T.vy * 0.04; } touching = true; }
-        if (T.x > b.maxX) { T.x = b.maxX; if (!carrying) { impact(Math.abs(T.vx), 'x'); T.vx = -Math.abs(T.vx) * 0.6; T.vrot -= T.vy * 0.04; } touching = true; }
-        if (T.y < b.minY) { T.y = b.minY; if (!carrying) { impact(Math.abs(T.vy), 'y'); T.vy = Math.abs(T.vy) * 0.55; } touching = true; }
-        if (T.y > b.maxY) { T.y = b.maxY; if (!carrying) { impact(Math.abs(T.vy), 'y'); T.vy = -Math.abs(T.vy) * 0.5; T.vx *= 0.9; } touching = true; }
-
-        // Коли лежить біля стінки — потроху вирівнюється пласким боком
-        if (touching && !carrying) {
-          const near = Math.round(T.rot / 90) * 90;
-          T.vrot += (near - T.rot) * 12 * dt * 10;
-          T.vrot *= 0.9;
-        }
 
         render();
         physRaf = free ? requestAnimationFrame(physStep) : null;
@@ -4527,8 +4662,8 @@
           const r = fly.getBoundingClientRect();
           Object.assign(T, {
             x: 0, y: 0,
-            vx: v0 ? v0.x : rand(-200, 200), vy: v0 ? v0.y : -500,
-            rot: 0, vrot: v0 ? v0.x / 5 : rand(-120, 120), sx: 1, sy: 1, vsx: 0, vsy: 0, base: 1,
+            vx: v0 ? v0.x : rand(-250, 250), vy: v0 ? v0.y : -700,
+            rot: 0, vrot: v0 ? v0.x / 4 : rand(-200, 200), sx: 1, sy: 1, vsx: 0, vsy: 0, base: 1,
             w: r.width, h: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2
           });
           overlay.classList.add('is-throwing');
@@ -4547,7 +4682,7 @@
           if (physRaf) cancelAnimationFrame(physRaf);
           physRaf = null;
           if (launchBtn) launchBtn.setAttribute('aria-pressed', 'false');
-          if (launchLabel) launchLabel.textContent = 'Політ';
+          if (launchLabel) launchLabel.textContent = 'Кидання';
           if (instant) {
             fly.style.transition = '';
             fly.style.transform = '';
@@ -4557,7 +4692,7 @@
           // Картка повертається на місце з пружинкою
           returning = true;
           const turns = Math.round(T.rot / 360) * 360;
-          fly.style.transform = `translate(${T.x}px, ${T.y}px) scale(${T.base}) rotate(${T.rot - turns}deg)`;
+          fly.style.transform = `translate(${T.x}px, ${T.y}px) rotate(${T.rot - turns}deg) scale(${T.base})`;
           void fly.offsetWidth;
           fly.style.transition = 'transform 0.75s cubic-bezier(0.34, 1.45, 0.64, 1)';
           fly.style.transform = '';
@@ -4585,18 +4720,18 @@
         });
       }
 
-      // Носимо картку пальцем і жбурляємо
+      // Хапаємо картку за конкретну точку — вона висить на пальці і розгойдується
       fly.addEventListener('pointerdown', (e) => {
         if (!free) return;
         e.preventDefault();
         e.stopPropagation();
         carrying = true;
         try { fly.setPointerCapture(e.pointerId); } catch (err) {}
-        carry = { dx: e.clientX - (T.cx + T.x), dy: e.clientY - (T.cy + T.y), lx: e.clientX, ly: e.clientY, lt: performance.now(), vx: 0, vy: 0 };
+        const c = Math.cos(-T.rot * DEG), s = Math.sin(-T.rot * DEG);
+        const dx = e.clientX - (T.cx + T.x), dy = e.clientY - (T.cy + T.y);
+        carry = { ax: dx * c - dy * s, ay: dx * s + dy * c, fx: e.clientX, fy: e.clientY };
         carryTracker.reset();
         carryTracker.push(e.clientX, e.clientY);
-        T.vx = T.vy = 0;
-        T.vrot *= 0.3;
         if (window.easterQuote) window.easterQuote();
         Haptics.tick(10);
         sound('grab');
@@ -4604,26 +4739,18 @@
 
       fly.addEventListener('pointermove', (e) => {
         if (!free || !carrying || !carry) return;
-        const now = performance.now();
-        const dt = Math.max((now - carry.lt) / 1000, 0.004);
-        carry.vx = carry.vx * 0.5 + ((e.clientX - carry.lx) / dt) * 0.5;
-        carry.vy = carry.vy * 0.5 + ((e.clientY - carry.ly) / dt) * 0.5;
-        carry.lx = e.clientX; carry.ly = e.clientY; carry.lt = now;
+        carry.fx = e.clientX;
+        carry.fy = e.clientY;
         carryTracker.push(e.clientX, e.clientY);
-        T.x = e.clientX - carry.dx - T.cx;
-        T.y = e.clientY - carry.dy - T.cy;
-        // Під час перенесення картка трохи нахиляється в бік руху
-        T.rot += (Math.max(-25, Math.min(25, carry.vx / 60)) - T.rot) * 0.15;
       });
 
       const dropCard = () => {
         if (!carrying) return;
         carrying = false;
-        // Інерція: швидкість пальця за останні ~80 мс
+        // Інерція: поєднуємо швидкість пальця і самої картки
         const v = carryTracker.get();
-        T.vx = Math.max(-4500, Math.min(4500, v.x));
-        T.vy = Math.max(-4500, Math.min(4500, v.y));
-        T.vrot = T.vx / 5;
+        T.vx = Math.max(-4500, Math.min(4500, v.x * 0.7 + T.vx * 0.3));
+        T.vy = Math.max(-4500, Math.min(4500, v.y * 0.7 + T.vy * 0.3));
         const sp = Math.hypot(T.vx, T.vy);
         if (sp > 800) {
           stat('throws');
@@ -4741,7 +4868,7 @@
         }
         prevA = { x: a.x, y: a.y, z: a.z };
 
-        // У режимі "Політ" гравітація йде за нахилом телефона — картка їздить по екрану
+        // У режимі "Кидання" гравітація йде за нахилом телефона — картка їздить по екрану
         if (free && e.accelerationIncludingGravity && e.accelerationIncludingGravity.x != null) {
           const sign = isIOS ? -1 : 1;
           const gx = -e.accelerationIncludingGravity.x * sign;
@@ -4758,13 +4885,13 @@
         const eggOpen = overlay && overlay.classList.contains('is-open');
         if (eggOpen) {
           if (window.__egg3dShake && window.__egg3dShake(power)) return;
-          // Режим "Політ": струс розкидає картку по екрану
+          // Режим "Кидання": струс розкидає картку по екрану
           if (free && !carrying) {
             const ang = dir != null ? dir : rand(0, Math.PI * 2);
             const sp = 1400 + power * 1400;
             T.vx += Math.cos(ang) * sp;
             T.vy += Math.sin(ang) * sp - 400;
-            T.vrot += rand(-600, 600);
+            T.vrot += rand(-700, 700);
             sound('splash', 0.7);
             return;
           }
