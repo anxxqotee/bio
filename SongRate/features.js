@@ -1,6 +1,25 @@
 // SongRate — додаткові можливості: аватарки, режими (Рулетка, Батл треків, Вгадай трек, Сліпе оцінювання)
 (() => {
   const $ = (id) => document.getElementById(id);
+  // Векторні іконки (замість емодзі) — спільні для всього SongRate
+  const SR_ICON_PATHS = {
+    dice: '<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>',
+    swords: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4M7 17l-3 3M3 19l2 2"/>',
+    headphones: '<path d="M3 14v-2a9 9 0 0 1 18 0v2"/><rect x="2" y="14" width="5" height="7" rx="2"/><rect x="17" y="14" width="5" height="7" rx="2"/>',
+    eyeoff: '<path d="M9.9 4.2A9.6 9.6 0 0 1 12 4c6.4 0 10 8 10 8a17 17 0 0 1-2.2 3.2M6.6 6.6A16.5 16.5 0 0 0 2 12s3.6 8 10 8a9.3 9.3 0 0 0 5.4-1.6M3 3l18 18"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+    trophy: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M17 5h3a3 3 0 0 1-3 4M7 5H4a3 3 0 0 0 3 4"/>',
+    refresh: '<path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/>',
+    flame: '<path d="M12 22a7 7 0 0 0 7-7c0-4-3-6-4-9-1 2-2 3-4 4 0-2-1-4-2-6-2 3-4 6-4 11a7 7 0 0 0 7 7Z"/>',
+    star: '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9Z"/>',
+    sparkles: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8Z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8Z"/>',
+    home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z"/>',
+    gamepad: '<path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6L2 14.5A3 3 0 0 0 7.3 17l1.2-1.5h7l1.2 1.5a3 3 0 0 0 5.3-2.5l-.7-5.9a4 4 0 0 0-4-3.6Z"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
+  };
+  const SRIcon = (name) => `<svg class="sr-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SR_ICON_PATHS[name] || ''}</svg>`;
+  window.SRIcon = SRIcon;
+
   const LS = {
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
@@ -275,10 +294,10 @@
   }
 
   const MODES = [
-    { id: 'roulette', emoji: '🎲', title: 'Рулетка', desc: 'Крутиш — і оцінюєш альбом, який випав' },
-    { id: 'battle', emoji: '⚔️', title: 'Батл треків', desc: 'Треки альбому б\'ються попарно. Хто переможе?' },
-    { id: 'quiz', emoji: '🎧', title: 'Вгадай трек', desc: '5 секунд уривку з твоїх оцінених треків і схожих' },
-    { id: 'blind', emoji: '🙈', title: 'Сліпе оцінювання', desc: 'Без обкладинки і назв — тільки музика', toggle: true }
+    { id: 'roulette', icon: 'dice', title: 'Рулетка', desc: 'Крутиш — і оцінюєш альбом, який випав' },
+    { id: 'battle', icon: 'swords', title: 'Батл треків', desc: 'Треки альбому б\'ються попарно. Хто переможе?' },
+    { id: 'quiz', icon: 'headphones', title: 'Вгадай трек', desc: '5 секунд уривку з твоїх оцінених треків і схожих' },
+    { id: 'blind', icon: 'eyeoff', title: 'Сліпе оцінювання', desc: 'Без обкладинки і назв — тільки музика', toggle: true }
   ];
 
   function renderModes() {
@@ -291,7 +310,7 @@
       card.className = 'mode-card frosted mode-' + m.id;
       const on = m.toggle && LS.get(BLIND_KEY, false);
       card.innerHTML = `
-        <span class="mode-emoji">${m.emoji}</span>
+        <span class="mode-emoji">${SRIcon(m.icon)}</span>
         <span class="mode-title">${m.title}</span>
         <span class="mode-desc">${m.desc}</span>
         ${m.toggle ? `<span class="mode-switch ${on ? 'is-on' : ''}"><span></span></span>` : '<span class="mode-go">Грати →</span>'}
@@ -308,14 +327,14 @@
       LS.set(BLIND_KEY, on);
       renderModes();
       document.body.classList.toggle('sr-blind-on', on);
-      toast(on ? '🙈 Сліпе оцінювання увімкнено — обкладинку й назви побачиш у кінці' : 'Сліпе оцінювання вимкнено');
+      toast(on ? 'Сліпе оцінювання увімкнено — обкладинку й назви побачиш у кінці' : 'Сліпе оцінювання вимкнено');
     } else if (id === 'roulette') {
       runRoulette();
     } else if (id === 'battle') {
-      openPicker('⚔️ Батл треків: вибери альбом', startBattle);
+      openPicker('Батл треків: вибери альбом', startBattle);
     } else if (id === 'quiz') {
       if (window.SRSmart && SRSmart.startPersonalQuiz) SRSmart.startPersonalQuiz();
-      else openPicker('🎧 Вгадай трек: вибери альбом', startQuiz);
+      else openPicker('Вгадай трек: вибери альбом', startQuiz);
     }
   }
 
@@ -346,7 +365,7 @@
         <div class="roulette-window"><div class="roulette-strip"></div></div>
         <div class="roulette-meta"><span class="roulette-title">Крутимо...</span><span class="roulette-artist"></span></div>
         <div class="roulette-actions hidden">
-          <button class="btn btn-inactive" data-act="again">🎲 Ще раз</button>
+          <button class="btn btn-inactive" data-act="again">${SRIcon('dice')} Ще раз</button>
           <button class="btn btn-inactive" data-act="open">Відкрити</button>
           <button class="btn btn-primary" data-act="rate">Оцінити</button>
         </div>
@@ -576,13 +595,13 @@
     const arena = $('battle-arena');
     arena.innerHTML = `
       <div class="battle-result">
-        <div class="battle-trophy">🏆</div>
+        <div class="battle-trophy">${SRIcon('trophy')}</div>
         <div class="battle-cover big"><img src="${esc(battle.album.artwork)}" alt=""></div>
         <div class="battle-winner-label">Твій найкращий трек</div>
         <div class="battle-winner-title">${esc(winner.title)}</div>
         <ol class="battle-ranking">${ranking.map((t, i) => `<li><span>${i + 1}</span>${esc(t.title)}</li>`).join('')}</ol>
         <div class="battle-actions">
-          <button class="btn btn-inactive" data-act="again">⚔️ Ще раз</button>
+          <button class="btn btn-inactive" data-act="again">${SRIcon('swords')} Ще раз</button>
           <button class="btn btn-inactive" data-act="other">Інший альбом</button>
           <button class="btn btn-primary" data-act="rate">Оцінити альбом</button>
         </div>
@@ -590,7 +609,7 @@
     playPreview(winner.previewUrl, null, 0, 0);
     vibrate([30, 50, 30, 50, 60]);
     arena.querySelector('[data-act="again"]').onclick = () => startBattle(battle.album.id);
-    arena.querySelector('[data-act="other"]').onclick = () => openPicker('⚔️ Батл треків: вибери альбом', startBattle);
+    arena.querySelector('[data-act="other"]').onclick = () => openPicker('Батл треків: вибери альбом', startBattle);
     arena.querySelector('[data-act="rate"]').onclick = () => startAlbumRating(battle.album.id);
   }
 
@@ -622,8 +641,8 @@
     const stage = $('quiz-stage');
     stage.innerHTML = `
       <div class="quiz-head">
-        <span class="badge-tag">🎧 Вгадай трек</span>
-        <div class="quiz-score"><b id="quiz-score">${quiz.score}</b> очок${quiz.streak > 1 ? ` · 🔥 ${quiz.streak}` : ''}</div>
+        <span class="badge-tag">${SRIcon('headphones')} Вгадай трек</span>
+        <div class="quiz-score"><b id="quiz-score">${quiz.score}</b> очок${quiz.streak > 1 ? ` · ${SRIcon('flame')} ${quiz.streak}` : ''}</div>
       </div>
       <div class="quiz-disc-wrap">
         <button class="quiz-disc" id="quiz-disc" aria-label="Слухати уривок">
@@ -664,7 +683,7 @@
       quiz.score += pts;
       btn.classList.add('is-right');
       vibrate(20);
-      toast(`+${pts} ${quiz.streak > 2 ? '🔥' : '✅'}`);
+      toast(quiz.streak > 2 ? `+${pts} · серія ${quiz.streak}` : `+${pts}`);
     } else {
       quiz.streak = 0;
       btn.classList.add('is-wrong');
@@ -689,16 +708,16 @@
     const isRecord = quiz.score > prev;
     if (isRecord) { best[quiz.album.id] = quiz.score; LS.set(key, best); }
     const ratio = quiz.correct / quiz.total;
-    const verdict = ratio === 1 ? 'Ти знаєш цей альбом напам\'ять 🤯' : ratio >= 0.7 ? 'Справжній фанат 🔥' : ratio >= 0.4 ? 'Непогано, але є куди рости 🎧' : 'Схоже, альбом варто переслухати 😅';
+    const verdict = ratio === 1 ? 'Ти знаєш цей альбом напам\'ять' : ratio >= 0.7 ? 'Справжній фанат' : ratio >= 0.4 ? 'Непогано, але є куди рости' : 'Схоже, альбом варто переслухати';
     $('quiz-round-label').textContent = 'Результат';
     $('quiz-stage').innerHTML = `
       <div class="battle-result">
-        <div class="battle-trophy">${ratio >= 0.7 ? '🏆' : '🎧'}</div>
+        <div class="battle-trophy">${SRIcon(ratio >= 0.7 ? 'trophy' : 'headphones')}</div>
         <div class="quiz-final-score">${quiz.score}</div>
         <div class="battle-winner-label">${quiz.correct} з ${quiz.total} правильно${isRecord ? ' · новий рекорд!' : prev ? ` · рекорд ${prev}` : ''}</div>
         <div class="battle-winner-title">${verdict}</div>
         <div class="battle-actions">
-          <button class="btn btn-inactive" data-act="again">🔁 Ще раз</button>
+          <button class="btn btn-inactive" data-act="again">${SRIcon('refresh')} Ще раз</button>
           <button class="btn btn-inactive" data-act="other">Інший альбом</button>
           <button class="btn btn-primary" data-act="rate">Оцінити альбом</button>
         </div>
@@ -706,7 +725,7 @@
     vibrate(isRecord ? [30, 50, 30, 50, 80] : 20);
     const s = $('quiz-stage');
     s.querySelector('[data-act="again"]').onclick = () => startQuiz(quiz.album.id);
-    s.querySelector('[data-act="other"]').onclick = () => openPicker('🎧 Вгадай трек: вибери альбом', startQuiz);
+    s.querySelector('[data-act="other"]').onclick = () => openPicker('Вгадай трек: вибери альбом', startQuiz);
     s.querySelector('[data-act="rate"]').onclick = () => startAlbumRating(quiz.album.id);
   }
 

@@ -196,7 +196,7 @@
       SR.setBlind(!isBlind());
       sync();
       vibrate(10);
-      showToast(isBlind() ? '🙈 Сліпе оцінювання: обкладинки й назви сховані до кінця оцінки' : '👀 Сліпе оцінювання вимкнено');
+      showToast(isBlind() ? 'Сліпе оцінювання: обкладинки й назви сховані до кінця оцінки' : '👀 Сліпе оцінювання вимкнено');
       if (isViewVisible('view-rating')) document.body.classList.toggle('sr-blind-active', isBlind());
     });
     sync();
@@ -215,7 +215,7 @@
       btn = document.createElement('button');
       btn.id = 'btn-blind-reveal';
       btn.className = 'btn btn-primary blind-reveal-btn';
-      btn.innerHTML = '🙈 Хто ж це був? <b>Відкрити</b>';
+      btn.innerHTML = `${SRIcon('eyeoff')} Хто ж це був? <b>Відкрити</b>`;
       view.querySelector('.summary-hero-bar').appendChild(btn);
       btn.addEventListener('click', () => {
         view.classList.remove('sr-reveal-pending');
@@ -307,8 +307,8 @@
     const label = (o) => `<span class="opt-title">${esc(o.title)}</span><span class="opt-artist">${esc(o.artist)}</span>`;
     $('quiz-stage').innerHTML = `
       <div class="quiz-head">
-        <span class="badge-tag">${t.from === 'rated' ? '⭐ З твоїх оцінок' : '✨ Схоже на твій смак'}</span>
-        <div class="quiz-score"><b id="quiz-score">${quiz.score}</b> очок${quiz.streak > 1 ? ` · 🔥 ${quiz.streak}` : ''}</div>
+        <span class="badge-tag">${t.from === 'rated' ? SRIcon('star') + ' З твоїх оцінок' : SRIcon('sparkles') + ' Схоже на твій смак'}</span>
+        <div class="quiz-score"><b id="quiz-score">${quiz.score}</b> очок${quiz.streak > 1 ? ` · ${SRIcon('flame')} ${quiz.streak}` : ''}</div>
       </div>
       <div class="quiz-disc-wrap">
         <button class="quiz-disc" id="quiz-disc" aria-label="Слухати уривок">
@@ -340,7 +340,7 @@
       quiz.score += pts;
       btn.classList.add('is-right');
       vibrate(20);
-      showToast(`+${pts} ${quiz.streak > 2 ? '🔥' : '✅'}`);
+      showToast(quiz.streak > 2 ? `+${pts} · серія ${quiz.streak}` : `+${pts}`);
     } else {
       quiz.streak = 0;
       btn.classList.add('is-wrong');
@@ -365,17 +365,17 @@
     const isRecord = quiz.score > best;
     if (isRecord) try { localStorage.setItem('songrate_quiz_personal_best', String(quiz.score)); } catch (e) {}
     const ratio = quiz.correct / quiz.total;
-    const verdict = ratio === 1 ? 'Ти знаєш свою музику напам\'ять 🤯' : ratio >= 0.7 ? 'Справжній меломан 🔥' : ratio >= 0.4 ? 'Непогано, але є куди рости 🎧' : 'Схоже, час переслухати улюблене 😅';
+    const verdict = ratio === 1 ? 'Ти знаєш свою музику напам\'ять' : ratio >= 0.7 ? 'Справжній меломан' : ratio >= 0.4 ? 'Непогано, але є куди рости' : 'Схоже, час переслухати улюблене';
     $('quiz-round-label').textContent = 'Результат';
     $('quiz-stage').innerHTML = `
       <div class="battle-result">
-        <div class="battle-trophy">${ratio >= 0.7 ? '🏆' : '🎧'}</div>
+        <div class="battle-trophy">${SRIcon(ratio >= 0.7 ? 'trophy' : 'headphones')}</div>
         <div class="quiz-final-score">${quiz.score}</div>
         <div class="battle-winner-label">${quiz.correct} з ${quiz.total} правильно${isRecord ? ' · новий рекорд!' : best ? ` · рекорд ${best}` : ''}</div>
         <div class="battle-winner-title">${verdict}</div>
         <div class="battle-actions">
           <button class="btn btn-inactive" id="quiz-home">На головну</button>
-          <button class="btn btn-primary" id="quiz-again">🔁 Ще раз</button>
+          <button class="btn btn-primary" id="quiz-again">${SRIcon('refresh')} Ще раз</button>
         </div>
       </div>`;
     vibrate(isRecord ? [30, 50, 30, 50, 80] : 20);
@@ -406,7 +406,7 @@
       <img class="hero-avatar" src="${esc(SR.myAvatar())}" alt="">
       <div class="hero-text">
         <div class="hero-hi">${hi}, <b>@${esc(State.username)}</b></div>
-        <div class="hero-sub">${h.length ? (fav ? `Твій фаворит зараз — ${esc(fav)}` : 'Продовжуй оцінювати — рекомендації вчаться') : 'Почни з будь-якого альбому нижче або спробуй режими 👇'}</div>
+        <div class="hero-sub">${h.length ? (fav ? `Твій фаворит зараз — ${esc(fav)}` : 'Продовжуй оцінювати — рекомендації вчаться') : 'Почни з будь-якого альбому нижче або спробуй режими'}</div>
       </div>
       <div class="hero-stats">
         <div><b>${h.length}</b><span>${typeof pluralizeRatings === 'function' ? pluralizeRatings(h.length) : 'оцінок'}</span></div>
@@ -421,10 +421,10 @@
     nav.id = 'bottom-nav';
     nav.className = 'bottom-nav frosted';
     nav.innerHTML = `
-      <button data-nav="home" class="is-active"><span class="bn-ico">🏠</span><span>Головна</span></button>
-      <button data-nav="modes"><span class="bn-ico">🎮</span><span>Режими</span></button>
-      <button data-nav="search"><span class="bn-ico">🔍</span><span>Пошук</span></button>
-      <button data-nav="profile"><span class="bn-ico">👤</span><span>Профіль</span></button>`;
+      <button data-nav="home" class="is-active"><span class="bn-ico">${SRIcon('home')}</span><span>Головна</span></button>
+      <button data-nav="modes"><span class="bn-ico">${SRIcon('gamepad')}</span><span>Режими</span></button>
+      <button data-nav="search"><span class="bn-ico">${SRIcon('search')}</span><span>Пошук</span></button>
+      <button data-nav="profile"><span class="bn-ico">${SRIcon('user')}</span><span>Профіль</span></button>`;
     document.body.appendChild(nav);
     nav.addEventListener('click', (e) => {
       const b = e.target.closest('[data-nav]');

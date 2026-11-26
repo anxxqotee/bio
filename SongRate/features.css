@@ -1199,3 +1199,68 @@ body.sr-blind-on .battle-card .battle-cover img {
     left: 6px;
   }
 }
+
+/* ---------- Векторні іконки ---------- */
+.sr-ic {
+  width: 1.15em;
+  height: 1.15em;
+  flex-shrink: 0;
+  vertical-align: -0.2em;
+}
+
+.badge-tag .sr-ic {
+  width: 1.1em;
+  height: 1.1em;
+  margin-right: 2px;
+}
+
+.mode-emoji {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--mode-a, #8b5cf6), var(--mode-b, #6d28d9));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.mode-emoji .sr-ic {
+  width: 24px;
+  height: 24px;
+}
+
+.mode-roulette { --mode-a: #fbbf24; --mode-b: #f97316; }
+.mode-battle { --mode-a: #fb7185; --mode-b: #e11d48; }
+.mode-quiz { --mode-a: #38bdf8; --mode-b: #2563eb; }
+.mode-blind { --mode-a: #a78bfa; --mode-b: #7c3aed; }
+
+.battle-trophy .sr-ic {
+  width: 64px;
+  height: 64px;
+  color: #fbbf24;
+  filter: drop-shadow(0 6px 18px rgba(251, 191, 36, 0.45));
+}
+
+.bn-ico .sr-ic {
+  width: 22px;
+  height: 22px;
+}
+
+.quiz-score .sr-ic {
+  color: #fb923c;
+}
+
+@media (max-width: 768px) {
+  .mode-emoji {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .mode-emoji .sr-ic {
+    width: 21px;
+    height: 21px;
+  }
+}
