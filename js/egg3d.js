@@ -208,8 +208,10 @@
   }
 
   // Удар: тріщини на екрані (якщо вдарився сильно) і вм'ятина в точці контакту
+  let enabledAt = 0;
   function damage(contactWorld, normalWorld, impact) {
-    if (impact < 5) return;
+    // Вхідне падіння не ламає телефон
+    if (impact < 5 || performance.now() - enabledAt < 2500) return;
     const k = Math.min((impact - 5) / 14, 1);
     lastHitAt = performance.now();
     wasDamaged = true;
@@ -272,6 +274,8 @@
     scene.add(sun);
     scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
+    room = new THREE.Group();
+    scene.add(room);
     floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.45 }));
     floorMesh.rotation.x = -Math.PI / 2;
     floorMesh.receiveShadow = true;
@@ -356,11 +360,57 @@
     TOP = halfH * 1.4;
     target.y = FLOOR * 0.35;
     if (floorMesh) floorMesh.position.y = FLOOR;
+    buildRoom();
     placeCamera();
   }
 
+  // Видима "кімната": підлога з сіткою, задня й бічні стіни, світні ребра
+  let room = null;
+  function buildRoom() {
+    if (!room) return;
+    while (room.children.length) {
+      const c = room.children.pop();
+      c.geometry && c.geometry.dispose();
+    }
+    const W = XW * 2, D = ZW * 2, Hh = TOP - FLOOR;
+    const edgeCol = 0x7fd6ff;
+    // Підлога
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({
+      color: 0x1a2230, roughness: 0.85, metalness: 0.05, transparent: true, opacity: 0.55
+    }));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set(0, FLOOR - 0.002, 0);
+    floor.receiveShadow = true;
+    room.add(floor);
+    const grid = new THREE.GridHelper(Math.max(W, D), Math.round(Math.max(W, D) / 0.5), edgeCol, edgeCol);
+    grid.scale.set(W / Math.max(W, D), 1, D / Math.max(W, D));
+    grid.position.y = FLOOR;
+    grid.material.transparent = true;
+    grid.material.opacity = 0.12;
+    room.add(grid);
+    // Стіни: задня і бічні (передню не малюємо — через неї дивимось)
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x223044, roughness: 0.9, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false });
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(W, Hh), wallMat);
+    back.position.set(0, FLOOR + Hh / 2, -ZW);
+    back.receiveShadow = true;
+    room.add(back);
+    [-1, 1].forEach((sx) => {
+      const side = new THREE.Mesh(new THREE.PlaneGeometry(D, Hh), wallMat);
+      side.rotation.y = Math.PI / 2;
+      side.position.set(sx * XW, FLOOR + Hh / 2, 0);
+      room.add(side);
+    });
+    // Світні ребра кімнати
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(W, Hh, D)),
+      new THREE.LineBasicMaterial({ color: edgeCol, transparent: true, opacity: 0.55 })
+    );
+    edges.position.set(0, FLOOR + Hh / 2, 0);
+    room.add(edges);
+  }
+
   function placeCamera() {
-    const yaw = camYaw + gy, pitch = clamp(camPitch + gx, 0.08, 1.25);
+    const yaw = 0, pitch = 0.42;   // камера нерухома
     camera.position.set(
       target.x + Math.sin(yaw) * Math.cos(pitch) * camR,
       target.y + Math.sin(pitch) * camR,
@@ -537,13 +587,6 @@
   // ---------- Увімкнення / вимкнення ----------
   async function enable() {
     if (loading) return;
-    let permission = Promise.resolve('granted');
-    try {
-      if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        permission = DeviceOrientationEvent.requestPermission().catch(() => 'denied');
-      }
-    } catch (e) {}
-
     if (!ready) {
       loading = true;
       btn.classList.add('is-loading');
@@ -572,8 +615,9 @@
     btn.setAttribute('aria-pressed', 'true');
     label.textContent = '2D';
     resize();
+    enabledAt = performance.now();
     drop();
-    permission.then((r) => { if (r === 'granted' && on) window.addEventListener('deviceorientation', onOrient); });
+    // Акселерометр/гіроскоп у 3D не використовуємо
     Haptics.pattern([10, 40, 10, 40, 20]);
     if (fun()) { fun().setFree(false, true); fun().stat('threeD'); fun().askMotion(); }
     if (!rafId) { prevT = performance.now(); rafId = requestAnimationFrame(frame); }
@@ -599,13 +643,8 @@
   overlay.addEventListener('eggclose', () => { if (on) disable(); });
 
   // Струс телефона — телефон на екрані підкидає
-  window.__egg3dShake = (power) => {
-    if (!on || !ready) return false;
-    const a = Math.random() * Math.PI * 2;
-    B.vel.add(new THREE.Vector3(Math.cos(a) * 4, 7 + 4 * power, Math.sin(a) * 3).multiplyScalar(power));
-    B.w.add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(16 * power));
-    return true;
-  };
+  // Акселерометр у 3D вимкнено: струс телефона тут нічого не робить
+  window.__egg3dShake = () => on && ready;
 
   // ---------- Дотики ----------
   function ray(clientX, clientY) {
@@ -636,7 +675,7 @@
       Haptics.tick(10);
       sound('grab');
     } else {
-      mode = 'orbit';
+      mode = null;   // тягнути по фону нічого не робить — камера нерухома
       vYaw = vPitch = 0;
     }
   });
