@@ -1861,6 +1861,75 @@
 
 
     /* Сповіщення про досягнення */
+    /* Сайт після вибуху: все лежить купою, нічого не працює */
+    .site-wrecked,
+    .site-wrecked body {
+      overflow: hidden !important;
+      touch-action: none;
+      overscroll-behavior: none;
+    }
+
+    .site-wrecked #mainContainer,
+    .site-wrecked #mainContainer * {
+      pointer-events: none !important;
+    }
+
+    .site-wrecked .easter-spacer {
+      visibility: hidden;
+    }
+
+    .wreck-crack {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      border-radius: inherit;
+      background-size: 100% 100%;
+      animation: wreckCrackIn 0.25s ease-out both;
+    }
+
+    @keyframes wreckCrackIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .is-wrecked {
+      filter: saturate(0.6) brightness(0.92);
+    }
+
+    .wreck-restart {
+      position: fixed;
+      top: calc(18px + env(safe-area-inset-top, 0px));
+      left: 50%;
+      z-index: 9500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--card-border);
+      background: var(--egg-surface, var(--bg));
+      color: var(--text);
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+      translate: -50% 0;
+      rotate: -3deg;
+      white-space: nowrap;
+      animation: wreckBtnIn 0.7s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    }
+
+    .wreck-restart svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    @keyframes wreckBtnIn {
+      from { opacity: 0; translate: -50% -30px; rotate: 8deg; }
+      to { opacity: 1; translate: -50% 0; rotate: -3deg; }
+    }
+
     .egg-toasts {
       position: fixed;
       top: calc(68px + env(safe-area-inset-top, 0px));
@@ -2782,6 +2851,7 @@
       }
 
       function openEgg() {
+        if (window.__siteWrecked) return;
         done = true;
         pullStartY = null;
         ring.classList.remove('is-dragging');
@@ -2804,6 +2874,8 @@
         done = false;
         render(0, false);
       }
+
+      window.__closeEgg = closeEgg;
 
       // Вихід — лише кнопкою справа зверху (або Esc на ПК); тап по фону нічого не закриває
       const closeBtn = document.getElementById('eggClose');
@@ -3564,14 +3636,15 @@
         sparkles: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8Z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8Z"/>',
         crown: '<path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5Z"/>',
         lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
-        help: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>'
+        help: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
+        skull: '<path d="M12 3a8 8 0 0 0-8 8c0 2.6 1.2 4.4 3 5.5V20a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-3.5c1.8-1.1 3-2.9 3-5.5a8 8 0 0 0-8-8Z"/><circle cx="9" cy="11.5" r="1.6"/><circle cx="15" cy="11.5" r="1.6"/><path d="M10.5 21v-2.5M13.5 21v-2.5"/>'
       };
       const svgIcon = (name) => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ICON_PATHS.sparkles}</svg>`;
       const ACH_ICON = {
         open: 'search', stretch10: 'stretch', stretch100: 'infinity', maxpull: 'dumbbell', quotes20: 'book', quotes100: 'chat',
         '3d': 'cube', flips50: 'refresh', throw: 'throw', bounce50: 'bounce', pop: 'bomb', pop10: 'flame', shake: 'phone',
         shake20: 'cocktail', s_hold: 'hand', s_dvd: 'disc', s_night: 'moon', s_heli: 'fan', s_avatar: 'chip', s_footer: 'eye',
-        s_disco: 'sparkles', all: 'crown'
+        s_disco: 'sparkles', s_wreck: 'skull', all: 'crown'
       };
 
       // ---------- Статистика (зберігається в браузері) ----------
@@ -3606,7 +3679,8 @@
         { id: 's_heli',   secret: true, emoji: '🚁', title: 'Вертоліт',            desc: 'Розкрутив 3D-картку на 15 обертів за 4 с', ok: hasSecret('heli') },
         { id: 's_avatar', secret: true, emoji: '👾', title: 'Хакер аватарки',      desc: '7 разів тапнув по аватарці',             ok: hasSecret('avatar') },
         { id: 's_footer', secret: true, emoji: '🧐', title: 'Читаю дрібний шрифт', desc: '5 разів тапнув по підпису внизу сайту',  ok: hasSecret('footer') },
-        { id: 's_disco',  secret: true, emoji: '🪩', title: 'Дискотека',           desc: '8 разів швидко перемкнув тему',          ok: hasSecret('disco') }
+        { id: 's_disco',  secret: true, emoji: '🪩', title: 'Дискотека',           desc: '8 разів швидко перемкнув тему',          ok: hasSecret('disco') },
+        { id: 's_wreck',  secret: true, emoji: '💀', title: 'Ну шо ти наробив...', desc: 'Підірвав картинку разом з усім сайтом',  ok: hasSecret('wreck') }
       );
       ACH.push({ id: 'all', emoji: '👑', title: 'Еліта телеграм-каналу', desc: 'Відкрий усі досягнення',
         ok: () => ACH.every((a) => a.id === 'all' || stats.unlocked.includes(a.id)) });
@@ -4145,6 +4219,186 @@
         return true;
       }
 
+      // ---------- Руйнування сайту після вибуху ----------
+      function crackSVG(w, h) {
+        const ix = w * rand(0.2, 0.8), iy = h * rand(0.25, 0.75);
+        let paths = '';
+        const n = 5 + Math.floor(Math.random() * 4);
+        for (let i = 0; i < n; i++) {
+          let a = (i / n) * Math.PI * 2 + rand(-0.3, 0.3);
+          let x = ix, y = iy, d = `M${x.toFixed(1)} ${y.toFixed(1)}`;
+          const len = Math.max(w, h) * rand(0.25, 0.7);
+          const steps = 4 + Math.floor(Math.random() * 3);
+          for (let k = 0; k < steps; k++) {
+            a += rand(-0.5, 0.5);
+            x += Math.cos(a) * len / steps; y += Math.sin(a) * len / steps;
+            d += ` L${x.toFixed(1)} ${y.toFixed(1)}`;
+            if (Math.random() < 0.3) {
+              const b = a + rand(0.6, 1.1) * (Math.random() < 0.5 ? -1 : 1);
+              paths += `<path d="M${x.toFixed(1)} ${y.toFixed(1)} l${(Math.cos(b) * len * 0.25).toFixed(1)} ${(Math.sin(b) * len * 0.25).toFixed(1)}"/>`;
+            }
+          }
+          paths += `<path d="${d}"/>`;
+        }
+        // Кільце навколо точки удару
+        let ring = '';
+        for (let i = 0; i < 7; i++) {
+          const a = (i / 7) * Math.PI * 2, r = Math.min(w, h) * rand(0.12, 0.2);
+          ring += `${i ? 'L' : 'M'}${(ix + Math.cos(a) * r).toFixed(1)} ${(iy + Math.sin(a) * r).toFixed(1)} `;
+        }
+        paths += `<path d="${ring}Z"/>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" stroke-linecap="round" stroke-linejoin="round">` +
+          `<g stroke="rgba(0,0,0,0.55)" stroke-width="2.4">${paths}</g><g stroke="rgba(255,255,255,0.85)" stroke-width="1" transform="translate(-0.8 -0.8)">${paths}</g></svg>`;
+      }
+
+      function wreckSite() {
+        if (window.__siteWrecked) return;
+        window.__siteWrecked = true;
+        const root = document.documentElement;
+        root.classList.add('site-wrecked');
+        const ringEl = document.getElementById('pullRing');
+        if (ringEl) ringEl.style.display = 'none';
+
+        const sel = ['.theme-toggle', '.avatar-wrapper', '.profile-title', '.username-badge', '.profile-desc', '.link-item-wrapper', '.footer'];
+        const els = [];
+        sel.forEach((q) => document.querySelectorAll('#mainContainer ' + q).forEach((el) => els.push(el)));
+        const W = window.innerWidth, H = window.innerHeight;
+        const cx = W / 2, cy = H * 0.45;
+
+        const bodies = els.map((el) => {
+          const r = el.getBoundingClientRect();
+          el.style.animation = 'none';
+          el.style.opacity = '1';
+          el.style.transition = 'none';
+          el.style.willChange = 'transform';
+          const b = { el, w: r.width, h: r.height, x0: r.left + r.width / 2, y0: r.top + r.height / 2 };
+          b.x = b.x0; b.y = b.y0;
+          // Те, що далеко за екраном, падає згори з невеликою затримкою
+          if (b.y > H + b.h) { b.y = -b.h - rand(0, H * 0.5); }
+          else if (b.y < -H * 0.6) { b.y = -b.h - rand(0, H * 0.6); }
+          const dx = b.x - cx, dy = b.y - cy, dist = Math.hypot(dx, dy) || 1;
+          const sp = rand(500, 1300) * (b.w > W * 0.6 ? 0.6 : 1);
+          b.vx = (dx / dist) * sp + rand(-200, 200);
+          b.vy = (dy / dist) * sp - rand(300, 800);
+          b.a = 0;
+          b.va = rand(-7, 7) * (b.w > W * 0.6 ? 0.35 : 1);
+          b.rest = false;
+          return b;
+        });
+
+        // Частина блоків ламається: тріщини і відколотий кут
+        const breakable = bodies.filter((b) => b.el.matches('.link-item-wrapper, .avatar-wrapper, .username-badge'));
+        breakable.forEach((b) => {
+          if (Math.random() > 0.55) return;
+          const target = b.el.querySelector('.link-card') || b.el;
+          if (getComputedStyle(target).position === 'static') target.style.position = 'relative';
+          const crack = document.createElement('div');
+          crack.className = 'wreck-crack';
+          crack.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(crackSVG(Math.round(b.w), Math.round(b.h)))}")`;
+          target.appendChild(crack);
+          if (Math.random() < 0.6) {
+            const c = Math.floor(Math.random() * 4), k = rand(10, 22);
+            const poly = [
+              `${c === 0 ? k : 0}% 0%`, `${c === 1 ? 100 - k : 100}% 0%`,
+              ...(c === 1 ? [`100% ${k * 1.6}%`] : []), `100% ${c === 2 ? 100 - k * 1.6 : 100}%`,
+              ...(c === 2 ? [`${100 - k}% 100%`] : []), `${c === 3 ? k : 0}% 100%`,
+              ...(c === 3 ? [`0% ${100 - k * 1.6}%`] : []), ...(c === 0 ? [`0% ${k * 1.6}%`] : [])
+            ];
+            target.style.clipPath = `polygon(${poly.join(',')})`;
+          }
+          target.classList.add('is-wrecked');
+        });
+
+        // Купа: карта висот по колонках шириною 4px
+        const COL = 4, cols = Math.ceil(W / COL) + 1;
+        const surf = new Array(cols).fill(H);
+        const span = (b) => {
+          const c = Math.abs(Math.cos(b.a)), s = Math.abs(Math.sin(b.a));
+          return { hw: (b.w * c + b.h * s) / 2, hh: (b.w * s + b.h * c) / 2 };
+        };
+        const surfaceUnder = (x0, x1) => {
+          let m = H;
+          for (let i = Math.max(0, Math.floor(x0 / COL)); i <= Math.min(cols - 1, Math.floor(x1 / COL)); i++) m = Math.min(m, surf[i]);
+          return m;
+        };
+
+        let last = performance.now();
+        const G = 2600;
+        function step(now) {
+          const dt = Math.min((now - last) / 1000, 0.033);
+          last = now;
+          let moving = 0;
+          // Ті, що нижче, лягають першими
+          bodies.sort((p, q) => q.y - p.y);
+          for (const b of bodies) {
+            if (b.rest) {
+              if (b.settle < 1) {
+                b.settle = Math.min(1, b.settle + dt * 6);
+                b.a += (b.ta - b.a) * Math.min(1, dt * 14);
+                b.y += (b.ty - b.y) * Math.min(1, dt * 14);
+                moving++;
+              }
+              continue;
+            }
+            moving++;
+            b.vy += G * dt;
+            b.vx *= 0.995;
+            b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.va * dt;
+            let { hw, hh } = span(b);
+            // Стіни
+            if (b.x - hw < 0) { b.x = Math.min(hw, W / 2); b.vx = Math.abs(b.vx) * 0.4; b.va *= -0.6; }
+            if (b.x + hw > W) { b.x = Math.max(W - hw, W / 2); b.vx = -Math.abs(b.vx) * 0.4; b.va *= -0.6; }
+            if (b.vy <= 0) continue;
+            const floor = surfaceUnder(b.x - hw, b.x + hw);
+            if (b.y + hh >= floor) {
+              if (b.vy > 520) {
+                b.y = floor - hh;
+                b.vy = -b.vy * 0.28;
+                b.vx *= 0.6;
+                b.va = b.va * 0.5 + rand(-3, 3) * (b.w > W * 0.6 ? 0.3 : 1);
+                if (b.w > 120) { sound('thud', Math.min(b.vy / -500, 1)); Haptics.tick(10); }
+                continue;
+              }
+              // Лягає: найближче "плоске" положення + нахил по нерівній купі
+              const flat = Math.round(b.a / Math.PI) * Math.PI;
+              const l = surfaceUnder(b.x - b.w / 2, b.x), r = surfaceUnder(b.x, b.x + b.w / 2);
+              let tilt = Math.atan2(r - l, b.w) * 0.8 + rand(-0.2, 0.2);
+              tilt = Math.max(-0.45, Math.min(0.45, tilt));
+              b.ta = flat + tilt;
+              b.rest = true; b.settle = 0;
+              const cs = Math.max(Math.abs(Math.cos(tilt)), 0.3), tn = Math.tan(tilt);
+              const half = (b.w / 2) * cs + (b.h / 2) * Math.abs(Math.sin(tilt));
+              b.x = Math.max(half, Math.min(W - half, b.x));
+              const i0 = Math.max(0, Math.floor((b.x - half) / COL)), i1 = Math.min(cols - 1, Math.floor((b.x + half) / COL));
+              // Нижня і верхня грані нахиленого прямокутника відносно центру
+              const bot = (x) => b.h / (2 * cs) + (x - b.x) * tn;
+              let ty = Infinity;
+              for (let i = i0; i <= i1; i++) ty = Math.min(ty, surf[i] - bot(i * COL));
+              b.ty = ty;
+              for (let i = i0; i <= i1; i++) {
+                const x = i * COL;
+                surf[i] = Math.min(surf[i], ty - b.h / (2 * cs) + (x - b.x) * tn);
+              }
+            }
+          }
+          for (const b of bodies) {
+            b.el.style.transform = `translate3d(${(b.x - b.x0).toFixed(1)}px, ${(b.y - b.y0).toFixed(1)}px, 0) rotate(${b.a.toFixed(4)}rad)`;
+          }
+          if (moving) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+
+        // Кнопка перезапуску
+        setTimeout(() => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'wreck-restart';
+          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>Перезапустити сайт</span>';
+          btn.addEventListener('click', () => location.reload());
+          document.body.appendChild(btn);
+        }, 2600);
+      }
+
       function pop() {
         popping = true;
         clearTimeout(deflateTimer);
@@ -4158,6 +4412,12 @@
         puff.classList.remove('is-inflating');
         puff.style.filter = '';
         puff.classList.add('is-popping');
+        // Вибух зносить увесь сайт
+        setTimeout(() => {
+          if (window.__closeEgg) window.__closeEgg();
+          wreckSite();
+          secret('wreck');
+        }, 420);
         setTimeout(() => {
           puff.classList.remove('is-popping');
           puff.style.scale = '';
