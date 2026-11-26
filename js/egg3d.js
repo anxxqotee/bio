@@ -24,8 +24,16 @@
   // ---------- Тверде тіло ----------
   const PHONE_H = 3.2;                       // висота телефона у світових одиницях
   let B = null;                              // { pos, vel, quat, w, half, invI }
-  const GRAV = 16;
-  const RESTITUTION = 0.42, FRICTION = 0.5;
+  // Важкий, як справжній: швидко падає, слабко відскакує, сильне тертя
+  const GRAV = 24;
+  const RESTITUTION = 0.26, FRICTION = 0.65;
+
+  // ---------- Пошкодження ----------
+  const REPAIR_AFTER = 15000;   // через скільки мс після останнього удару починається відновлення
+  const deformMeshes = [];      // { mesh, orig: Float32Array, entries: [] }
+  const dents = [];             // { amp, entries: [{m, cx,cy,cz, dx,dy,dz, inv, k}] }
+  let lastHitAt = 0, deformDirty = false, crackAlpha = 0, wasDamaged = false;
+  let screen = null;            // { base, crack, out, ctx, tex }
 
   // ---------- Сцена й камера ----------
   let FLOOR = -2, XW = 2, ZW = 2.2, TOP = 4;
@@ -74,10 +82,170 @@
     g.font = '600 120px -apple-system, "SF Pro Display", Roboto, sans-serif';
     g.textAlign = 'center';
     g.fillText('9:41', c.width / 2, 300);
-    const t = new THREE.CanvasTexture(c);
+    // Окремий шар для тріщин і підсумкове полотно
+    const crack = document.createElement('canvas');
+    crack.width = c.width; crack.height = c.height;
+    const out = document.createElement('canvas');
+    out.width = c.width; out.height = c.height;
+    const ctx = out.getContext('2d');
+    ctx.drawImage(c, 0, 0);
+    const t = new THREE.CanvasTexture(out);
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 4;
+    screen = { base: c, crack, out, ctx, tex: t };
     return t;
+  }
+
+  function composeScreen() {
+    if (!screen) return;
+    const { ctx, base, crack, out, tex } = screen;
+    ctx.globalAlpha = 1;
+    ctx.drawImage(base, 0, 0);
+    if (crackAlpha > 0.01) {
+      ctx.globalAlpha = crackAlpha;
+      ctx.drawImage(crack, 0, 0);
+      ctx.globalAlpha = 1;
+    }
+    tex.needsUpdate = true;
+  }
+
+  // Тріщина-"павутинка": промені з ламаними лініями і кілька кілець
+  function drawCrack(u, v, power) {
+    const g = screen.crack.getContext('2d');
+    const W = screen.crack.width, H = screen.crack.height;
+    const x0 = u * W, y0 = v * H;
+    const rays = 7 + Math.round(power * 9);
+    const len = 160 + power * 520;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    const paths = [];
+    for (let i = 0; i < rays; i++) {
+      const a = (i / rays) * Math.PI * 2 + Math.random() * 0.5;
+      let x = x0, y = y0, d = 0;
+      const pts = [[x, y]];
+      const L = len * (0.5 + Math.random() * 0.7);
+      while (d < L) {
+        const step = 18 + Math.random() * 34;
+        const aa = a + (Math.random() - 0.5) * 0.6;
+        x += Math.cos(aa) * step; y += Math.sin(aa) * step; d += step;
+        pts.push([x, y]);
+      }
+      paths.push(pts);
+    }
+    const stroke = (w, col) => {
+      g.strokeStyle = col; g.lineWidth = w;
+      paths.forEach((pts) => { g.beginPath(); pts.forEach(([x, y], k) => (k ? g.lineTo(x, y) : g.moveTo(x, y))); g.stroke(); });
+    };
+    stroke(5, 'rgba(0,0,0,0.35)');
+    stroke(2, 'rgba(255,255,255,0.85)');
+    // Кільця між променями
+    const rings = 1 + Math.round(power * 3);
+    for (let r = 1; r <= rings; r++) {
+      const rad = (len / (rings + 1)) * r * (0.6 + Math.random() * 0.3);
+      g.beginPath();
+      for (let k = 0; k <= rays; k++) {
+        const a = (k / rays) * Math.PI * 2;
+        const rr = rad * (0.85 + Math.random() * 0.3);
+        const x = x0 + Math.cos(a) * rr, y = y0 + Math.sin(a) * rr;
+        k ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.strokeStyle = 'rgba(255,255,255,0.55)';
+      g.lineWidth = 1.5;
+      g.stroke();
+    }
+    // Місце удару — побите скло
+    g.fillStyle = 'rgba(255,255,255,0.25)';
+    g.beginPath(); g.arc(x0, y0, 10 + power * 18, 0, Math.PI * 2); g.fill();
+  }
+
+  // Вм'ятина: точка удару і напрям у координатах кожної деталі моделі (тому вона "прилипає" до корпусу)
+  function addDent(worldPoint, worldDir, depth) {
+    const entries = [];
+    const p2 = worldPoint.clone().add(worldDir);
+    const sigmaWorld = 0.35 + depth * 2;
+    for (const m of deformMeshes) {
+      const c = m.mesh.worldToLocal(worldPoint.clone());
+      const e = m.mesh.worldToLocal(p2.clone()).sub(c).normalize();
+      const scale = m.mesh.matrixWorld.getMaxScaleOnAxis() || 1;
+      const sig = sigmaWorld / scale;
+      const entry = { cx: c.x, cy: c.y, cz: c.z, dx: e.x, dy: e.y, dz: e.z, inv: 1 / (2 * sig * sig), k: 1 / scale, cut: 9 * sig * sig };
+      m.entries.push(entry);
+      entries.push({ m, entry });
+    }
+    dents.push({ amp: depth, entries });
+    // Не більше 8 вм'ятин — найстаріша "зливається"
+    if (dents.length > 8) {
+      const old = dents.shift();
+      old.entries.forEach(({ m, entry }) => { m.entries.splice(m.entries.indexOf(entry), 1); });
+    }
+    deformDirty = true;
+  }
+
+  function applyDeform() {
+    for (const m of deformMeshes) {
+      const pos = m.mesh.geometry.attributes.position;
+      const a = pos.array, o = m.orig;
+      if (!m.entries.length) {
+        if (m.dirty) { a.set(o); pos.needsUpdate = true; m.dirty = false; }
+        continue;
+      }
+      const list = m.entries.map((en) => ({ ...en, amp: en.dent ? en.dent.amp : 0 }));
+      for (let i = 0; i < a.length; i += 3) {
+        const x = o[i], y = o[i + 1], z = o[i + 2];
+        let ox = 0, oy = 0, oz = 0;
+        for (const en of list) {
+          const ddx = x - en.cx, ddy = y - en.cy, ddz = z - en.cz;
+          const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+          if (d2 > en.cut) continue;
+          const f = Math.exp(-d2 * en.inv) * en.amp * en.k;
+          ox += en.dx * f; oy += en.dy * f; oz += en.dz * f;
+        }
+        a[i] = x + ox; a[i + 1] = y + oy; a[i + 2] = z + oz;
+      }
+      pos.needsUpdate = true;
+      m.dirty = true;
+    }
+  }
+
+  // Удар: тріщини на екрані (якщо вдарився сильно) і вм'ятина в точці контакту
+  function damage(contactWorld, normalWorld, impact) {
+    if (impact < 5) return;
+    const k = Math.min((impact - 5) / 14, 1);
+    lastHitAt = performance.now();
+    wasDamaged = true;
+    addDent(contactWorld, normalWorld, 0.03 + k * 0.11);
+    dents[dents.length - 1].entries.forEach(({ entry }) => { entry.dent = dents[dents.length - 1]; });
+    // Тріщини — у куті екрана, найближчому до удару
+    if (screen && impact > 7) {
+      const local = contactWorld.clone().sub(B.pos).applyQuaternion(B.quat.clone().invert());
+      const u = clamp(0.5 - (local.x / B.half.x) * 0.42, 0.06, 0.94);
+      const v = clamp(0.5 - (local.y / B.half.y) * 0.44, 0.05, 0.95);
+      drawCrack(u, v, k);
+      crackAlpha = 1;
+      composeScreen();
+    }
+    if (k > 0.5) sound('boom');
+  }
+
+  // Поступове відновлення через 15 с після останнього удару
+  function repair(dt) {
+    if (!wasDamaged || performance.now() - lastHitAt < REPAIR_AFTER) return;
+    const f = Math.exp(-dt * 1.4);
+    let alive = false;
+    dents.forEach((d) => { d.amp *= f; if (d.amp > 0.002) alive = true; });
+    if (dents.length) deformDirty = true;
+    if (crackAlpha > 0) { crackAlpha = Math.max(0, crackAlpha - dt * 0.45); composeScreen(); if (crackAlpha > 0) alive = true; }
+    if (!alive) {
+      // Як новий
+      while (dents.length) dents.pop();
+      deformMeshes.forEach((m) => { m.entries.length = 0; });
+      deformDirty = true;
+      crackAlpha = 0;
+      if (screen) { screen.crack.getContext('2d').clearRect(0, 0, screen.crack.width, screen.crack.height); composeScreen(); }
+      wasDamaged = false;
+      sound('chime');
+      Haptics.pattern([10, 40, 10]);
+    }
   }
 
   // ---------- Побудова сцени ----------
@@ -116,6 +284,8 @@
     model.traverse((o) => {
       if (!o.isMesh) return;
       o.castShadow = true;
+      o.geometry = o.geometry.clone();
+      deformMeshes.push({ mesh: o, orig: new Float32Array(o.geometry.attributes.position.array), entries: [], dirty: false });
       // Екран — велика пласка деталь зі світним матеріалом
       if (o.material && o.material.emissiveMap) {
         o.geometry.computeBoundingBox();
@@ -268,6 +438,7 @@
       }
       // Звук і вібрація від удару
       const now = performance.now();
+      if (-vn > 5 && now - lastImpact > 120) damage(B.pos.clone().add(worst), P.n.clone(), -vn);
       if (-vn > 2 && now - lastImpact > 60) {
         lastImpact = now;
         const kk = Math.min(-vn / 14, 1);
@@ -290,9 +461,9 @@
         const r = carry.a.clone().applyQuaternion(B.quat);
         const p = B.pos.clone().add(r);
         const vp = B.vel.clone().add(new THREE.Vector3().crossVectors(B.w, r));
-        const F = carry.goal.clone().sub(p).multiplyScalar(140).addScaledVector(vp, -22);
+        const F = carry.goal.clone().sub(p).multiplyScalar(110).addScaledVector(vp, -20);
         B.vel.addScaledVector(F, h);
-        B.vel.y -= GRAV * 0.3 * h;
+        B.vel.y -= GRAV * 0.5 * h;   // важкий — в руці провисає
         B.w.add(invInertiaWorld(new THREE.Vector3().crossVectors(r, F)).multiplyScalar(h));
         B.w.multiplyScalar(Math.pow(0.02, h));
       } else {
@@ -338,6 +509,9 @@
     stepPhysics(dt);
     phone.position.copy(B.pos);
     phone.quaternion.copy(B.quat);
+    phone.updateMatrixWorld(true);
+    repair(dt);
+    if (deformDirty) { deformDirty = false; applyDeform(); }
 
     // Досягнення: перевороти екраном до камери і "Вертоліт"
     const n = new THREE.Vector3(0, 0, 1).applyQuaternion(B.quat);
@@ -510,8 +684,8 @@
         const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
         const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
         const v = right.multiplyScalar(f.x * upp).add(up.multiplyScalar(-f.y * upp));
-        if (v.length() > 26) v.setLength(26);
-        B.vel.multiplyScalar(0.3).addScaledVector(v, 0.7);
+        if (v.length() > 22) v.setLength(22);
+        B.vel.multiplyScalar(0.35).addScaledVector(v, 0.6);
         if (v.length() > 6) {
           if (fun()) { fun().stat('throws'); fun().counterHit(); }
           sound('splash', Math.min(v.length() / 20, 1));
