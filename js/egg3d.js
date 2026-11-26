@@ -46,7 +46,7 @@
   let carry = null;                          // { a: локальна точка, plane, goal }
   let startPt = null, lastPt = null, downTime = 0, moved = false;
   const tracker = makeVelTracker();
-  let spinLog = [], lastFaceSign = 1, lastImpact = 0;
+  let lastFaceSign = 1, lastImpact = 0, crackHits = 0;
 
   const onOrient = (e) => {
     if (e.beta == null || e.gamma == null) return;
@@ -226,12 +226,18 @@
       crackAlpha = 1;
       composeScreen();
     }
-    if (impact > 7) sound('crack', k);
+    if (impact > 7) {
+      sound('crack', k);
+      // Секрет: 5 сильних ударів, поки телефон не встиг відновитись
+      crackHits++;
+      if (crackHits >= 5 && fun()) fun().secret('heli');
+    }
   }
 
   // Поступове відновлення через 15 с після останнього удару
   function repair(dt) {
     if (!wasDamaged || performance.now() - lastHitAt < REPAIR_AFTER) return;
+    crackHits = 0;
     const f = Math.exp(-dt * 1.4);
     let alive = false;
     dents.forEach((d) => { d.amp *= f; if (d.amp > 0.002) alive = true; });
@@ -563,13 +569,10 @@
     repair(dt);
     if (deformDirty) { deformDirty = false; applyDeform(); }
 
-    // Досягнення: перевороти екраном до камери і "Вертоліт"
+    // Досягнення: перевороти екраном до камери
     const n = new THREE.Vector3(0, 0, 1).applyQuaternion(B.quat);
     const sign = n.dot(camera.position.clone().sub(B.pos)) >= 0 ? 1 : -1;
     if (sign !== lastFaceSign) { lastFaceSign = sign; if (fun()) fun().stat('flips'); }
-    spinLog.push([t, B.w.length() * dt]);
-    while (spinLog.length && t - spinLog[0][0] > 4000) spinLog.shift();
-    if (spinLog.reduce((a, b) => a + b[1], 0) > Math.PI * 30 && fun()) { fun().secret('heli'); spinLog = []; }
 
     renderer.render(scene, camera);
     rafId = on ? requestAnimationFrame(frame) : null;
