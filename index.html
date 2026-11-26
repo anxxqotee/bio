@@ -3334,6 +3334,99 @@
             }
           } catch (e) {}
         },
+        // ---- Звуки для 3D-телефона (тверде тіло, без води) ----
+        // Короткий клацаючий шум з фільтром
+        _noise(dest, t, dur, vol, type, f, q = 1) {
+          const len = Math.max(1, Math.floor(ac.sampleRate * dur));
+          const buf = ac.createBuffer(1, len, ac.sampleRate);
+          const dd = buf.getChannelData(0);
+          for (let j = 0; j < len; j++) dd[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / len, 3);
+          const src = ac.createBufferSource();
+          src.buffer = buf;
+          const fl = ac.createBiquadFilter();
+          fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+          const g = ac.createGain();
+          g.gain.value = vol;
+          src.connect(fl).connect(g).connect(dest);
+          src.start(t);
+        },
+        // Дзвінкий "пінг" корпусу (алюміній/скло)
+        _ping(dest, t, f, dur, vol) {
+          const o = ac.createOscillator();
+          const g = ac.createGain();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(f, t);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(vol, t + 0.002);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          o.connect(g).connect(dest);
+          o.start(t); o.stop(t + dur + 0.02);
+        },
+        // Удар телефона об підлогу/стіну: глухий стук + клац корпусу
+        clack(k) {
+          try {
+            if (!getAC()) return;
+            const t = ac.currentTime + 0.003;
+            const d = out(Math.min(0.9, 0.25 + k * 0.65));
+            const p = rand(0.9, 1.12);
+            bloop(d, t, 180 * p, 70, 0.07 + k * 0.05, 0.5);            // глухий "тук" по столу
+            this._noise(d, t, 0.025 + k * 0.02, 0.9, 'bandpass', 2600 * p, 0.9); // клац
+            this._noise(d, t, 0.012, 0.5, 'highpass', 5000);
+            this._ping(d, t, 1850 * p, 0.06 + k * 0.1, 0.06 + k * 0.08); // дзвін алюмінієвої рамки
+            this._ping(d, t, 3120 * p, 0.04 + k * 0.06, 0.03 + k * 0.05);
+          } catch (e) {}
+        },
+        // Свист повітря при кидку
+        whoosh(k) {
+          try {
+            if (!getAC()) return;
+            const t = ac.currentTime + 0.003;
+            const d = out(0.25 + k * 0.35);
+            const dur = 0.22 + k * 0.18;
+            const len = Math.floor(ac.sampleRate * dur);
+            const buf = ac.createBuffer(1, len, ac.sampleRate);
+            const dd = buf.getChannelData(0);
+            for (let j = 0; j < len; j++) dd[j] = Math.random() * 2 - 1;
+            const src = ac.createBufferSource();
+            src.buffer = buf;
+            const bp = ac.createBiquadFilter();
+            bp.type = 'bandpass'; bp.Q.value = 1.4;
+            bp.frequency.setValueAtTime(500, t);
+            bp.frequency.exponentialRampToValueAtTime(1800 + k * 1400, t + dur * 0.45);
+            bp.frequency.exponentialRampToValueAtTime(600, t + dur);
+            const g = ac.createGain();
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(0.7, t + dur * 0.4);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            src.connect(bp).connect(g).connect(d);
+            src.start(t); src.stop(t + dur);
+          } catch (e) {}
+        },
+        // Тихий клік, коли береш телефон у руку
+        pick() {
+          try {
+            if (!getAC()) return;
+            const t = ac.currentTime + 0.003;
+            const d = out(0.35);
+            this._noise(d, t, 0.018, 0.5, 'bandpass', 3200, 1.2);
+            this._ping(d, t, 2400, 0.03, 0.03);
+          } catch (e) {}
+        },
+        // Тріск скла екрана при сильному ударі
+        crack(k) {
+          try {
+            if (!getAC()) return;
+            const t = ac.currentTime + 0.01;
+            const d = out(0.5 + k * 0.4);
+            this._noise(d, t, 0.05, 1, 'highpass', 2500);
+            const n = 6 + Math.round(k * 10);
+            for (let i = 0; i < n; i++) {
+              const tt = t + Math.pow(Math.random(), 1.6) * (0.12 + k * 0.2);
+              this._noise(d, tt, rand(0.004, 0.012), rand(0.3, 0.8), 'highpass', rand(3000, 7000));
+              if (Math.random() < 0.5) this._ping(d, tt, rand(3500, 7500), rand(0.03, 0.09), rand(0.02, 0.05));
+            }
+          } catch (e) {}
+        },
         // Глітч для секрету з аватаркою
         glitch() {
           try {
@@ -4428,6 +4521,6 @@
     }
   </script>
   <!-- 3D-режим пасхалки (модель телефона) -->
-  <script src="js/egg3d.js?v=20261126d"></script>
+  <script src="js/egg3d.js?v=20261126e"></script>
 </body>
 </html>

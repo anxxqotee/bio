@@ -226,7 +226,7 @@
       crackAlpha = 1;
       composeScreen();
     }
-    if (k > 0.5) sound('boom');
+    if (impact > 7) sound('crack', k);
   }
 
   // Поступове відновлення через 15 с після останнього удару
@@ -492,7 +492,7 @@
       if (-vn > 2 && now - lastImpact > 60) {
         lastImpact = now;
         const kk = Math.min(-vn / 14, 1);
-        sound('thud', kk);
+        sound('clack', kk);
         Haptics.tick(Math.round(8 + kk * 32));
         if (fun()) fun().stat('bounces');
       }
@@ -673,7 +673,7 @@
       };
       if (window.easterQuote) window.easterQuote();
       Haptics.tick(10);
-      sound('grab');
+      sound('pick');
     } else {
       mode = null;   // тягнути по фону нічого не робить — камера нерухома
       vYaw = vPitch = 0;
@@ -714,7 +714,7 @@
         // Тап — телефон підстрибує
         B.vel.y += 6.5;
         B.w.add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(8));
-        sound('flip');
+        sound('whoosh', 0.2);
         Haptics.tick(12);
       } else {
         // Кидок по інерції: швидкість пальця у площині екрана + власна швидкість телефона
@@ -727,7 +727,7 @@
         B.vel.multiplyScalar(0.35).addScaledVector(v, 0.6);
         if (v.length() > 6) {
           if (fun()) { fun().stat('throws'); fun().counterHit(); }
-          sound('splash', Math.min(v.length() / 20, 1));
+          sound('whoosh', Math.min(v.length() / 20, 1));
           Haptics.pattern([20, 30, 12]);
         }
       }
