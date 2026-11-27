@@ -34,6 +34,8 @@
   const dents = [];             // { amp, entries: [{m, cx,cy,cz, dx,dy,dz, inv, k}] }
   let lastHitAt = 0, deformDirty = false, crackAlpha = 0, wasDamaged = false;
   let screen = null;            // { base, crack, out, ctx, tex }
+  let back = null;              // задня скляна панель: { canvas, tex, mesh }
+  let backAlpha = 0;
 
   // ---------- Сцена й камера ----------
   let FLOOR = -2, XW = 2, ZW = 2.2, TOP = 4;
@@ -110,9 +112,10 @@
   }
 
   // Тріщина-"павутинка": промені з ламаними лініями і кілька кілець
-  function drawCrack(u, v, power) {
-    const g = screen.crack.getContext('2d');
-    const W = screen.crack.width, H = screen.crack.height;
+  function drawCrack(u, v, power, canvas) {
+    canvas = canvas || screen.crack;
+    const g = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
     const x0 = u * W, y0 = v * H;
     const rays = 7 + Math.round(power * 9);
     const len = 160 + power * 520;
@@ -158,11 +161,31 @@
     g.beginPath(); g.arc(x0, y0, 10 + power * 18, 0, Math.PI * 2); g.fill();
   }
 
+  // Дрібні уламки скла біля точки удару (матові трикутнички)
+  function drawShards(canvas, u, v, power) {
+    const g = canvas.getContext('2d');
+    const x0 = u * canvas.width, y0 = v * canvas.height;
+    const n = 10 + Math.round(power * 22);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, r = Math.random() * (14 + power * 46);
+      const cx = x0 + Math.cos(a) * r, cy = y0 + Math.sin(a) * r, s = 3 + Math.random() * 7;
+      g.beginPath();
+      for (let k = 0; k < 3; k++) {
+        const b = a + k * 2.1 + Math.random() * 0.8;
+        const px = cx + Math.cos(b) * s, py = cy + Math.sin(b) * s;
+        k ? g.lineTo(px, py) : g.moveTo(px, py);
+      }
+      g.closePath();
+      g.fillStyle = `rgba(255,255,255,${0.12 + Math.random() * 0.25})`;
+      g.fill();
+    }
+  }
+
   // Вм'ятина: точка удару і напрям у координатах кожної деталі моделі (тому вона "прилипає" до корпусу)
-  function addDent(worldPoint, worldDir, depth) {
+  function addDent(worldPoint, worldDir, depth, sharp = 1) {
     const entries = [];
     const p2 = worldPoint.clone().add(worldDir);
-    const sigmaWorld = 0.35 + depth * 2;
+    const sigmaWorld = (0.35 + depth * 2) * sharp;
     for (const m of deformMeshes) {
       const c = m.mesh.worldToLocal(worldPoint.clone());
       const e = m.mesh.worldToLocal(p2.clone()).sub(c).normalize();
@@ -173,8 +196,8 @@
       entries.push({ m, entry });
     }
     dents.push({ amp: depth, entries });
-    // Не більше 8 вм'ятин — найстаріша "зливається"
-    if (dents.length > 8) {
+    // Не більше 12 вм'ятин — найстаріша "зливається"
+    if (dents.length > 12) {
       const old = dents.shift();
       old.entries.forEach(({ m, entry }) => { m.entries.splice(m.entries.indexOf(entry), 1); });
     }
@@ -219,16 +242,43 @@
     const k = Math.min((impact - 5) / 14, 1);
     lastHitAt = performance.now();
     wasDamaged = true;
-    addDent(contactWorld, normalWorld, 0.03 + k * 0.11);
+    const local = contactWorld.clone().sub(B.pos).applyQuaternion(B.quat.clone().invert());
+    const ax = Math.abs(local.x) / B.half.x, ay = Math.abs(local.y) / B.half.y;
+    const side = local.z / B.half.z;              // +1 — екран, -1 — спинка, ~0 — ребро
+    // Удар кутом мне алюміній глибше й гостріше, ніж рівним ребром; по склу — ледь-ледь
+    const corner = ax > 0.75 && ay > 0.82;
+    const onGlass = Math.abs(side) > 0.55 && !corner;
+    const depth = (0.03 + k * 0.11) * (corner ? 1.7 : onGlass ? 0.35 : 1);
+    addDent(contactWorld, normalWorld, depth, corner ? 0.6 : 1);
     dents[dents.length - 1].entries.forEach(({ entry }) => { entry.dent = dents[dents.length - 1]; });
-    // Тріщини — у куті екрана, найближчому до удару
-    if (screen && impact > 7) {
-      const local = contactWorld.clone().sub(B.pos).applyQuaternion(B.quat.clone().invert());
-      const u = clamp(0.5 - (local.x / B.half.x) * 0.42, 0.06, 0.94);
-      const v = clamp(0.5 - (local.y / B.half.y) * 0.44, 0.05, 0.95);
-      drawCrack(u, v, k);
-      crackAlpha = 1;
-      composeScreen();
+    // Тріщини — на тому склі, яким ударився (ребром — слабше і біля краю ближчого скла)
+    if (impact > 7) {
+      const power = onGlass ? k : k * 0.6;
+      const screenSide = side >= 0;
+      if (screenSide && screen) {
+        const u = clamp(0.5 - (local.x / B.half.x) * 0.42, 0.06, 0.94);
+        const v = clamp(0.5 - (local.y / B.half.y) * 0.44, 0.05, 0.95);
+        drawCrack(u, v, power);
+        crackAlpha = 1;
+        composeScreen();
+      } else if (back) {
+        // Спинка дивиться назад — по X дзеркально
+        const u = clamp(0.5 + (local.x / B.half.x) * 0.48, 0.04, 0.96);
+        const v = clamp(0.5 - (local.y / B.half.y) * 0.48, 0.03, 0.97);
+        // Тріщини лише в межах скла із закругленими кутами
+        const bg = back.canvas.getContext('2d');
+        const bw = back.canvas.width, bh = back.canvas.height, br = bw * 0.14;
+        bg.save();
+        bg.beginPath();
+        bg.roundRect ? bg.roundRect(0, 0, bw, bh, br) : bg.rect(0, 0, bw, bh);
+        bg.clip();
+        drawCrack(u, v, power, back.canvas);
+        drawShards(back.canvas, u, v, power);
+        bg.restore();
+        back.tex.needsUpdate = true;
+        backAlpha = 1;
+        back.mesh.material.opacity = 1;
+      }
     }
     if (impact > 7) {
       sound('crack', k);
@@ -249,6 +299,7 @@
     dents.forEach((d) => { d.amp *= f; if (d.amp > 0.002) alive = true; });
     if (dents.length) deformDirty = true;
     if (crackAlpha > 0) { crackAlpha = Math.max(0, crackAlpha - dt * 0.45); composeScreen(); if (crackAlpha > 0) alive = true; }
+    if (backAlpha > 0 && back) { backAlpha = Math.max(0, backAlpha - dt * 0.45); back.mesh.material.opacity = backAlpha; if (backAlpha > 0) alive = true; }
     if (!alive) {
       // Як новий
       while (dents.length) dents.pop();
@@ -256,6 +307,7 @@
       deformDirty = true;
       crackAlpha = 0;
       if (screen) { screen.crack.getContext('2d').clearRect(0, 0, screen.crack.width, screen.crack.height); composeScreen(); }
+      if (back) { back.canvas.getContext('2d').clearRect(0, 0, back.canvas.width, back.canvas.height); back.tex.needsUpdate = true; back.mesh.material.opacity = 0; backAlpha = 0; }
       wasDamaged = false;
       sound('chime');
       Haptics.pattern([10, 40, 10]);
@@ -360,6 +412,29 @@
       pos: new THREE.Vector3(), vel: new THREE.Vector3(), quat: new THREE.Quaternion(), w: new THREE.Vector3(),
       half, invI: new THREE.Vector3(1 / I.x, 1 / I.y, 1 / I.z)
     };
+
+    // Задня панель — теж скло: прозорий шар для тріщин точно на її поверхні.
+    // Де саме поверхня — шукаємо променем (габарит включає блок камер, що виступає)
+    phone.updateMatrixWorld(true);
+    let backZ = -half.z;
+    try {
+      const rc = new THREE.Raycaster(new THREE.Vector3(0, -half.y * 0.3, -50), new THREE.Vector3(0, 0, 1));
+      const hit = rc.intersectObject(phone, true)[0];
+      if (hit) backZ = hit.point.z;
+    } catch (e) {}
+    const bc = document.createElement('canvas');
+    bc.width = 512; bc.height = Math.round(512 * half.y / half.x);
+    const btex = new THREE.CanvasTexture(bc);
+    btex.colorSpace = THREE.SRGBColorSpace;
+    const bmesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(half.x * 2 * 0.94, half.y * 2 * 0.965),
+      new THREE.MeshBasicMaterial({ map: btex, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })
+    );
+    bmesh.rotation.y = Math.PI;          // дивиться назад
+    bmesh.position.z = backZ - 0.004;
+    bmesh.renderOrder = 2;
+    phone.add(bmesh);
+    back = { canvas: bc, tex: btex, mesh: bmesh };
 
     resize();
     window.addEventListener('resize', resize);
@@ -713,6 +788,8 @@
   // Струс телефона — телефон на екрані підкидає
   // Акселерометр у 3D вимкнено: струс телефона тут нічого не робить
   window.__egg3dShake = () => on && ready;
+  // Лише для перевірки: ?debug3d відкриває доступ до удару
+  if (/[?&]debug3d\b/.test(location.search)) window.__egg3dDebug = { damage: (...a) => damage(...a), get B() { return B; }, get THREE() { return THREE; }, phone: () => phone, setFirst: () => { firstLandAt = 1; enabledAt = 0; } };
 
   // ---------- Дотики ----------
   function ray(clientX, clientY) {
