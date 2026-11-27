@@ -215,11 +215,90 @@
       opacity: 1;
     }
 
+    /* ===== Aqua: Liquid Glass замість неоморфізму ===== */
+    /* Подвійні "опуклі" тіні перетворюються на одну м'яку тінь під склом */
+    [data-theme="aqua"] {
+      --shadow-light: rgba(255, 255, 255, 0);
+      --shadow-dark: rgba(6, 28, 46, 0.22);
+      --glass-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.10) 32%, rgba(255, 255, 255, 0.04) 62%, rgba(255, 255, 255, 0.14) 100%);
+      --glass-rim: linear-gradient(155deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.18) 28%, rgba(255, 255, 255, 0.06) 55%, rgba(255, 255, 255, 0.22) 80%, rgba(255, 255, 255, 0.55) 100%);
+    }
+
     [data-theme="aqua"] .link-card,
-    [data-theme="aqua"] .theme-toggle {
-      background-color: rgba(255, 255, 255, 0.12) !important;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+    [data-theme="aqua"] .theme-toggle,
+    [data-theme="aqua"] .username-badge,
+    [data-theme="aqua"] .nested-btn:not([class*="is-highlight"]),
+    [data-theme="aqua"] .link-icon-box,
+    [data-theme="aqua"] .nested-btn-badge {
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      background-image: var(--glass-sheen);
+      backdrop-filter: blur(18px) saturate(175%) brightness(1.06);
+      -webkit-backdrop-filter: blur(18px) saturate(175%) brightness(1.06);
+      border-color: transparent !important;
+      outline-color: transparent !important;
+    }
+
+    [data-theme="aqua"] .username-badge {
+      position: relative;
+    }
+
+    /* Світлий обідок по краю скла: яскравий згори-зліва, гасне до середини, відблиск знизу-справа */
+    [data-theme="aqua"] .link-card::after,
+    [data-theme="aqua"] .theme-toggle::after,
+    [data-theme="aqua"] .username-badge::after,
+    [data-theme="aqua"] .nested-btn:not([class*="is-highlight"])::after,
+    [data-theme="aqua"] .link-icon-box::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1.2px;
+      background: var(--glass-rim);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* М'яке внутрішнє світіння скла */
+    [data-theme="aqua"] .link-card {
+      box-shadow:
+        0 10px 30px -6px rgba(6, 28, 46, 0.35),
+        inset 0 1px 12px rgba(255, 255, 255, 0.10) !important;
+    }
+
+    [data-theme="aqua"] .link-card.is-elevated,
+    [data-theme="aqua"] .link-card.is-open {
+      box-shadow:
+        0 16px 38px -8px rgba(6, 28, 46, 0.45),
+        inset 0 1px 16px rgba(255, 255, 255, 0.16) !important;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      [data-theme="aqua"] .link-card:hover {
+        background-color: rgba(255, 255, 255, 0.14) !important;
+      }
+    }
+
+    /* Зображення під градієнтом Aqua (35%) */
+    .aqua-bg-image {
+      position: fixed;
+      top: -20vh;
+      left: 0;
+      right: 0;
+      bottom: -20vh;
+      z-index: -1;
+      pointer-events: none;
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      opacity: 0;
+      transition: opacity 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    [data-theme="aqua"] .aqua-bg-image.is-loaded {
+      opacity: 0.35;
     }
 
     /* Прибираємо підкладку навколо логотипу в темі Aqua */
@@ -2256,7 +2335,9 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.0",
+      footer: "Артем Гай · 2026 · v3.1",
+      // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
+      aquaBackgroundImage: "img/aqua-bg.jpg",
       
       usernames: [
         { label: "@artem_haiduk", url: "https://youtube.com/@artem_haiduk" },
@@ -2418,6 +2499,20 @@
 
     // 1. Генерація DOM з PAGE_DATA
     document.getElementById('profileTitle').textContent = PAGE_DATA.name;
+
+    // Фонова картинка для Aqua — показується лише якщо файл справді є
+    if (PAGE_DATA.aquaBackgroundImage) {
+      const bgEl = document.createElement('div');
+      bgEl.className = 'aqua-bg-image';
+      bgEl.setAttribute('aria-hidden', 'true');
+      document.body.insertBefore(bgEl, document.body.firstChild);
+      const probe = new Image();
+      probe.onload = () => {
+        bgEl.style.backgroundImage = `url("${PAGE_DATA.aquaBackgroundImage}")`;
+        bgEl.classList.add('is-loaded');
+      };
+      probe.src = PAGE_DATA.aquaBackgroundImage;
+    }
 
     // Гості з Telegram (офіційний застосунок і сторонні клієнти): після "Гай" синьою ручкою дописується "дук :)"
     (function inkForTelegram() {
