@@ -239,6 +239,36 @@
       outline-color: transparent !important;
     }
 
+    /* Firefox: копія фону всередині кнопки, яку заломлює SVG-фільтр */
+    .lg-copy {
+      display: none;
+    }
+
+    [data-theme="aqua"] .lg-copy-host {
+      isolation: isolate;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    [data-theme="aqua"] .lg-copy {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      overflow: hidden;
+      pointer-events: none;
+      background-repeat: no-repeat;
+    }
+
+    /* У цьому режимі градієнт статичний і рівно на весь екран — щоб копії точно збігались з фоном */
+    .lg-copy-mode[data-theme="aqua"] body::before {
+      top: 0;
+      bottom: 0;
+      animation: none;
+      background-size: 100% 100%;
+    }
+
     /* Chromium: справжнє заломлення по краях (SVG-фільтр задається з JS для кожної форми) */
     [data-theme="aqua"] .lg-on {
       backdrop-filter: var(--lg-filter) saturate(165%) brightness(1.05) !important;
@@ -2352,7 +2382,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.2",
+      footer: "Артем Гай · 2026 · v3.3",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -2525,6 +2555,7 @@
       document.body.insertBefore(bgEl, document.body.firstChild);
       const probe = new Image();
       probe.onload = () => {
+        bgEl.__img = probe;
         bgEl.style.backgroundImage = `url("${PAGE_DATA.aquaBackgroundImage}")`;
         bgEl.classList.add('is-loaded');
       };
@@ -2551,7 +2582,12 @@
     (function liquidGlass() {
       const ua = navigator.userAgent;
       const chromium = /Chrome\/|Chromium|CriOS|EdgA|SamsungBrowser/.test(ua) && !/iPhone|iPad|iPod/.test(ua) && !!window.ResizeObserver;
-      if (!chromium) return;   // Safari/Firefox не вміють SVG-фільтри у backdrop-filter — там лишається запасний варіант
+      // Firefox не вміє SVG-фільтри у backdrop-filter, але вміє у звичайному filter:
+      // там усередині кнопки малюємо точну копію фону сторінки і заломлюємо її
+      const gecko = /Gecko\/\d/.test(ua) && /Firefox\//.test(ua) && !/Seamonkey/i.test(ua);
+      const forceCopy = /[?&]lgcopy\b/.test(location.search);   // для перевірки в будь-якому браузері
+      const MODE = forceCopy ? 'copy' : chromium ? 'backdrop' : (gecko && !!window.ResizeObserver) ? 'copy' : null;
+      if (!MODE) return;   // Safari: лишається майже прозоре скло з відблисками
 
       const NS = 'http://www.w3.org/2000/svg';
       const svg = document.createElementNS(NS, 'svg');
@@ -2635,18 +2671,130 @@
       const ro = new ResizeObserver((entries) => {
         for (const e of entries) apply(e.target);
       });
+      const tracked = [];
       function apply(el) {
         const w = el.offsetWidth, h = el.offsetHeight;
         if (!w || !h) return;
         const r = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
-        el.style.setProperty('--lg-filter', filterFor(w, h, r));
-        el.classList.add('lg-on');
+        const f = filterFor(w, h, r);
+        if (MODE === 'backdrop') {
+          el.style.setProperty('--lg-filter', f);
+          el.classList.add('lg-on');
+          return;
+        }
+        let layer = el.querySelector(':scope > .lg-copy');
+        if (!layer) {
+          layer = document.createElement('span');
+          layer.className = 'lg-copy';
+          layer.setAttribute('aria-hidden', 'true');
+          el.insertBefore(layer, el.firstChild);
+          el.classList.add('lg-copy-host');
+          tracked.push({ el, layer });
+        }
+        layer.style.filter = `${f} saturate(1.65) brightness(1.05)`;
+        syncCopies();
+      }
+
+      // ----- Режим копії фону (Firefox) -----
+      let syncQueued = false;
+      function syncCopies() {
+        if (MODE !== 'copy') return;
+        const root = document.documentElement;
+        if (root.getAttribute('data-theme') !== 'aqua') return;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        // Геометрія фото: як background-size: cover у його (зсунутому паралаксом) блоці
+        const bgEl = document.querySelector('.aqua-bg-image.is-loaded');
+        let photo = null;
+        if (bgEl && bgEl.__img && bgEl.__img.naturalWidth) {
+          const br = bgEl.getBoundingClientRect();
+          const iw = bgEl.__img.naturalWidth, ih = bgEl.__img.naturalHeight;
+          const k = Math.max(br.width / iw, br.height / ih);
+          const bw = iw * k, bh = ih * k;
+          photo = { url: bgEl.__img.src, bw, bh, x: br.left + (br.width - bw) * 0.62, y: br.top + (br.height - bh) * 0.5 };
+        }
+        const grad = photo
+          ? 'linear-gradient(135deg, rgba(22,66,91,0.65) 0%, rgba(33,99,131,0.65) 38%, rgba(63,143,151,0.65) 70%, rgba(113,191,188,0.65) 100%)'
+          : 'linear-gradient(135deg, #16425b 0%, #216383 38%, #3f8f97 70%, #71bfbc 100%)';
+        for (const { el, layer } of tracked) {
+          if (!el.isConnected) continue;
+          const r = el.getBoundingClientRect();
+          if (r.bottom < -50 || r.top > vh + 50) continue;
+          const gx = -r.left, gy = -r.top;
+          if (photo) {
+            layer.style.backgroundImage = `${grad}, url("${photo.url}")`;
+            layer.style.backgroundSize = `${vw}px ${vh}px, ${photo.bw}px ${photo.bh}px`;
+            layer.style.backgroundPosition = `${gx}px ${gy}px, ${photo.x - r.left}px ${photo.y - r.top}px`;
+          } else {
+            layer.style.backgroundImage = grad;
+            layer.style.backgroundSize = `${vw}px ${vh}px`;
+            layer.style.backgroundPosition = `${gx}px ${gy}px`;
+          }
+        }
+      }
+      if (MODE === 'copy') {
+        document.documentElement.classList.add('lg-copy-mode');
+        // Позиції змінюються при гортанні, розкритті карток, анімаціях — оновлюємо щокадру, поки активна Aqua
+        const loop = () => {
+          if (document.documentElement.getAttribute('data-theme') === 'aqua' && !document.hidden) syncCopies();
+          requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
       }
       const attach = () => document.querySelectorAll(SEL).forEach((el) => { if (!el.__lg) { el.__lg = true; ro.observe(el); } });
       // Кнопки рендеряться скриптом — підключаємось трохи згодом і при змінах
       attach();
       setTimeout(attach, 500);
       new MutationObserver(attach).observe(document.getElementById('mainContainer'), { childList: true, subtree: true });
+    })();
+
+    // ---------- Плавне прокручування коліщатком миші (ПК) ----------
+    // Сторінка доїжджає з інерцією, а не стрибає рядками. Тачпади й телефони не чіпаємо — там і так плавно.
+    (function smoothWheel() {
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      let target = window.scrollY, current = window.scrollY, raf = null, ours = false;
+      const maxY = () => Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+
+      const canScrollInside = (el, dy) => {
+        for (; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+          const cs = getComputedStyle(el);
+          if (/(auto|scroll)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 1) {
+            if (dy > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0) return true;
+          }
+        }
+        return false;
+      };
+
+      function tick() {
+        current += (target - current) * 0.14;
+        if (Math.abs(target - current) < 0.5) current = target;
+        ours = true;
+        window.scrollTo(0, current);
+        raf = current === target ? null : requestAnimationFrame(tick);
+      }
+
+      window.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.defaultPrevented) return;
+        if (document.documentElement.classList.contains('site-wrecked')) return;
+        const ov = document.getElementById('easterOverlay');
+        if (ov && ov.classList.contains('is-open')) return;
+        let dy = e.deltaY;
+        if (e.deltaMode === 1) dy *= 40;
+        else if (e.deltaMode === 2) dy *= window.innerHeight;
+        // Тачпад дає дрібні часті дельти — він уже плавний, лишаємо рідну прокрутку
+        if (e.deltaMode === 0 && Math.abs(dy) < 40 && !Number.isInteger(e.deltaY)) return;
+        if (canScrollInside(e.target, dy)) return;
+        e.preventDefault();
+        if (!raf) { current = window.scrollY; target = current; }
+        target = Math.max(0, Math.min(maxY(), target + dy));
+        if (!raf) raf = requestAnimationFrame(tick);
+      }, { passive: false });
+
+      // Прокрутка смугою, клавішами тощо — синхронізуємося
+      window.addEventListener('scroll', () => {
+        if (ours) { ours = false; return; }
+        if (!raf) { current = target = window.scrollY; }
+      }, { passive: true });
     })();
 
     // Гості з Telegram (офіційний застосунок і сторонні клієнти): після "Гай" синьою ручкою дописується "дук :)"
