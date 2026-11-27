@@ -2054,6 +2054,25 @@
 
 
     /* Сповіщення про досягнення */
+    /* Пасхалка відкрита: сайт під нею ховається (не мерехтить крізь розмиття) і не гортається */
+    #mainContainer {
+      transition: opacity 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .egg-open #mainContainer {
+      opacity: 0;
+    }
+
+    .egg-open,
+    .egg-open body {
+      overflow: hidden !important;
+      overscroll-behavior: none;
+    }
+
+    .easter-overlay {
+      overscroll-behavior: contain;
+    }
+
     /* Сайт після вибуху: все лежить купою, нічого не працює */
     .site-wrecked,
     .site-wrecked body {
@@ -2385,7 +2404,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.4.3",
+      footer: "Артем Гай · 2026 · v3.5",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -3277,6 +3296,7 @@
         Haptics.pattern([18, 45, 35]);
         overlay.classList.add('is-open');
         overlay.setAttribute('aria-hidden', 'false');
+        document.documentElement.classList.add('egg-open');
         if (window.EggFun) { window.EggFun.stat('opens'); window.EggFun.onOpen(); }
         if (window.__loadMatter) window.__loadMatter().catch(() => {});
       }
@@ -3286,12 +3306,20 @@
         if (window.EggFun) window.EggFun.onClose();
         overlay.classList.remove('is-open');
         overlay.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('egg-open');
         ring.classList.remove('is-done');
         done = false;
         render(0, false);
       }
 
       window.__closeEgg = closeEgg;
+
+      // Поки відкрита пасхалка, сторінка не гортається (на iOS overflow:hidden не завжди досить)
+      document.addEventListener('touchmove', (e) => {
+        if (!document.documentElement.classList.contains('egg-open')) return;
+        if (e.target.closest && e.target.closest('.egg-trophies-list')) return;
+        if (e.cancelable) e.preventDefault();
+      }, { passive: false });
 
       // Вихід — лише кнопкою справа зверху (або Esc на ПК); тап по фону нічого не закриває
       const closeBtn = document.getElementById('eggClose');
