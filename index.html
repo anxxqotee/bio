@@ -1439,6 +1439,17 @@
     .link-card.is-open .insta-preview-card:nth-child(3) { transition-delay: 0.18s; }
     .link-card.is-open .insta-preview-card:hover { transition-delay: 0s; }
 
+    .insta-hdr {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1), transform 0.9s var(--ease-smooth) !important;
+    }
+
+    .insta-hdr.is-shown {
+      opacity: 1;
+    }
+
     .insta-preview-img {
       width: 100%;
       height: 100%;
@@ -2510,7 +2521,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.7.1",
+      footer: "Артем Гай · 2026 · v3.7.2",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -2947,12 +2958,21 @@
       hdrReady.set(url, pr);
       return pr;
     }
+    // HDR-версія лягає поверх звичайної і плавно проявляється — яскравість наростає, а не "клацає"
     function swapToHdr(img) {
       if (!img.dataset.hdr) return;
-      (prepareHdr(img) || Promise.resolve(false)).then((ok) => {
-        if (!ok || !img.dataset.hdr) return;
-        img.src = img.dataset.hdr;
-        delete img.dataset.hdr;
+      const url = img.dataset.hdr;
+      delete img.dataset.hdr;
+      (prepareHdr({ dataset: { hdr: url } }) || Promise.resolve(false)).then((ok) => {
+        if (!ok) return;
+        const hdr = document.createElement('img');
+        hdr.className = 'insta-preview-img insta-hdr';
+        hdr.alt = '';
+        hdr.decoding = 'async';
+        if (img.style.objectPosition) hdr.style.objectPosition = img.style.objectPosition;
+        hdr.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => hdr.classList.add('is-shown')));
+        hdr.src = url;
+        img.after(hdr);
       });
     }
     const whenIdle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 1500));
