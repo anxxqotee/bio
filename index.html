@@ -225,6 +225,9 @@
 
     [data-theme="aqua"] body::before {
       opacity: 1;
+      /* Без безкінечного переливання: воно змушувало перераховувати розмиття всіх карток щокадру */
+      animation: none;
+      background-position: 30% 40%;
     }
 
     /* ===== Aqua: Frosted Glass замість неоморфізму ===== */
@@ -236,18 +239,31 @@
       --glass-rim: linear-gradient(155deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.18) 28%, rgba(255, 255, 255, 0.06) 55%, rgba(255, 255, 255, 0.22) 80%, rgba(255, 255, 255, 0.55) 100%);
     }
 
+    /* Оптимізація: розмиття (найдорожча частина) — лише на зовнішніх елементах, один фільтр без saturate/brightness,
+       менший радіус; дрібні елементи всередині карток — просто напівпрозорі (розмиття всередині розмиття дуже дороге) */
     [data-theme="aqua"] .link-card,
     [data-theme="aqua"] .theme-toggle,
     [data-theme="aqua"] .username-badge,
     [data-theme="aqua"] .nested-btn:not([class*="is-highlight"]),
     [data-theme="aqua"] .link-icon-box,
     [data-theme="aqua"] .nested-btn-badge {
-      background-color: rgba(255, 255, 255, 0.08) !important;
+      background-color: rgba(255, 255, 255, 0.10) !important;
       background-image: var(--glass-sheen);
-      backdrop-filter: blur(18px) saturate(175%) brightness(1.06);
-      -webkit-backdrop-filter: blur(18px) saturate(175%) brightness(1.06);
       border-color: transparent !important;
       outline-color: transparent !important;
+    }
+
+    [data-theme="aqua"] .link-card,
+    [data-theme="aqua"] .theme-toggle,
+    [data-theme="aqua"] .username-badge {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    [data-theme="aqua"] .link-icon-box,
+    [data-theme="aqua"] .nested-btn-badge,
+    [data-theme="aqua"] .nested-btn:not([class*="is-highlight"]) {
+      background-color: rgba(255, 255, 255, 0.14) !important;
     }
 
     [data-theme="aqua"] .username-badge {
@@ -486,8 +502,12 @@
     /* Після першої появи — анімації вимкнено (інакше зміна теми програє їх знову) */
     .container.intro-done .link-item-wrapper,
     .container.intro-done .link-card {
-      animation: none !important;
       opacity: 1 !important;
+    }
+
+    .container.intro-done .link-item-wrapper,
+    body:not(.is-disco) .container.intro-done .link-card {
+      animation: none !important;
       translate: none;
     }
 
@@ -2404,7 +2424,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.5.2",
+      footer: "Артем Гай · 2026 · v3.6",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -3089,7 +3109,8 @@
     `;
 
     const aquaIconSVG = `
-      <path d="M12 2l2.4 5.2L20 8.5l-4 3.9.9 5.6-4.9-2.6-4.9 2.6.9-5.6-4-3.9 5.6-1.3L12 2z"></path>
+      <path d="M12 2.8C9 6.6 6 10.1 6 14a6 6 0 0 0 12 0c0-3.9-3-7.4-6-11.2Z"></path>
+      <path d="M9.2 14.6a2.9 2.9 0 0 0 2.6 2.6"></path>
     `;
 
     const THEME_KEY = 'user_manual_theme';
@@ -5310,7 +5331,8 @@
             themeTaps = [];
             document.body.classList.add('is-disco');
             Haptics.pattern([30, 70, 30, 70, 30, 70, 30, 70, 30]);
-            setTimeout(() => document.body.classList.remove('is-disco'), 4000);
+            clearTimeout(window.__discoTimer);
+            window.__discoTimer = setTimeout(() => document.body.classList.remove('is-disco'), 60000);
             secret('disco');
           }
         });
