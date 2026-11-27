@@ -2447,7 +2447,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.6.6",
+      footer: "Артем Гай · 2026 · v3.6.7",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -2536,17 +2536,21 @@
           icon: "img/instagram.svg",
           profileUrl: "https://instagram.com/anxxqotee999",
           photos: [
+            // preview — легка звичайна версія (показується під час анімації відкриття),
+            // image — Ultra HDR JPEG (підміняється, коли анімація скінчилась: на HDR-екранах світлі місця яскравіші)
             { 
-              image: "img/instagram/post0.jpg", 
+              preview: "img/instagram/post4-sdr.webp",
+              image: "img/instagram/post4-hdr.jpg", 
               position: "50% 72%",
               url: "https://instagram.com/anxxqotee999" 
             },
             { 
-              // Ultra HDR JPEG: на HDR-екранах світлі місця яскравіші
+              preview: "img/instagram/post1-sdr.webp",
               image: "img/instagram/post1-hdr.jpg", 
               url: "https://instagram.com/anxxqotee999" 
             },
             { 
+              preview: "img/instagram/post2-sdr.webp",
               image: "img/instagram/post2-hdr.jpg", 
               url: "https://instagram.com/anxxqotee999" 
             }
@@ -2859,7 +2863,43 @@
       const tray = card.querySelector('.inner-tray');
       // Закритий блок не повинен ловити фокус клавіатури
       if (tray) tray.inert = !open;
+      // HDR-фото підміняємо лише ПІСЛЯ анімації відкриття — щоб вона не підвисала
+      if (open) {
+        const imgs = card.querySelectorAll('img[data-hdr]');
+        if (imgs.length) {
+          clearTimeout(card.__hdrTimer);
+          card.__hdrTimer = setTimeout(() => imgs.forEach(swapToHdr), 900);
+        }
+      }
     }
+
+    // Заздалегідь (у вільний час після завантаження) вантажимо й декодуємо і звичайні, і HDR-версії фото
+    const hdrReady = new Map();
+    function prepareHdr(img) {
+      const url = img.dataset.hdr;
+      if (!url || hdrReady.has(url)) return hdrReady.get(url);
+      const pre = new Image();
+      pre.decoding = 'async';
+      pre.src = url;
+      const pr = (pre.decode ? pre.decode() : new Promise((r) => { pre.onload = r; })).then(() => true, () => false);
+      hdrReady.set(url, pr);
+      return pr;
+    }
+    function swapToHdr(img) {
+      if (!img.dataset.hdr) return;
+      (prepareHdr(img) || Promise.resolve(false)).then((ok) => {
+        if (!ok || !img.dataset.hdr) return;
+        img.src = img.dataset.hdr;
+        delete img.dataset.hdr;
+      });
+    }
+    const whenIdle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 1500));
+    window.addEventListener('load', () => whenIdle(() => {
+      document.querySelectorAll('.insta-preview-img').forEach((img) => {
+        if (img.decode) img.decode().catch(() => {});
+        prepareHdr(img);
+      });
+    }));
 
     function initExpandableCard(card) {
       const row = card.querySelector('.link-main-row');
@@ -2905,7 +2945,7 @@
         btn.photos.forEach(p => {
           photosHTML += `
             <a href="${p.url}" target="_blank" rel="noopener noreferrer" class="insta-preview-card">
-              <img src="${p.image}" alt="Instagram Post" class="insta-preview-img" loading="lazy"${p.position ? ` style="object-position:${p.position}"` : ''} onerror="this.onerror=null; this.style.visibility='hidden';">
+              <img src="${p.preview || p.image}"${p.preview ? ` data-hdr="${p.image}"` : ''} alt="Instagram Post" class="insta-preview-img" decoding="async"${p.position ? ` style="object-position:${p.position}"` : ''} onerror="this.onerror=null; this.style.visibility='hidden';">
             </a>
           `;
         });
