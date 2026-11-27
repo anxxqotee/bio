@@ -49,6 +49,13 @@
       font-display: block;
     }
 
+    @font-face {
+      font-family: 'Caveat Duk';
+      src: url('fonts/caveat-duk.woff2') format('woff2');
+      font-weight: 600;
+      font-display: block;
+    }
+
     :root {
       /* Поверхні інтерфейсу пасхалки (у темі Aqua — непрозорі) */
       --egg-surface: var(--bg);
@@ -473,6 +480,45 @@
       margin-bottom: 24px;
       width: 100%;
       padding: 0 10px;
+    }
+
+    /* Для гостей з Telegram: синьою ручкою дописується "дук :)" */
+    .profile-title .ink-anchor {
+      position: relative;
+      display: inline-block;
+    }
+
+    .ink-note {
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      overflow: visible;
+      pointer-events: none;
+      transform: translate(4px, -46%) rotate(-5deg);
+      transform-origin: left center;
+      --ink: #1e4fd8;
+    }
+
+    [data-theme="dark"] .ink-note { --ink: #5b86ff; }
+    [data-theme="aqua"] .ink-note { --ink: #0b2a9e; }
+
+    .ink-note text {
+      font-family: 'Caveat Duk', cursive;
+      font-weight: 600;
+      fill: var(--ink);
+    }
+
+    .ink-note .ink-stroke {
+      fill: none;
+      stroke: #fff;
+      stroke-linecap: round;
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: inkStroke var(--d, 60ms) linear forwards;
+    }
+
+    @keyframes inkStroke {
+      to { stroke-dashoffset: 0; }
     }
 
     .profile-title {
@@ -2354,6 +2400,91 @@
 
     // 1. Генерація DOM з PAGE_DATA
     document.getElementById('profileTitle').textContent = PAGE_DATA.name;
+
+    // Гості з Telegram (офіційний застосунок і сторонні клієнти): після "Гай" синьою ручкою дописується "дук :)"
+    (function inkForTelegram() {
+      const ua = navigator.userAgent || '';
+      const ref = document.referrer || '';
+      const fromTg =
+        typeof window.TelegramWebviewProxy !== 'undefined' ||
+        typeof window.TelegramWebview !== 'undefined' ||
+        /Telegram|Nekogram|Ayugram|Challegram|Nicegram|Swiftgram|Unigram|Kotatogram|64Gram|iMe/i.test(ua) ||
+        /t\.me|telegram|challegram|nekogram|ayugram|nicegram|swiftgram/i.test(ref) ||
+        /[?&](tg|from=telegram|utm_source=telegram)\b/i.test(location.search);
+      if (!fromTg) return;
+
+      const title = document.getElementById('profileTitle');
+      const NS = 'http://www.w3.org/2000/svg';
+      const TEXT = 'дук :)';
+
+      const run = () => {
+        const fs = parseFloat(getComputedStyle(title).fontSize) * 1.3;
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('class', 'ink-note');
+        svg.setAttribute('aria-hidden', 'true');
+        const text = document.createElementNS(NS, 'text');
+        text.textContent = TEXT;
+        text.setAttribute('font-size', fs);
+        text.setAttribute('x', 2);
+        text.setAttribute('y', fs * 0.82);
+        svg.appendChild(text);
+        const anchor = document.createElement('span');
+        anchor.className = 'ink-anchor';
+        anchor.textContent = title.textContent;
+        title.textContent = '';
+        title.appendChild(anchor);
+        anchor.appendChild(svg);
+
+        const bb = text.getBBox();
+        const w = Math.ceil(bb.x + bb.width + 6), h = Math.ceil(fs * 1.15);
+        svg.setAttribute('width', w);
+        svg.setAttribute('height', h);
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+        // Маска з діагональних штрихів: вони по черті "прописують" літери зліва направо, як рука з ручкою
+        const id = 'inkMask' + Math.random().toString(36).slice(2, 7);
+        const defs = document.createElementNS(NS, 'defs');
+        const mask = document.createElementNS(NS, 'mask');
+        mask.setAttribute('id', id);
+        mask.setAttribute('maskUnits', 'userSpaceOnUse');
+        mask.setAttribute('x', 0); mask.setAttribute('y', 0);
+        mask.setAttribute('width', w); mask.setAttribute('height', h);
+        const step = Math.max(2.6, fs * 0.085);
+        const slant = h * 0.32;
+        const total = Math.ceil((bb.width + slant * 2) / step);
+        const per = 950 / total;   // увесь напис ~1 секунда
+        let t = 0, i = 0, lifted = false;
+        let gapX = Infinity;
+        try { gapX = 2 + (text.getSubStringLength(0, 3) + text.getSubStringLength(0, 4)) / 2; } catch (e) {}
+        for (let x = bb.x - slant; x < bb.x + bb.width + slant; x += step, i++) {
+          const up = i % 2 === 0;   // зигзаг: вгору-вниз, як рука пише
+          const x1 = x, y1 = h + 2, x2 = x + slant, y2 = -2;
+          const line = document.createElementNS(NS, 'line');
+          line.setAttribute('x1', up ? x1 : x2); line.setAttribute('y1', up ? y1 : y2);
+          line.setAttribute('x2', up ? x2 : x1); line.setAttribute('y2', up ? y2 : y1);
+          line.setAttribute('pathLength', 1);
+          line.setAttribute('class', 'ink-stroke');
+          line.setAttribute('stroke-width', step * 2.2);
+          const dur = per * (1.6 + Math.random() * 0.6);
+          line.style.setProperty('--d', dur + 'ms');
+          line.style.animationDelay = t + 'ms';
+          // На пробілі ручка "відривається" трохи довше
+          const cx = x + slant / 2;
+          t += per * (0.8 + Math.random() * 0.4);
+          if (!lifted && cx > gapX) { lifted = true; t += 160; }
+          mask.appendChild(line);
+        }
+        defs.appendChild(mask);
+        svg.insertBefore(defs, text);
+        text.setAttribute('mask', `url(#${id})`);
+      };
+
+      // Пишемо після того, як ім'я з'явилось
+      const start = () => setTimeout(run, 1250);
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load("600 20px 'Caveat Duk'", 'дук').then(start, start);
+      } else start();
+    })();
     document.getElementById('profileDesc').textContent = PAGE_DATA.description;
     document.getElementById('footerText').textContent = PAGE_DATA.footer;
 
