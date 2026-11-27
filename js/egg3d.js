@@ -208,10 +208,14 @@
   }
 
   // Удар: тріщини на екрані (якщо вдарився сильно) і вм'ятина в точці контакту
-  let enabledAt = 0;
+  let enabledAt = 0, firstLandAt = 0;
   function damage(contactWorld, normalWorld, impact) {
     // Вхідне падіння не ламає телефон
-    if (impact < 5 || performance.now() - enabledAt < 2500) return;
+    if (impact < 5) return;
+    // Перше приземлення після увімкнення (і відскоки одразу після нього) телефон не ламають
+    const nowT = performance.now();
+    if (!firstLandAt) { firstLandAt = nowT; return; }
+    if (nowT - firstLandAt < 1200 || nowT - enabledAt < 1500) return;
     const k = Math.min((impact - 5) / 14, 1);
     lastHitAt = performance.now();
     wasDamaged = true;
@@ -261,10 +265,11 @@
   // ---------- Побудова сцени ----------
   async function build() {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // 1.5 замість 2: на телефонах різниці майже не видно, а пікселів на ~45% менше
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setClearColor(0x000000, 0);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Тіньова карта вимагала окремого проходу по всіх 89 деталях моделі щокадру — замість неї м'яка "пляма" під телефоном
+    renderer.shadowMap.enabled = false;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(35, 1, 0.1, 200);
@@ -275,18 +280,28 @@
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     const sun = new THREE.DirectionalLight(0xffffff, 1.4);
     sun.position.set(-3, 9, 4);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 30 });
-    sun.shadow.radius = 5;
     scene.add(sun);
     scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
     room = new THREE.Group();
     scene.add(room);
-    floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.45 }));
+    // Контактна тінь: розмита пляма, що росте й світлішає, коли телефон високо
+    const sc = document.createElement('canvas');
+    sc.width = sc.height = 128;
+    const sg = sc.getContext('2d');
+    const grd = sg.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grd.addColorStop(0, 'rgba(0,0,0,0.75)');
+    grd.addColorStop(0.45, 'rgba(0,0,0,0.45)');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    sg.fillStyle = grd;
+    sg.fillRect(0, 0, 128, 128);
+    const shadowTex = new THREE.CanvasTexture(sc);
+    floorMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, toneMapped: false })
+    );
     floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.receiveShadow = true;
+    floorMesh.renderOrder = 1;
     scene.add(floorMesh);
 
     // Модель телефона
@@ -295,7 +310,6 @@
     let screenMesh = null, bestArea = 0;
     model.traverse((o) => {
       if (!o.isMesh) return;
-      o.castShadow = true;
       o.geometry = o.geometry.clone();
       deformMeshes.push({ mesh: o, orig: new Float32Array(o.geometry.attributes.position.array), entries: [], dirty: false });
       // Екран — велика пласка деталь зі світним матеріалом
@@ -349,7 +363,38 @@
 
     resize();
     window.addEventListener('resize', resize);
+
+    // Прогрів: усі текстури — у відеокарту, усі шейдери — скомпільовані ЗАРАЗ (поки крутиться "..."),
+    // а не в перші кадри падіння, коли кожен новий матеріал підвішував анімацію
+    scene.traverse((o) => {
+      if (!o.material) return;
+      [].concat(o.material).forEach((mat) => {
+        for (const k in mat) { const v = mat[k]; if (v && v.isTexture) renderer.initTexture(v); }
+      });
+    });
+    try {
+      if (renderer.compileAsync) await renderer.compileAsync(scene, camera);
+      else renderer.compile(scene, camera);
+    } catch (e) { renderer.compile(scene, camera); }
+    renderer.render(scene, camera);
     ready = true;
+  }
+
+  // Тінь-пляма під телефоном
+  const _shBox = { x: 0, z: 0 };
+  function updateShadow() {
+    if (!floorMesh || !B) return;
+    // Горизонтальний розмір повернутого телефона
+    const m = new THREE.Matrix4().makeRotationFromQuaternion(B.quat).elements;
+    const hx = Math.abs(m[0]) * B.half.x + Math.abs(m[4]) * B.half.y + Math.abs(m[8]) * B.half.z;
+    const hz = Math.abs(m[2]) * B.half.x + Math.abs(m[6]) * B.half.y + Math.abs(m[10]) * B.half.z;
+    const lowest = Math.abs(m[1]) * B.half.x + Math.abs(m[5]) * B.half.y + Math.abs(m[9]) * B.half.z;
+    const height = Math.max(0, B.pos.y - lowest - FLOOR);
+    const spread = 1 + height * 0.35;
+    _shBox.x = hx; _shBox.z = hz;
+    floorMesh.position.set(B.pos.x, FLOOR + 0.004, B.pos.z);
+    floorMesh.scale.set((hx * 3.2 + 0.6) * spread, (hz * 3.2 + 0.6) * spread, 1);
+    floorMesh.material.opacity = Math.max(0, 0.85 - height * 0.18);
   }
 
   function resize() {
@@ -367,15 +412,17 @@
     FLOOR = -halfH * 0.62;
     TOP = halfH * 1.4;
     target.y = FLOOR * 0.35;
-    if (floorMesh) floorMesh.position.y = FLOOR;
     buildRoom();
     placeCamera();
   }
 
   // Видима "кімната": підлога з сіткою, задня й бічні стіни, світні ребра
-  let room = null;
+  let room = null, roomKey = '';
   function buildRoom() {
     if (!room) return;
+    const key = [XW, ZW, TOP, FLOOR].map((v) => v.toFixed(2)).join('|');
+    if (key === roomKey) return;
+    roomKey = key;
     while (room.children.length) {
       const c = room.children.pop();
       c.geometry && c.geometry.dispose();
@@ -551,9 +598,21 @@
   }
 
   // ---------- Кадр ----------
+  let perfFrames = 0, perfSum = 0, perfLowered = false;
   function frame(t) {
-    const dt = Math.min((t - prevT) / 1000, 0.033);
+    const rawDt = Math.min((t - prevT) / 1000, 0.1);
+    const dt = Math.min(rawDt, 0.033);
     prevT = t;
+    // Слабкий пристрій: якщо стабільно < ~40 FPS — ще менше пікселів
+    if (!perfLowered && perfFrames < 90) {
+      perfFrames++;
+      if (perfFrames > 15) perfSum += rawDt;
+      if (perfFrames === 90 && perfSum / 75 > 0.025 && renderer.getPixelRatio() > 1) {
+        perfLowered = true;
+        renderer.setPixelRatio(1);
+        resize();
+      }
+    }
     if (mode !== 'orbit') {
       camYaw += vYaw * dt;
       camPitch = clamp(camPitch + vPitch * dt, 0.08, 1.25);
@@ -564,7 +623,10 @@
     gy += (tiltY - gy) * Math.min(1, dt * 8);
     placeCamera();
 
-    stepPhysics(dt);
+    // Фізика йде в реальному часі навіть при повільних кадрах (без "сповільненої зйомки")
+    const nSteps = Math.max(1, Math.ceil(rawDt / (1 / 60)));
+    for (let i = 0; i < nSteps; i++) stepPhysics(rawDt / nSteps);
+    updateShadow();
     phone.position.copy(B.pos);
     phone.quaternion.copy(B.quat);
     phone.updateMatrixWorld(true);
@@ -621,6 +683,7 @@
     label.textContent = '2D';
     resize();
     enabledAt = performance.now();
+    firstLandAt = 0;
     drop();
     // Акселерометр/гіроскоп у 3D не використовуємо
     Haptics.pattern([10, 40, 10, 40, 20]);
