@@ -852,14 +852,24 @@
       position: relative;
       overflow: hidden;
       transform: translate3d(0, 0, 0) scale(1);
-      
-      box-shadow: 
+
+      /* Обидва стани мають однаковий набір тіней (2 внутрішні + 2 зовнішні), тому браузер плавно
+         перетікає з одного в інший: внутрішня "ямка" мілішає, а зовнішня тінь росте — іконка виринає */
+      --ib-sunk:
         inset 2px 2px 4px var(--shadow-dark),
-        inset -2px -2px 4px var(--shadow-light);
+        inset -2px -2px 4px var(--shadow-light),
+        0 0 0 var(--shadow-dark),
+        0 0 0 var(--shadow-light);
+      --ib-raised:
+        inset 0 0 0 var(--shadow-dark),
+        inset 0 0 0 var(--shadow-light),
+        3px 4px 9px var(--shadow-dark),
+        -3px -3px 8px var(--shadow-light);
+      box-shadow: var(--ib-sunk);
 
       transition: 
-        transform 0.75s var(--ease-spring),
-        box-shadow 0.7s var(--ease-smooth),
+        transform 0.85s cubic-bezier(0.45, 0.05, 0.25, 1),
+        box-shadow 0.85s cubic-bezier(0.45, 0.05, 0.25, 1),
         background-color 0.6s var(--ease-soft);
       will-change: transform, box-shadow;
     }
@@ -932,10 +942,8 @@
     }
 
     .link-card.is-elevated .link-icon-box {
-      transform: scale(1.06);
-      box-shadow: 
-        3px 3px 8px var(--shadow-dark),
-        -3px -3px 8px var(--shadow-light);
+      transform: translate3d(0, -1px, 0) scale(1.05);
+      box-shadow: var(--ib-raised);
     }
 
     .link-card.is-elevated .link-arrow {
@@ -963,10 +971,8 @@
         color: var(--text);
       }
       .link-card:not(.is-open):hover .link-icon-box {
-        transform: scale(1.06);
-        box-shadow: 
-          3px 3px 8px var(--shadow-dark),
-          -3px -3px 8px var(--shadow-light);
+        transform: translate3d(0, -1px, 0) scale(1.05);
+        box-shadow: var(--ib-raised);
       }
       .link-card:not(.is-open):hover .link-arrow {
         opacity: 1;
@@ -2426,7 +2432,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.6.1",
+      footer: "Артем Гай · 2026 · v3.6.2",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
