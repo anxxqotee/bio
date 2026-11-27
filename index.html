@@ -653,6 +653,26 @@
     :root[data-theme="dark"] .avatar-mark { filter: brightness(0.1); }
     :root[data-theme="aqua"] .avatar-bg { opacity: 0; }
 
+    /* HDR-білий шар у формі лого (маска з прозорого PNG): на HDR-екранах лого світиться.
+       У темній темі лого темне — шар прихований */
+    .avatar-hdr {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background: #fff url('img/hdr/white.jpg') center / cover;
+      -webkit-mask: url('img/logo-trn.webp') center / 100% 100% no-repeat;
+      mask: url('img/logo-trn.webp') center / 100% 100% no-repeat;
+      opacity: 1;
+      transition: opacity 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    :root[data-theme="dark"] .avatar-hdr { opacity: 0; }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) .avatar-hdr { opacity: 0; }
+    }
+
     .avatar-placeholder-svg {
       width: 54px;
       height: 54px;
@@ -1171,6 +1191,9 @@
       padding: 4px 8px;
       border-radius: 10px;
       background-color: #e5322d;
+      /* Ultra HDR-картинка того ж кольору: на HDR-екранах плашка світиться яскравіше */
+      background-image: url('img/hdr/pill-red.jpg');
+      background-size: 100% 100%;
       color: #ffffff;
       letter-spacing: 0.01em;
       white-space: nowrap;
@@ -1210,8 +1233,7 @@
 
     /* Фіолетова плашка (SongRate) — градієнт, що переливається */
     .new-pill.is-purple {
-      background: linear-gradient(120deg, #7e22ce, #4338ca, #a21caf, #7e22ce);
-      background-size: 300% 100%;
+      background: #7e22ce url('img/hdr/pill-purple.jpg') 0 0 / 300% 100% repeat-x;   /* той самий градієнт, але HDR */
       box-shadow: 0 2px 10px rgba(168, 85, 247, 0.45);
       animation: purpleFlow 4s linear infinite, purpleGlow 2.6s var(--ease-soft) infinite;
     }
@@ -2358,6 +2380,7 @@
           class="avatar-img avatar-mark"
           onerror="if(this.dataset.f){this.onerror=null;this.style.display='none';document.getElementById('fallback-avatar').style.display='block';}else{this.dataset.f=1;this.src='img/logo-trn-sm.png';}"
         >
+        <span class="avatar-hdr" aria-hidden="true"></span>
         <svg id="fallback-avatar" class="avatar-placeholder-svg" style="display: none;" viewBox="0 0 24 24">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
@@ -2461,7 +2484,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.6.9",
+      footer: "Артем Гай · 2026 · v3.7",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
