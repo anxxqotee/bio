@@ -3407,10 +3407,51 @@
         return ac;
       };
 
+      // Спільний вихід для всіх звуків: тихіше, без різкого "дзвону" на верхах,
+      // компресор згладжує гучні піки (вибух, удари), трохи м'якого простору
+      let bus = null;
+      const getBus = () => {
+        if (bus) return bus;
+        const input = ac.createGain();
+        const tone = ac.createBiquadFilter();
+        tone.type = 'lowpass';
+        tone.frequency.value = 5200;
+        tone.Q.value = 0.5;
+        const deHarsh = ac.createBiquadFilter();   // прибираємо "свердління" в районі 3 кГц
+        deHarsh.type = 'peaking';
+        deHarsh.frequency.value = 3200;
+        deHarsh.Q.value = 1;
+        deHarsh.gain.value = -4;
+        const comp = ac.createDynamicsCompressor();
+        comp.threshold.value = -22;
+        comp.knee.value = 18;
+        comp.ratio.value = 4;
+        comp.attack.value = 0.004;
+        comp.release.value = 0.2;
+        const master = ac.createGain();
+        master.gain.value = 0.42;
+        // Легкий простір: коротке розмите відлуння
+        const len = Math.floor(ac.sampleRate * 0.35);
+        const ir = ac.createBuffer(2, len, ac.sampleRate);
+        for (let c = 0; c < 2; c++) {
+          const d = ir.getChannelData(c);
+          for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+        }
+        const verb = ac.createConvolver();
+        verb.buffer = ir;
+        const wet = ac.createGain();
+        wet.gain.value = 0.12;
+        input.connect(tone).connect(deHarsh).connect(comp);
+        deHarsh.connect(verb).connect(wet).connect(comp);
+        comp.connect(master).connect(ac.destination);
+        bus = input;
+        return bus;
+      };
+
       const out = (vol) => {
         const g = ac.createGain();
         g.gain.value = vol;
-        g.connect(ac.destination);
+        g.connect(getBus());
         return g;
       };
 
