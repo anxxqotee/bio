@@ -6,6 +6,18 @@
   <title>Артем Гай</title>
   <meta name="description" content="Відео, стріми, мемчики та вайбкодинг — YouTube, Telegram, Twitch та Instagram Артема Гая в одному місці.">
   <meta name="theme-color" content="#141517">
+  <!-- Тема — до першого кадру: інакше браузер малює спершу системну тему, а потім плавно перемикає на очах -->
+  <script>
+    (function () {
+      var r = document.documentElement, t = null;
+      try { t = sessionStorage.getItem('user_manual_theme'); } catch (e) {}
+      if (t !== 'light' && t !== 'dark' && t !== 'aqua') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      r.setAttribute('data-theme', t);
+      r.classList.add('is-preload');
+      // Переходи між темами вмикаємо лише після перших кадрів
+      addEventListener('load', function () { requestAnimationFrame(function () { requestAnimationFrame(function () { r.classList.remove('is-preload'); }); }); });
+    })();
+  </script>
 
   <!-- Передогляд посилання (Telegram, Discord, Viber, Facebook, X тощо) -->
   <meta property="og:type" content="website">
@@ -328,6 +340,13 @@
       100% { background-position: 20% 100%; }
     }
 
+    /* Поки сторінка вантажиться — без переходів кольорів/прозорості (анімації появи працюють як завжди) */
+    .is-preload *,
+    .is-preload *::before,
+    .is-preload *::after {
+      transition: none !important;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -445,6 +464,28 @@
     .container.ready .link-item-wrapper {
       animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       animation-delay: calc(0.58s + var(--i, 0) * 0.07s);
+    }
+
+    /* Aqua: скло не розмивається, поки предок напівпрозорий — тому з'являється сама картка,
+       а не її обгортка (інакше матовість "вмикається" стрибком наприкінці появи) */
+    [data-theme="aqua"] .link-item-wrapper,
+    [data-theme="aqua"] .container.ready .link-item-wrapper {
+      opacity: 1;
+      animation: none;
+    }
+
+    [data-theme="aqua"] .link-card {
+      opacity: 0;
+    }
+
+    [data-theme="aqua"] .container.ready .link-card {
+      animation: glassReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: calc(0.58s + var(--i, 0) * 0.07s);
+    }
+
+    @keyframes glassReveal {
+      from { opacity: 0; translate: 0 22px; }
+      to { opacity: 1; translate: 0 0; }
     }
 
     .container.ready .footer {
@@ -2336,7 +2377,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.4.1",
+      footer: "Артем Гай · 2026 · v3.4.2",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
