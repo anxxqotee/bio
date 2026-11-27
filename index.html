@@ -2447,7 +2447,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.6.5",
+      footer: "Артем Гай · 2026 · v3.6.6",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -2537,15 +2537,17 @@
           profileUrl: "https://instagram.com/anxxqotee999",
           photos: [
             { 
-              image: "img/instagram/post1.webp", 
+              image: "img/instagram/post0.jpg", 
+              position: "50% 72%",
               url: "https://instagram.com/anxxqotee999" 
             },
             { 
-              image: "img/instagram/post2.webp", 
+              // Ultra HDR JPEG: на HDR-екранах світлі місця яскравіші
+              image: "img/instagram/post1-hdr.jpg", 
               url: "https://instagram.com/anxxqotee999" 
             },
             { 
-              image: "img/instagram/post3.webp", 
+              image: "img/instagram/post2-hdr.jpg", 
               url: "https://instagram.com/anxxqotee999" 
             }
           ]
@@ -2903,7 +2905,7 @@
         btn.photos.forEach(p => {
           photosHTML += `
             <a href="${p.url}" target="_blank" rel="noopener noreferrer" class="insta-preview-card">
-              <img src="${p.image}" alt="Instagram Post" class="insta-preview-img" loading="lazy" onerror="this.onerror=null; this.src='img/logo.png';">
+              <img src="${p.image}" alt="Instagram Post" class="insta-preview-img" loading="lazy"${p.position ? ` style="object-position:${p.position}"` : ''} onerror="this.onerror=null; this.style.visibility='hidden';">
             </a>
           `;
         });
