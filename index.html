@@ -215,115 +215,81 @@
       opacity: 1;
     }
 
-    /* ===== Aqua: Liquid Glass замість неоморфізму ===== */
+    /* ===== Aqua: Liquid Glass ===== */
     /* Подвійні "опуклі" тіні перетворюються на одну м'яку тінь під склом */
     [data-theme="aqua"] {
       --shadow-light: rgba(255, 255, 255, 0);
       --shadow-dark: rgba(6, 28, 46, 0.22);
-      --glass-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.04) 30%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.08) 100%);
-      --glass-rim: linear-gradient(155deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.18) 28%, rgba(255, 255, 255, 0.06) 55%, rgba(255, 255, 255, 0.22) 80%, rgba(255, 255, 255, 0.55) 100%);
     }
 
+    /* Запасний варіант (без WebGL): звичайне матове скло */
     [data-theme="aqua"] .link-card,
     [data-theme="aqua"] .theme-toggle,
     [data-theme="aqua"] .username-badge,
     [data-theme="aqua"] .nested-btn:not([class*="is-highlight"]),
     [data-theme="aqua"] .link-icon-box,
     [data-theme="aqua"] .nested-btn-badge {
-      background-color: rgba(255, 255, 255, 0.035) !important;
-      background-image: var(--glass-sheen);
-      /* Запасний варіант (Safari/Firefox): лише легке розмиття — скло майже прозоре */
-      backdrop-filter: blur(3px) saturate(160%) brightness(1.06);
-      -webkit-backdrop-filter: blur(3px) saturate(160%) brightness(1.06);
-      border-color: transparent !important;
-      outline-color: transparent !important;
+      background-color: rgba(255, 255, 255, 0.12) !important;
+      backdrop-filter: blur(12px) saturate(150%);
+      -webkit-backdrop-filter: blur(12px) saturate(150%);
+      border-color: rgba(255, 255, 255, 0.28) !important;
+      outline-color: rgba(255, 255, 255, 0.28) !important;
     }
 
-    /* Firefox: копія фону всередині кнопки, яку заломлює SVG-фільтр */
-    .lg-copy {
-      display: none;
-    }
-
-    [data-theme="aqua"] .lg-copy-host {
-      isolation: isolate;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-    }
-
-    [data-theme="aqua"] .lg-copy {
-      display: block;
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      border-radius: inherit;
-      overflow: hidden;
-      pointer-events: none;
-      background-repeat: no-repeat;
-    }
-
-    /* У цьому режимі градієнт статичний і рівно на весь екран — щоб копії точно збігались з фоном */
-    .lg-copy-mode[data-theme="aqua"] body::before {
-      top: 0;
-      bottom: 0;
-      animation: none;
-      background-size: 100% 100%;
-    }
-
-    /* Chromium: справжнє заломлення по краях (SVG-фільтр задається з JS для кожної форми) */
-    [data-theme="aqua"] .lg-on {
-      backdrop-filter: var(--lg-filter) saturate(165%) brightness(1.05) !important;
-    }
-
-    [data-theme="aqua"] .username-badge {
-      position: relative;
-    }
-
-    /* Світлий обідок по краю скла: яскравий згори-зліва, гасне до середини, відблиск знизу-справа */
-    [data-theme="aqua"] .link-card::after,
-    [data-theme="aqua"] .theme-toggle::after,
-    [data-theme="aqua"] .username-badge::after,
-    [data-theme="aqua"] .nested-btn:not([class*="is-highlight"])::after,
-    [data-theme="aqua"] .link-icon-box::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      padding: 1.2px;
-      background: var(--glass-rim);
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
-      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    /* М'яке внутрішнє світіння скла */
-    /* Відблиски товстого скла: яскравий край згори-зліва, слабший знизу-справа, світло всередині товщі */
     [data-theme="aqua"] .link-card,
     [data-theme="aqua"] .theme-toggle,
     [data-theme="aqua"] .username-badge,
     [data-theme="aqua"] .nested-btn:not([class*="is-highlight"]) {
-      box-shadow:
-        0 10px 28px -8px rgba(6, 28, 46, 0.35),
-        inset 2px 2px 1px -1px rgba(255, 255, 255, 0.55),
-        inset -2px -2px 1px -1px rgba(255, 255, 255, 0.28),
-        inset 0 0 18px rgba(255, 255, 255, 0.07),
-        inset 0 -12px 22px -14px rgba(255, 255, 255, 0.25) !important;
+      box-shadow: 0 10px 28px -8px rgba(6, 28, 46, 0.35) !important;
     }
 
-    [data-theme="aqua"] .link-card.is-elevated,
-    [data-theme="aqua"] .link-card.is-open {
-      box-shadow:
-        0 16px 36px -10px rgba(6, 28, 46, 0.45),
-        inset 2px 2px 1px -1px rgba(255, 255, 255, 0.65),
-        inset -2px -2px 1px -1px rgba(255, 255, 255, 0.32),
-        inset 0 0 22px rgba(255, 255, 255, 0.09),
-        inset 0 -14px 26px -14px rgba(255, 255, 255, 0.3) !important;
+    /* WebGL-скло (js/aqua-glass.js): фон і заломлення малює один шар за сайтом,
+       самі кнопки прозорі — жодних backdrop-filter, тому легко для відеокарти */
+    .lg-gl[data-theme="aqua"] .link-card,
+    .lg-gl[data-theme="aqua"] .theme-toggle,
+    .lg-gl[data-theme="aqua"] .username-badge,
+    .lg-gl[data-theme="aqua"] .nested-btn:not([class*="is-highlight"]) {
+      background-color: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border-color: transparent !important;
+      outline-color: transparent !important;
+    }
+
+    .lg-gl[data-theme="aqua"] .link-icon-box,
+    .lg-gl[data-theme="aqua"] .nested-btn-badge {
+      background-color: rgba(255, 255, 255, 0.10) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    .lg-gl[data-theme="aqua"] body::before,
+    .lg-gl[data-theme="aqua"] .aqua-bg-image {
+      opacity: 0 !important;
+    }
+
+    .aqua-gl {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .lg-gl[data-theme="aqua"] .aqua-gl {
+      opacity: 1;
     }
 
     @media (hover: hover) and (pointer: fine) {
       [data-theme="aqua"] .link-card:hover {
-        background-color: rgba(255, 255, 255, 0.14) !important;
+        background-color: rgba(255, 255, 255, 0.16) !important;
+      }
+      .lg-gl[data-theme="aqua"] .link-card:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
       }
     }
 
@@ -2382,7 +2348,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.3",
+      footer: "Артем Гай · 2026 · v3.4",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -2575,177 +2541,6 @@
       new MutationObserver(parallax).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
       parallax();
     }
-
-    // ---------- Liquid Glass (Aqua): заломлення фону по краях кожної скляної кнопки ----------
-    // Для кожного розміру/радіуса будується карта зміщень: у центрі фон чистий,
-    // ближче до краю — "загинається", як у товстій лінзі, з легким райдужним розшаруванням.
-    (function liquidGlass() {
-      const ua = navigator.userAgent;
-      const chromium = /Chrome\/|Chromium|CriOS|EdgA|SamsungBrowser/.test(ua) && !/iPhone|iPad|iPod/.test(ua) && !!window.ResizeObserver;
-      // Firefox не вміє SVG-фільтри у backdrop-filter, але вміє у звичайному filter:
-      // там усередині кнопки малюємо точну копію фону сторінки і заломлюємо її
-      const gecko = /Gecko\/\d/.test(ua) && /Firefox\//.test(ua) && !/Seamonkey/i.test(ua);
-      const forceCopy = /[?&]lgcopy\b/.test(location.search);   // для перевірки в будь-якому браузері
-      const MODE = forceCopy ? 'copy' : chromium ? 'backdrop' : (gecko && !!window.ResizeObserver) ? 'copy' : null;
-      if (!MODE) return;   // Safari: лишається майже прозоре скло з відблисками
-
-      const NS = 'http://www.w3.org/2000/svg';
-      const svg = document.createElementNS(NS, 'svg');
-      svg.setAttribute('width', 0); svg.setAttribute('height', 0);
-      svg.setAttribute('aria-hidden', 'true');
-      svg.style.position = 'absolute';
-      svg.style.pointerEvents = 'none';
-      const defs = document.createElementNS(NS, 'defs');
-      svg.appendChild(defs);
-      document.body.appendChild(svg);
-      const cache = new Map();
-
-      function mapURL(w, h, r) {
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        const g = c.getContext('2d');
-        const img = g.createImageData(w, h);
-        const d = img.data;
-        const band = Math.max(6, Math.min(22, Math.min(w, h) * 0.42));   // ширина зони заломлення
-        const hw = w / 2, hh = h / 2;
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const px = x + 0.5 - hw, py = y + 0.5 - hh;
-            const qx = Math.abs(px) - (hw - r), qy = Math.abs(py) - (hh - r);
-            let nx, ny, dist;
-            if (qx > 0 && qy > 0) {
-              // Заокруглений кут
-              const l = Math.hypot(qx, qy) || 1;
-              dist = r - l; nx = (qx / l) * Math.sign(px); ny = (qy / l) * Math.sign(py);
-            } else {
-              // Прямий край: найближча сторона
-              const dx = hw - Math.abs(px), dy = hh - Math.abs(py);
-              if (dx < dy) { dist = dx; nx = Math.sign(px); ny = 0; }
-              else { dist = dy; nx = 0; ny = Math.sign(py); }
-            }
-            let m = 0;
-            if (dist < band) { const t = 1 - Math.max(0, dist) / band; m = t * t * (3 - 2 * t); }
-            const i = (y * w + x) * 4;
-            // Біля краю фон "стягується" всередину, як у товстій лінзі (і не виходить за межі кнопки)
-            d[i] = 128 - nx * m * 127;
-            d[i + 1] = 128 - ny * m * 127;
-            d[i + 2] = 128;
-            d[i + 3] = 255;
-          }
-        }
-        g.putImageData(img, 0, 0);
-        return c.toDataURL();
-      }
-
-      function filterFor(w, h, r) {
-        w = Math.max(8, Math.round(w)); h = Math.max(8, Math.round(h)); r = Math.min(Math.round(r), Math.floor(Math.min(w, h) / 2));
-        const key = `${w}x${h}r${r}`;
-        if (cache.has(key)) return cache.get(key);
-        const id = 'lg' + cache.size;
-        const S = Math.min(44, Math.max(16, Math.min(w, h) * 0.55));
-        const f = document.createElementNS(NS, 'filter');
-        f.setAttribute('id', id);
-        f.setAttribute('x', 0); f.setAttribute('y', 0);
-        f.setAttribute('width', w); f.setAttribute('height', h);
-        f.setAttribute('filterUnits', 'userSpaceOnUse');
-        f.setAttribute('color-interpolation-filters', 'sRGB');
-        f.innerHTML =
-          `<feImage href="${mapURL(w, h, r)}" x="0" y="0" width="${w}" height="${h}" result="map" preserveAspectRatio="none"/>` +
-          // Три канали заломлюються трохи по-різному — тонка райдужна кайма
-          `<feDisplacementMap in="SourceGraphic" in2="map" scale="${S}" xChannelSelector="R" yChannelSelector="G" result="dr"/>` +
-          `<feDisplacementMap in="SourceGraphic" in2="map" scale="${(S * 0.93).toFixed(1)}" xChannelSelector="R" yChannelSelector="G" result="dg"/>` +
-          `<feDisplacementMap in="SourceGraphic" in2="map" scale="${(S * 0.86).toFixed(1)}" xChannelSelector="R" yChannelSelector="G" result="db"/>` +
-          `<feColorMatrix in="dr" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>` +
-          `<feColorMatrix in="dg" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"/>` +
-          `<feColorMatrix in="db" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>` +
-          `<feBlend in="r" in2="g" mode="screen" result="rg"/>` +
-          `<feBlend in="rg" in2="b" mode="screen" result="rgb"/>` +
-          `<feGaussianBlur in="rgb" stdDeviation="0.4"/>`;
-        defs.appendChild(f);
-        const val = `url(#${id})`;
-        cache.set(key, val);
-        return val;
-      }
-
-      const SEL = '.link-card, .theme-toggle, .username-badge, .nested-btn:not([class*="is-highlight"])';
-      const ro = new ResizeObserver((entries) => {
-        for (const e of entries) apply(e.target);
-      });
-      const tracked = [];
-      function apply(el) {
-        const w = el.offsetWidth, h = el.offsetHeight;
-        if (!w || !h) return;
-        const r = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
-        const f = filterFor(w, h, r);
-        if (MODE === 'backdrop') {
-          el.style.setProperty('--lg-filter', f);
-          el.classList.add('lg-on');
-          return;
-        }
-        let layer = el.querySelector(':scope > .lg-copy');
-        if (!layer) {
-          layer = document.createElement('span');
-          layer.className = 'lg-copy';
-          layer.setAttribute('aria-hidden', 'true');
-          el.insertBefore(layer, el.firstChild);
-          el.classList.add('lg-copy-host');
-          tracked.push({ el, layer });
-        }
-        layer.style.filter = `${f} saturate(1.65) brightness(1.05)`;
-        syncCopies();
-      }
-
-      // ----- Режим копії фону (Firefox) -----
-      let syncQueued = false;
-      function syncCopies() {
-        if (MODE !== 'copy') return;
-        const root = document.documentElement;
-        if (root.getAttribute('data-theme') !== 'aqua') return;
-        const vw = window.innerWidth, vh = window.innerHeight;
-        // Геометрія фото: як background-size: cover у його (зсунутому паралаксом) блоці
-        const bgEl = document.querySelector('.aqua-bg-image.is-loaded');
-        let photo = null;
-        if (bgEl && bgEl.__img && bgEl.__img.naturalWidth) {
-          const br = bgEl.getBoundingClientRect();
-          const iw = bgEl.__img.naturalWidth, ih = bgEl.__img.naturalHeight;
-          const k = Math.max(br.width / iw, br.height / ih);
-          const bw = iw * k, bh = ih * k;
-          photo = { url: bgEl.__img.src, bw, bh, x: br.left + (br.width - bw) * 0.62, y: br.top + (br.height - bh) * 0.5 };
-        }
-        const grad = photo
-          ? 'linear-gradient(135deg, rgba(22,66,91,0.65) 0%, rgba(33,99,131,0.65) 38%, rgba(63,143,151,0.65) 70%, rgba(113,191,188,0.65) 100%)'
-          : 'linear-gradient(135deg, #16425b 0%, #216383 38%, #3f8f97 70%, #71bfbc 100%)';
-        for (const { el, layer } of tracked) {
-          if (!el.isConnected) continue;
-          const r = el.getBoundingClientRect();
-          if (r.bottom < -50 || r.top > vh + 50) continue;
-          const gx = -r.left, gy = -r.top;
-          if (photo) {
-            layer.style.backgroundImage = `${grad}, url("${photo.url}")`;
-            layer.style.backgroundSize = `${vw}px ${vh}px, ${photo.bw}px ${photo.bh}px`;
-            layer.style.backgroundPosition = `${gx}px ${gy}px, ${photo.x - r.left}px ${photo.y - r.top}px`;
-          } else {
-            layer.style.backgroundImage = grad;
-            layer.style.backgroundSize = `${vw}px ${vh}px`;
-            layer.style.backgroundPosition = `${gx}px ${gy}px`;
-          }
-        }
-      }
-      if (MODE === 'copy') {
-        document.documentElement.classList.add('lg-copy-mode');
-        // Позиції змінюються при гортанні, розкритті карток, анімаціях — оновлюємо щокадру, поки активна Aqua
-        const loop = () => {
-          if (document.documentElement.getAttribute('data-theme') === 'aqua' && !document.hidden) syncCopies();
-          requestAnimationFrame(loop);
-        };
-        requestAnimationFrame(loop);
-      }
-      const attach = () => document.querySelectorAll(SEL).forEach((el) => { if (!el.__lg) { el.__lg = true; ro.observe(el); } });
-      // Кнопки рендеряться скриптом — підключаємось трохи згодом і при змінах
-      attach();
-      setTimeout(attach, 500);
-      new MutationObserver(attach).observe(document.getElementById('mainContainer'), { childList: true, subtree: true });
-    })();
 
     // ---------- Плавне прокручування коліщатком миші (ПК) ----------
     // Сторінка доїжджає з інерцією, а не стрибає рядками. Тачпади й телефони не чіпаємо — там і так плавно.
@@ -5611,6 +5406,7 @@
     }
   </script>
   <!-- 3D-режим пасхалки (модель телефона) -->
+  <script src="js/aqua-glass.js?v=20261127a" defer></script>
   <script src="js/egg3d.js?v=20261127a"></script>
 </body>
 </html>
