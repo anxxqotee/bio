@@ -1857,7 +1857,10 @@
       animation-delay: 0.25s;
     }
 
-    body.is-disco {
+    /* Фільтр не на body: інакше "приклеєні" до екрана фон і фото Aqua починають їздити разом зі сторінкою */
+    :root:not([data-theme="aqua"]) body.is-disco #mainContainer,   /* в Aqua фільтр на вмісті вимкнув би скло */
+    body.is-disco::before,
+    body.is-disco .aqua-bg-image {
       animation: discoBg 1.2s linear infinite;
     }
 
@@ -2447,7 +2450,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.6.7",
+      footer: "Артем Гай · 2026 · v3.6.8",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -2875,13 +2878,12 @@
 
     // Заздалегідь (у вільний час після завантаження) вантажимо й декодуємо і звичайні, і HDR-версії фото
     const hdrReady = new Map();
+    // Важливо: HDR-файл лише ЗАВАНТАЖУЄМО в кеш, але не декодуємо окремо — інакше браузер
+    // декодує його як звичайну SDR-картинку й потім показує саме її, без HDR
     function prepareHdr(img) {
       const url = img.dataset.hdr;
       if (!url || hdrReady.has(url)) return hdrReady.get(url);
-      const pre = new Image();
-      pre.decoding = 'async';
-      pre.src = url;
-      const pr = (pre.decode ? pre.decode() : new Promise((r) => { pre.onload = r; })).then(() => true, () => false);
+      const pr = fetch(url, { cache: 'force-cache' }).then((r) => r.ok, () => false);
       hdrReady.set(url, pr);
       return pr;
     }
@@ -2896,7 +2898,7 @@
     const whenIdle = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 1500));
     window.addEventListener('load', () => whenIdle(() => {
       document.querySelectorAll('.insta-preview-img').forEach((img) => {
-        if (img.decode) img.decode().catch(() => {});
+        if (img.decode) img.decode().catch(() => {});   // легкі SDR-прев'ю — декодуємо наперед
         prepareHdr(img);
       });
     }));
