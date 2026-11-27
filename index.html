@@ -262,10 +262,15 @@
       -webkit-backdrop-filter: blur(12px);
     }
 
-    [data-theme="aqua"] .link-icon-box,
     [data-theme="aqua"] .nested-btn-badge,
     [data-theme="aqua"] .nested-btn:not([class*="is-highlight"]) {
       background-color: rgba(255, 255, 255, 0.14) !important;
+    }
+
+    /* Іконка — того ж кольору, що й скло картки (форму дають лише тіні) */
+    [data-theme="aqua"] .link-icon-box {
+      background-color: transparent !important;
+      background-image: none;
     }
 
     [data-theme="aqua"] .username-badge {
@@ -844,7 +849,7 @@
       height: 48px;
       min-width: 48px;
       border-radius: 50%;
-      background: var(--icon-bg);
+      background: var(--bg);   /* той самий колір, що й у кнопки — іконка "видавлена" з неї */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -868,8 +873,8 @@
       box-shadow: var(--ib-sunk);
 
       transition: 
-        transform 0.85s cubic-bezier(0.45, 0.05, 0.25, 1),
-        box-shadow 0.85s cubic-bezier(0.45, 0.05, 0.25, 1),
+        transform 0.42s cubic-bezier(0.4, 0.05, 0.25, 1),
+        box-shadow 0.42s cubic-bezier(0.4, 0.05, 0.25, 1),
         background-color 0.6s var(--ease-soft);
       will-change: transform, box-shadow;
     }
@@ -2432,7 +2437,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.6.2",
+      footer: "Артем Гай · 2026 · v3.6.3",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
