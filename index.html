@@ -54,7 +54,9 @@
   }
   </script>
   <!-- Іконка на вкладці браузера (Favicon) -->
-  <link rel="icon" type="image/png" href="img/logo-circle.png">
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="apple-touch-icon" href="img/favicon.png">
+  <link rel="preload" href="fonts/sn-pro.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Застосовуємо збережену тему ще до відмальовки, щоб не було "блимання" -->
   <script>
@@ -72,7 +74,7 @@
     /* Підключення шрифту */
     @font-face {
       font-family: 'SN Pro';
-      src: url('fonts/sn-pro.ttf') format('truetype');
+      src: url('fonts/sn-pro.woff2') format('woff2'), url('fonts/sn-pro.ttf') format('truetype');
       font-weight: 100 900;
       font-display: block;
     }
@@ -2310,16 +2312,16 @@
     <div class="avatar-wrapper">
       <div class="avatar-inner">
         <img 
-          src="img/logo-bg.jpg" 
+          src="img/logo-bg-sm.jpg" 
           alt="" 
           class="avatar-img avatar-bg"
-          onerror="this.onerror=null; this.src='img/logo.png';"
+          onerror="this.onerror=null; this.src='img/logo-bg.jpg';"
         >
         <img 
-          src="img/logo-trn.png" 
+          src="img/logo-trn.webp" 
           alt="Logo" 
           class="avatar-img avatar-mark"
-          onerror="this.onerror=null; this.style.display='none'; document.getElementById('fallback-avatar').style.display='block';"
+          onerror="if(this.dataset.f){this.onerror=null;this.style.display='none';document.getElementById('fallback-avatar').style.display='block';}else{this.dataset.f=1;this.src='img/logo-trn-sm.png';}"
         >
         <svg id="fallback-avatar" class="avatar-placeholder-svg" style="display: none;" viewBox="0 0 24 24">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -2424,7 +2426,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.6",
+      footer: "Артем Гай · 2026 · v3.6.1",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -2514,15 +2516,15 @@
           profileUrl: "https://instagram.com/anxxqotee999",
           photos: [
             { 
-              image: "img/instagram/post1.jpg", 
+              image: "img/instagram/post1.webp", 
               url: "https://instagram.com/anxxqotee999" 
             },
             { 
-              image: "img/instagram/post2.jpg", 
+              image: "img/instagram/post2.webp", 
               url: "https://instagram.com/anxxqotee999" 
             },
             { 
-              image: "img/instagram/post3.jpg", 
+              image: "img/instagram/post3.webp", 
               url: "https://instagram.com/anxxqotee999" 
             }
           ]
