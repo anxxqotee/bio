@@ -483,6 +483,14 @@
       animation-delay: calc(0.58s + var(--i, 0) * 0.07s);
     }
 
+    /* Після першої появи — анімації вимкнено (інакше зміна теми програє їх знову) */
+    .container.intro-done .link-item-wrapper,
+    .container.intro-done .link-card {
+      animation: none !important;
+      opacity: 1 !important;
+      translate: none;
+    }
+
     @keyframes glassReveal {
       from { opacity: 0; translate: 0 22px; }
       to { opacity: 1; translate: 0 0; }
@@ -2377,7 +2385,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.4.2",
+      footer: "Артем Гай · 2026 · v3.4.3",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -2993,8 +3001,14 @@
 
     // 2. Старт анімацій після завантаження шрифту
     const mainContainer = document.getElementById('mainContainer');
+    let introTimer = null;
     function startAnimations() {
       mainContainer.classList.add('ready');
+      // Коли поява відіграла — вимикаємо її назавжди, щоб перемикання теми не запускало її знову
+      if (!introTimer) {
+        const n = document.querySelectorAll('.link-item-wrapper').length;
+        introTimer = setTimeout(() => mainContainer.classList.add('intro-done'), (0.58 + n * 0.07 + 0.8) * 1000 + 150);
+      }
     }
 
     mainContainer.addEventListener('animationend', (e) => {
