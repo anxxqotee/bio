@@ -561,6 +561,17 @@
       transform: scale(1);
     }
 
+    /* На ПК — у правому верхньому куті вікна, там само, де кнопка закриття пасхалки */
+    @media (hover: hover) and (pointer: fine) {
+      .theme-toggle {
+        position: fixed;
+        top: calc(14px + env(safe-area-inset-top, 0px));
+        right: 14px;
+        width: 44px;
+        height: 44px;
+      }
+    }
+
     .theme-toggle:active {
       box-shadow: 
         inset 3px 3px 6px var(--shadow-dark),
@@ -2450,7 +2461,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.6.8",
+      footer: "Артем Гай · 2026 · v3.6.9",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
