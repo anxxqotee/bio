@@ -2404,7 +2404,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.5.1",
+      footer: "Артем Гай · 2026 · v3.5.2",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -4207,8 +4207,8 @@
         { id: 'bounce50',  emoji: '🏓', title: 'Пінг-понг',                            desc: '50 ударів об краї екрана',         ok: (s) => s.bounces >= 50 },
         { id: 'pop',       emoji: '🎈', title: 'Перегодував',                          desc: 'Швидко тицяй, поки не лусне',      ok: (s) => s.pops >= 1 },
         { id: 'pop10',     emoji: '💨', title: 'Серійний пукач',                        desc: 'Лусни картинку 10 разів',          ok: (s) => s.pops >= 10 },
-        { id: 'shake',     emoji: '📳', title: 'Струснув як треба',                    desc: 'Струсни телефон (на ПК — посмикай вікно браузера)',                  ok: (s) => s.shakes >= 1 },
-        { id: 'shake20',   emoji: '🍸', title: 'Шейкер',                               desc: 'Струсни 20 разів',         ok: (s) => s.shakes >= 20 }
+        { id: 'shake',     emoji: '📳', title: 'Струснув як треба',                    desc: 'Посмикай вікно браузера (на ПК)', pcOnly: true, ok: (s) => s.shakes >= 1 },
+        { id: 'shake20',   emoji: '🍸', title: 'Шейкер',                               desc: 'Посмикай вікно браузера 20 разів', pcOnly: true, ok: (s) => s.shakes >= 20 }
       ];
       // Секретні — в списку показуються як "Секретна пасхалка", поки не знайдеш
       const hasSecret = (id) => (s) => Array.isArray(s.secrets) && s.secrets.includes(id);
@@ -4223,7 +4223,7 @@
         { id: 's_wreck',  secret: true, emoji: '💀', title: 'Ну шо ти наробив...', desc: 'Підірвав картинку разом з усім сайтом',  ok: hasSecret('wreck') }
       );
       ACH.push({ id: 'all', emoji: '👑', title: 'Еліта телеграм-каналу', desc: 'Відкрий усі досягнення',
-        ok: () => ACH.every((a) => a.id === 'all' || stats.unlocked.includes(a.id)) });
+        ok: () => ACH.every((a) => a.id === 'all' || a.pcOnly || stats.unlocked.includes(a.id)) });
 
       const trophyCount = document.getElementById('eggTrophyCount');
       const trophyBtn = document.getElementById('eggTrophyBtn');
@@ -5225,22 +5225,9 @@
         }, 40);
       }
 
-      function listenMotion() {
-        if (motionOn || !('DeviceMotionEvent' in window)) return;
-        motionOn = true;
-        window.addEventListener('devicemotion', onMotion);
-      }
-
-      // Android — слухаємо одразу; iPhone — після дозволу
-      if ('DeviceMotionEvent' in window && typeof DeviceMotionEvent.requestPermission !== 'function') listenMotion();
-
-      function askMotion() {
-        try {
-          if (window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function' && !motionOn) {
-            DeviceMotionEvent.requestPermission().then((r) => { if (r === 'granted') listenMotion(); }).catch(() => {});
-          }
-        } catch (e) {}
-      }
+      // Акселерометр на сайті вимкнено: жодних підписок на devicemotion і запитів дозволу.
+      // Струс лишився тільки на ПК — посмикати вікно браузера.
+      function askMotion() {}
 
       // ---------- Секретні пасхалки ----------
       const SECRET_QUOTES = {
