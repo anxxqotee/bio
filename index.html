@@ -2404,7 +2404,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.5",
+      footer: "Артем Гай · 2026 · v3.5.1",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -2575,25 +2575,47 @@
       bgEl.className = 'aqua-bg-image';
       bgEl.setAttribute('aria-hidden', 'true');
       document.body.insertBefore(bgEl, document.body.firstChild);
-      const probe = new Image();
-      probe.onload = () => {
-        bgEl.__img = probe;
-        bgEl.style.backgroundImage = `url("${PAGE_DATA.aquaBackgroundImage}")`;
-        bgEl.classList.add('is-loaded');
+      // Розмір фіксований: висота береться один раз і не "стрибає", коли на телефоні ховається/з'являється рядок адреси.
+      // Перераховується лише при зміні ширини (поворот екрана).
+      let H0 = 0, W0 = 0;
+      const fixSize = () => {
+        if (W0 === window.innerWidth && H0) return false;
+        W0 = window.innerWidth;
+        H0 = Math.max(window.innerHeight, document.documentElement.clientHeight);
+        bgEl.style.top = `${-0.2 * H0}px`;
+        bgEl.style.bottom = 'auto';
+        bgEl.style.height = `${1.4 * H0}px`;
+        return true;
       };
-      probe.src = PAGE_DATA.aquaBackgroundImage;
+      fixSize();
+
+      // Фото вантажимо лише коли вперше ввімкнули Aqua — в інших темах воно не потрібне
+      let loadStarted = false;
+      const loadPhoto = () => {
+        if (loadStarted || document.documentElement.getAttribute('data-theme') !== 'aqua') return;
+        loadStarted = true;
+        const probe = new Image();
+        probe.decoding = 'async';
+        probe.onload = () => {
+          bgEl.__img = probe;
+          bgEl.style.backgroundImage = `url("${PAGE_DATA.aquaBackgroundImage}")`;
+          bgEl.classList.add('is-loaded');
+        };
+        probe.src = PAGE_DATA.aquaBackgroundImage;
+      };
 
       // Паралакс: фото рухається повільніше за сторінку (до ±15% висоти екрана)
       let pxTick = false;
       const parallax = () => {
         pxTick = false;
+        loadPhoto();
         if (document.documentElement.getAttribute('data-theme') !== 'aqua') return;
         const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
         const prog = Math.min(1, Math.max(0, (window.scrollY || 0) / max));
-        bgEl.style.transform = `translate3d(0, ${(0.5 - prog) * window.innerHeight * 0.3}px, 0)`;
+        bgEl.style.transform = `translate3d(0, ${((0.5 - prog) * H0 * 0.3).toFixed(1)}px, 0)`;
       };
       window.addEventListener('scroll', () => { if (!pxTick) { pxTick = true; requestAnimationFrame(parallax); } }, { passive: true });
-      window.addEventListener('resize', parallax);
+      window.addEventListener('resize', () => { fixSize(); parallax(); });
       new MutationObserver(parallax).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
       parallax();
     }
