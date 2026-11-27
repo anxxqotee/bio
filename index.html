@@ -872,12 +872,13 @@
         inset calc(-2px * var(--ib-in)) calc(-2px * var(--ib-in)) calc(4px * var(--ib-in)) var(--shadow-light),
         calc(3px * var(--ib-out)) calc(4px * var(--ib-out)) calc(9px * var(--ib-out)) var(--shadow-dark),
         calc(-3px * var(--ib-out)) calc(-3px * var(--ib-out)) calc(8px * var(--ib-out)) var(--shadow-light);
-      transform: translate3d(0, calc(-1px * var(--ib-out)), 0) scale(calc(1 + 0.05 * var(--ib-out)));
+      /* Без збільшення: випуклість дають лише тіні */
+      transform: translate3d(0, 0, 0);
 
       /* Повернення: спершу ховається випуклість, потім проступає ямка */
       transition:
-        --ib-out 0.2s cubic-bezier(0.4, 0, 0.6, 1),
-        --ib-in 0.2s cubic-bezier(0.4, 0, 0.6, 1) 0.2s,
+        --ib-out 0.12s cubic-bezier(0.55, 0, 1, 0.45),
+        --ib-in 0.14s cubic-bezier(0, 0.55, 0.45, 1) 0.12s,
         background-color 0.6s var(--ease-soft);
       will-change: transform, box-shadow;
     }
@@ -954,8 +955,8 @@
       --ib-out: 1;
       /* Виринання: спершу зникає ямка, потім з'являється випуклість */
       transition:
-        --ib-in 0.2s cubic-bezier(0.4, 0, 0.6, 1),
-        --ib-out 0.22s cubic-bezier(0.4, 0, 0.6, 1) 0.2s,
+        --ib-in 0.12s cubic-bezier(0.55, 0, 1, 0.45),
+        --ib-out 0.14s cubic-bezier(0, 0.55, 0.45, 1) 0.12s,
         background-color 0.6s var(--ease-soft);
     }
 
@@ -987,8 +988,8 @@
         --ib-in: 0;
         --ib-out: 1;
         transition:
-          --ib-in 0.2s cubic-bezier(0.4, 0, 0.6, 1),
-          --ib-out 0.22s cubic-bezier(0.4, 0, 0.6, 1) 0.2s,
+          --ib-in 0.12s cubic-bezier(0.55, 0, 1, 0.45),
+          --ib-out 0.14s cubic-bezier(0, 0.55, 0.45, 1) 0.12s,
           background-color 0.6s var(--ease-soft);
       }
       .link-card:not(.is-open):hover .link-arrow {
@@ -2446,7 +2447,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.6.4",
+      footer: "Артем Гай · 2026 · v3.6.5",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
