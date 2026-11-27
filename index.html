@@ -565,10 +565,14 @@
     @media (hover: hover) and (pointer: fine) {
       .theme-toggle {
         position: fixed;
-        top: calc(14px + env(safe-area-inset-top, 0px));
-        right: 14px;
+        top: calc(26px + env(safe-area-inset-top, 0px));
+        right: 26px;
         width: 44px;
         height: 44px;
+      }
+      .easter-overlay .egg-close {
+        top: calc(26px + env(safe-area-inset-top, 0px));
+        right: 26px;
       }
     }
 
@@ -1865,7 +1869,8 @@
     }
 
     /* Фільтр не на body: інакше "приклеєні" до екрана фон і фото Aqua починають їздити разом зі сторінкою */
-    :root:not([data-theme="aqua"]) body.is-disco #mainContainer,   /* в Aqua фільтр на вмісті вимкнув би скло */
+    :root:not([data-theme="aqua"]) body.is-disco #mainContainer > :not(.theme-toggle),   /* в Aqua фільтр на вмісті вимкнув би скло */
+    body.is-disco .theme-toggle,   /* кнопка теми фарбується сама: фільтр на предку "відклеює" її від кута екрана */
     body.is-disco::before,
     body.is-disco .aqua-bg-image {
       animation: discoBg 1.2s linear infinite;
@@ -2457,7 +2462,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.8",
+      footer: "Артем Гай · 2026 · v3.8.1",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
