@@ -494,7 +494,7 @@
       top: 50%;
       overflow: visible;
       pointer-events: none;
-      transform: translate(4px, -46%) rotate(-5deg);
+      transform: translate(1px, -46%) rotate(-5deg);
       transform-origin: left center;
       --ink: #1e4fd8;
     }
@@ -514,11 +514,13 @@
       stroke-linecap: round;
       stroke-dasharray: 1;
       stroke-dashoffset: 1;
-      animation: inkStroke var(--d, 60ms) linear forwards;
+      visibility: hidden;
+      animation: inkStroke var(--d, 200ms) cubic-bezier(0.45, 0.05, 0.4, 1) forwards;
     }
 
     @keyframes inkStroke {
-      to { stroke-dashoffset: 0; }
+      from { stroke-dashoffset: 1; visibility: visible; }
+      to { stroke-dashoffset: 0; visibility: visible; }
     }
 
     .profile-title {
@@ -2425,7 +2427,7 @@
         const text = document.createElementNS(NS, 'text');
         text.textContent = TEXT;
         text.setAttribute('font-size', fs);
-        text.setAttribute('x', 2);
+        text.setAttribute('x', 0);
         text.setAttribute('y', fs * 0.82);
         svg.appendChild(text);
         const anchor = document.createElement('span');
@@ -2436,47 +2438,79 @@
         anchor.appendChild(svg);
 
         const bb = text.getBBox();
-        const w = Math.ceil(bb.x + bb.width + 6), h = Math.ceil(fs * 1.15);
+        const w = Math.ceil(bb.x + bb.width + 6), h = Math.ceil(fs * 1.25);
         svg.setAttribute('width', w);
         svg.setAttribute('height', h);
         svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
-        // Маска з діагональних штрихів: вони по черті "прописують" літери зліва направо, як рука з ручкою
+        // "Скелети" літер у координатах шрифту (1000 од., y — вгору), в тому порядку, як їх веде рука.
+        // Маска відкриває чорнило лише там, де вже пройшла "ручка".
+        const STROKES = {
+          'д': [[[360, 300], [300, 332], [230, 312], [160, 250], [118, 160], [128, 70], [200, 8], [290, 50], [362, 160], [405, 280], [428, 400], [422, 520], [392, 600], [330, 648], [270, 640], [228, 585]]],
+          'у': [[[170, 390], [163, 300], [162, 210], [178, 120], [215, 60]],
+                [[380, 368], [345, 280], [300, 175], [262, 60], [212, -55], [150, -150], [70, -205], [-20, -190], [-45, -160]]],
+          'к': [[[228, 385], [212, 300], [185, 200], [158, 110], [152, 45]],
+                [[430, 355], [370, 300], [300, 252], [244, 232], [270, 170], [318, 90], [372, 38], [415, 30]]],
+          ':': [[[205, 315], [235, 300], [232, 275], [200, 270], [192, 300], [215, 315]],
+                [[150, 100], [180, 88], [180, 62], [150, 55], [138, 85], [158, 100]]],
+          ')': [[[325, 700], [338, 620], [335, 480], [312, 340], [272, 200], [212, 70], [162, -20], [95, -100], [40, -92]]]
+        };
+        const sc = fs / 1000;
+        const baseY = fs * 0.82;
         const id = 'inkMask' + Math.random().toString(36).slice(2, 7);
         const defs = document.createElementNS(NS, 'defs');
         const mask = document.createElementNS(NS, 'mask');
         mask.setAttribute('id', id);
         mask.setAttribute('maskUnits', 'userSpaceOnUse');
-        mask.setAttribute('x', 0); mask.setAttribute('y', 0);
-        mask.setAttribute('width', w); mask.setAttribute('height', h);
-        const step = Math.max(2.6, fs * 0.085);
-        const slant = h * 0.32;
-        const total = Math.ceil((bb.width + slant * 2) / step);
-        const per = 950 / total;   // увесь напис ~1 секунда
-        let t = 0, i = 0, lifted = false;
-        let gapX = Infinity;
-        try { gapX = 2 + (text.getSubStringLength(0, 3) + text.getSubStringLength(0, 4)) / 2; } catch (e) {}
-        for (let x = bb.x - slant; x < bb.x + bb.width + slant; x += step, i++) {
-          const up = i % 2 === 0;   // зигзаг: вгору-вниз, як рука пише
-          const x1 = x, y1 = h + 2, x2 = x + slant, y2 = -2;
-          const line = document.createElementNS(NS, 'line');
-          line.setAttribute('x1', up ? x1 : x2); line.setAttribute('y1', up ? y1 : y2);
-          line.setAttribute('x2', up ? x2 : x1); line.setAttribute('y2', up ? y2 : y1);
-          line.setAttribute('pathLength', 1);
-          line.setAttribute('class', 'ink-stroke');
-          line.setAttribute('stroke-width', step * 2.2);
-          const dur = per * (1.6 + Math.random() * 0.6);
-          line.style.setProperty('--d', dur + 'ms');
-          line.style.animationDelay = t + 'ms';
-          // На пробілі ручка "відривається" трохи довше
-          const cx = x + slant / 2;
-          t += per * (0.8 + Math.random() * 0.4);
-          if (!lifted && cx > gapX) { lifted = true; t += 160; }
-          mask.appendChild(line);
-        }
+        mask.setAttribute('x', -10); mask.setAttribute('y', -10);
+        mask.setAttribute('width', w + 20); mask.setAttribute('height', h + 20);
         defs.appendChild(mask);
         svg.insertBefore(defs, text);
         text.setAttribute('mask', `url(#${id})`);
+
+        // Плавна крива через точки (Catmull-Rom → Безьє)
+        const smooth = (pts) => {
+          let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+          for (let i = 0; i < pts.length - 1; i++) {
+            const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+            const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+            const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+            d += ` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+          }
+          return d;
+        };
+
+        const paths = [];
+        [...TEXT].forEach((ch, idx) => {
+          const strokes = STROKES[ch];
+          if (!strokes) { paths.push({ gap: 170 }); return; }   // пробіл — ручка відривається
+          let gx = 0;
+          try { gx = text.getStartPositionOfChar(idx).x; } catch (e) { gx = 2; }
+          strokes.forEach((pts, k) => {
+            const pp = pts.map(([x, y]) => [gx + x * sc, baseY - y * sc]);
+            const el = document.createElementNS(NS, 'path');
+            el.setAttribute('d', smooth(pp));
+            el.setAttribute('class', 'ink-stroke');
+            el.setAttribute('stroke-width', (ch === ':' ? 120 : 112) * sc);
+            el.setAttribute('pathLength', 1);
+            mask.appendChild(el);
+            paths.push({ el, gap: k ? 90 : 60 });
+          });
+        });
+
+        // Таймінг: швидкість ручки однакова, коротка пауза між штрихами
+        const lens = paths.map((p) => (p.el ? p.el.getTotalLength() : 0));
+        const totalLen = lens.reduce((a, b) => a + b, 0) || 1;
+        const pxPerMs = totalLen / 1250;
+        let t = 0;
+        paths.forEach((p, i) => {
+          if (!p.el) { t += p.gap; return; }
+          if (i) t += p.gap;
+          const dur = Math.max(90, lens[i] / pxPerMs);
+          p.el.style.setProperty('--d', dur + 'ms');
+          p.el.style.animationDelay = t + 'ms';
+          t += dur;
+        });
       };
 
       // Пишемо після того, як ім'я з'явилось
