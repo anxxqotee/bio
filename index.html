@@ -215,81 +215,69 @@
       opacity: 1;
     }
 
-    /* ===== Aqua: Liquid Glass ===== */
+    /* ===== Aqua: Frosted Glass замість неоморфізму ===== */
     /* Подвійні "опуклі" тіні перетворюються на одну м'яку тінь під склом */
     [data-theme="aqua"] {
       --shadow-light: rgba(255, 255, 255, 0);
       --shadow-dark: rgba(6, 28, 46, 0.22);
+      --glass-sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.10) 32%, rgba(255, 255, 255, 0.04) 62%, rgba(255, 255, 255, 0.14) 100%);
+      --glass-rim: linear-gradient(155deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.18) 28%, rgba(255, 255, 255, 0.06) 55%, rgba(255, 255, 255, 0.22) 80%, rgba(255, 255, 255, 0.55) 100%);
     }
 
-    /* Запасний варіант (без WebGL): звичайне матове скло */
     [data-theme="aqua"] .link-card,
     [data-theme="aqua"] .theme-toggle,
     [data-theme="aqua"] .username-badge,
     [data-theme="aqua"] .nested-btn:not([class*="is-highlight"]),
     [data-theme="aqua"] .link-icon-box,
     [data-theme="aqua"] .nested-btn-badge {
-      background-color: rgba(255, 255, 255, 0.12) !important;
-      backdrop-filter: blur(12px) saturate(150%);
-      -webkit-backdrop-filter: blur(12px) saturate(150%);
-      border-color: rgba(255, 255, 255, 0.28) !important;
-      outline-color: rgba(255, 255, 255, 0.28) !important;
-    }
-
-    [data-theme="aqua"] .link-card,
-    [data-theme="aqua"] .theme-toggle,
-    [data-theme="aqua"] .username-badge,
-    [data-theme="aqua"] .nested-btn:not([class*="is-highlight"]) {
-      box-shadow: 0 10px 28px -8px rgba(6, 28, 46, 0.35) !important;
-    }
-
-    /* WebGL-скло (js/aqua-glass.js): фон і заломлення малює один шар за сайтом,
-       самі кнопки прозорі — жодних backdrop-filter, тому легко для відеокарти */
-    .lg-gl[data-theme="aqua"] .link-card,
-    .lg-gl[data-theme="aqua"] .theme-toggle,
-    .lg-gl[data-theme="aqua"] .username-badge,
-    .lg-gl[data-theme="aqua"] .nested-btn:not([class*="is-highlight"]) {
-      background-color: transparent !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
+      background-color: rgba(255, 255, 255, 0.08) !important;
+      background-image: var(--glass-sheen);
+      backdrop-filter: blur(18px) saturate(175%) brightness(1.06);
+      -webkit-backdrop-filter: blur(18px) saturate(175%) brightness(1.06);
       border-color: transparent !important;
       outline-color: transparent !important;
     }
 
-    .lg-gl[data-theme="aqua"] .link-icon-box,
-    .lg-gl[data-theme="aqua"] .nested-btn-badge {
-      background-color: rgba(255, 255, 255, 0.10) !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
+    [data-theme="aqua"] .username-badge {
+      position: relative;
     }
 
-    .lg-gl[data-theme="aqua"] body::before,
-    .lg-gl[data-theme="aqua"] .aqua-bg-image {
-      opacity: 0 !important;
-    }
-
-    .aqua-gl {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: -1;
+    /* Світлий обідок по краю скла: яскравий згори-зліва, гасне до середини, відблиск знизу-справа */
+    [data-theme="aqua"] .link-card::after,
+    [data-theme="aqua"] .theme-toggle::after,
+    [data-theme="aqua"] .username-badge::after,
+    [data-theme="aqua"] .nested-btn:not([class*="is-highlight"])::after,
+    [data-theme="aqua"] .link-icon-box::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1.2px;
+      background: var(--glass-rim);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
       pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+      z-index: 2;
     }
 
-    .lg-gl[data-theme="aqua"] .aqua-gl {
-      opacity: 1;
+    /* М'яке внутрішнє світіння скла */
+    [data-theme="aqua"] .link-card {
+      box-shadow:
+        0 10px 30px -6px rgba(6, 28, 46, 0.35),
+        inset 0 1px 12px rgba(255, 255, 255, 0.10) !important;
+    }
+
+    [data-theme="aqua"] .link-card.is-elevated,
+    [data-theme="aqua"] .link-card.is-open {
+      box-shadow:
+        0 16px 38px -8px rgba(6, 28, 46, 0.45),
+        inset 0 1px 16px rgba(255, 255, 255, 0.16) !important;
     }
 
     @media (hover: hover) and (pointer: fine) {
       [data-theme="aqua"] .link-card:hover {
-        background-color: rgba(255, 255, 255, 0.16) !important;
-      }
-      .lg-gl[data-theme="aqua"] .link-card:hover {
-        background-color: rgba(255, 255, 255, 0.05) !important;
+        background-color: rgba(255, 255, 255, 0.14) !important;
       }
     }
 
@@ -2348,7 +2336,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.4",
+      footer: "Артем Гай · 2026 · v3.4.1",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -5406,7 +5394,6 @@
     }
   </script>
   <!-- 3D-режим пасхалки (модель телефона) -->
-  <script src="js/aqua-glass.js?v=20261127a" defer></script>
   <script src="js/egg3d.js?v=20261127a"></script>
 </body>
 </html>
