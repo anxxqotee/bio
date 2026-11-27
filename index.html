@@ -3180,6 +3180,8 @@
       let fv = { x: 0, y: 0 };       // швидкість пальця, px/с
       let lastMove = null;
       let holdStart = 0;             // секрет: тримати розтягнутою до упору
+      let holdPointer = null, holdRaf = null, lastHoldTick = 0;
+      const jitter = { x: 0, y: 0, r: 0 };
       const tracker = makeVelTracker();
 
       // Еластичний "упор": чим далі тягнеш, тим важче
@@ -3196,7 +3198,7 @@
         const stretch = 1 + len / 220;               // тягнемо вздовж руху пальця
         const squeeze = 1 / Math.sqrt(stretch);      // і стискаємо впоперек (як гума)
         img.style.transform =
-          `translate(${x * 0.35}px, ${y * 0.35}px) rotate(${angle}deg) scale(${stretch}, ${squeeze}) rotate(${-angle}deg)`;
+          `translate(${x * 0.35 + jitter.x}px, ${y * 0.35 + jitter.y}px) rotate(${jitter.r}deg) rotate(${angle}deg) scale(${stretch}, ${squeeze}) rotate(${-angle}deg)`;
       }
 
       function step(t) {
@@ -3283,30 +3285,61 @@
         }
         detent = level;
 
-        // Рогатка: сильно тримаєш розтягнутою понад секунду — картка пуляється
-        // в протилежний бік і вмикається "Кидання"
+        // Рогатка: сильно тримаєш розтягнутою понад секунду — картинка дедалі сильніше тремтить
+        // і пуляється в протилежний бік, вмикається "Кидання"
         const pullNow = Math.hypot(nx, ny);
         if (pullNow > 160) {
-          if (!holdStart) holdStart = now;
-          else if (now - holdStart > 1000 && window.EggFun && window.EggFun.launchWith) {
-            holdStart = 0;
-            const k = 2600 + (pullNow - 160) * 12;
-            const dx = -nx / pullNow, dy = -ny / pullNow;
-            dragging = false;
-            try { img.releasePointerCapture(e.pointerId); } catch (err) {}
-            pos = { x: 0, y: 0 };
-            vel = { x: 0, y: 0 };
-            apply();
-            if (window.EggFun.launchWith(dx * k, dy * k)) {
-              window.EggFun.secret('hold');
-              Haptics.pattern([60, 30, 30]);
-              if (window.easterSound) window.easterSound.splash(1);
-            }
+          if (!holdStart) {
+            holdStart = now;
+            holdPointer = e.pointerId;
+            if (!holdRaf) holdRaf = requestAnimationFrame(holdTick);
           }
         } else {
           holdStart = 0;
         }
       });
+
+      function holdTick(t) {
+        holdRaf = null;
+        if (!dragging || !holdStart) {
+          jitter.x = jitter.y = jitter.r = 0;
+          apply();
+          return;
+        }
+        const now = performance.now();
+        const el = now - holdStart;
+        // Тремтіння наростає з 0.25 с до 1 с
+        const p = Math.max(0, Math.min(1, (el - 250) / 750));
+        const amp = p * p * 6 + (p > 0 ? 0.6 : 0);
+        jitter.x = (Math.random() * 2 - 1) * amp;
+        jitter.y = (Math.random() * 2 - 1) * amp;
+        jitter.r = (Math.random() * 2 - 1) * amp * 0.5;
+        apply();
+        if (p > 0 && now - lastHoldTick > 90 - p * 50) {
+          lastHoldTick = now;
+          Haptics.tick(Math.round(4 + p * 14));
+        }
+        if (el > 1000 && window.EggFun && window.EggFun.launchWith) { launchFromHold(); return; }
+        holdRaf = requestAnimationFrame(holdTick);
+      }
+
+      function launchFromHold() {
+        const pullNow = Math.hypot(pos.x, pos.y) || 1;
+        holdStart = 0;
+        jitter.x = jitter.y = jitter.r = 0;
+        const k = 2600 + (pullNow - 160) * 12;
+        const dx = -pos.x / pullNow, dy = -pos.y / pullNow;
+        dragging = false;
+        try { if (holdPointer != null) img.releasePointerCapture(holdPointer); } catch (err) {}
+        pos = { x: 0, y: 0 };
+        vel = { x: 0, y: 0 };
+        apply();
+        if (window.EggFun.launchWith(dx * k, dy * k)) {
+          window.EggFun.secret('hold');
+          Haptics.pattern([60, 30, 30]);
+          if (window.easterSound) window.easterSound.splash(1);
+        }
+      }
 
       const release = (e) => {
         if (!dragging) return;
