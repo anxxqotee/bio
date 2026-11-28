@@ -1623,8 +1623,10 @@
     .egg3d-canvas {
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100vh;
+      /* Рівно видима частина екрана (100vh на телефоні більше за неї — сцена розтягувалась,
+         і дотики внизу "промахувались" повз телефон) */
+      width: 100%;
+      height: 100%;
       z-index: 1;
       opacity: 0;
       visibility: hidden;
@@ -2462,7 +2464,7 @@
     const PAGE_DATA = {
       name: "Артем Гай",
       description: "Якщо тобі подобається мій контент, буду вдячний за підтримку та підписку в інших соцмережах.",
-      footer: "Артем Гай · 2026 · v3.9",
+      footer: "Артем Гай · 2026 · v3.10",
       // Картинка під градієнтом теми Aqua (прозорість 35%). Поклади файл за цим шляхом або вкажи null
       aquaBackgroundImage: "img/aqua-bg.webp",
       
@@ -5548,6 +5550,6 @@
     }
   </script>
   <!-- 3D-режим пасхалки (модель телефона) -->
-  <script src="js/egg3d.js?v=20261127b"></script>
+  <script src="js/egg3d.js?v=20261128b"></script>
 </body>
 </html>

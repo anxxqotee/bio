@@ -57,7 +57,7 @@
     tiltY = clamp(e.gamma * 0.01, -0.35, 0.35);
   };
 
-  // ---------- Екран телефона: картинка на розмитому фоні ----------
+  // ---------- Екран телефона: картинка на весь екран ----------
   function screenTexture() {
     const c = document.createElement('canvas');
     c.width = 640; c.height = 1386;
@@ -65,25 +65,8 @@
     g.fillStyle = '#000';
     g.fillRect(0, 0, c.width, c.height);
     const iw = srcImg.naturalWidth || 1349, ih = srcImg.naturalHeight || 600;
-    // Розмитий фон на весь екран
-    try { g.filter = 'blur(36px) brightness(0.7) saturate(1.3)'; } catch (e) {}
-    const cs = Math.max(c.width / iw, c.height / ih) * 1.1;
-    g.drawImage(srcImg, (c.width - iw * cs) / 2, (c.height - ih * cs) / 2, iw * cs, ih * cs);
-    try { g.filter = 'none'; } catch (e) {}
-    // Сама картинка по ширині, по центру
-    const s = (c.width - 40) / iw;
-    const w = iw * s, h = ih * s, x = 20, y = (c.height - h) / 2;
-    g.save();
-    g.beginPath();
-    g.roundRect ? g.roundRect(x, y, w, h, 28) : g.rect(x, y, w, h);
-    g.clip();
-    g.drawImage(srcImg, x, y, w, h);
-    g.restore();
-    // Годинник, як на екрані блокування
-    g.fillStyle = 'rgba(255,255,255,0.92)';
-    g.font = '600 120px -apple-system, "SF Pro Display", Roboto, sans-serif';
-    g.textAlign = 'center';
-    g.fillText('9:41', c.width / 2, 300);
+    // Картинка розтягнута на весь екран
+    g.drawImage(srcImg, 0, 0, iw, ih, 0, 0, c.width, c.height);
     // Окремий шар для тріщин і підсумкове полотно
     const crack = document.createElement('canvas');
     crack.width = c.width; crack.height = c.height;
@@ -357,34 +340,50 @@
     scene.add(floorMesh);
 
     // Модель телефона
-    const gltf = await new GLTFLoader().loadAsync('models/iphone15pro.glb');
+    const gltf = await new GLTFLoader().loadAsync('models/iphone17pro.glb');
     const model = gltf.scene;
     let screenMesh = null, bestArea = 0;
     model.traverse((o) => {
       if (!o.isMesh) return;
+      // "Справжнє" заломлення (transmission) вимагає окремого проходу малювання щокадру — заміняємо звичайною прозорістю
+      [].concat(o.material).forEach((mt) => {
+        if (mt && mt.transmission > 0) { mt.transmission = 0; mt.transparent = true; mt.opacity = Math.min(mt.opacity, 0.6); }
+        // Захисне скло над екраном — майже прозоре (у моделі воно чорне на 60% і "гасило" картинку)
+        if (mt && mt.name === 'Glass') { mt.opacity = 0.06; mt.depthWrite = false; }
+      });
       o.geometry = o.geometry.clone();
       deformMeshes.push({ mesh: o, orig: new Float32Array(o.geometry.attributes.position.array), entries: [], dirty: false });
       // Екран — велика пласка деталь зі світним матеріалом
       if (o.material && o.material.emissiveMap) {
         o.geometry.computeBoundingBox();
         const bb = o.geometry.boundingBox;
-        const area = (bb.max.x - bb.min.x) * (bb.max.y - bb.min.y);
+        const ext = [bb.max.x - bb.min.x, bb.max.y - bb.min.y, bb.max.z - bb.min.z].sort((p, q) => q - p);
+        const area = ext[0] * ext[1];   // площа по двох найбільших вимірах — незалежно від того, як лежить деталь
         if (area > bestArea) { bestArea = area; screenMesh = o; }
       }
     });
     if (screenMesh) {
       // Розтягуємо нашу картинку на всю площу екрана за його рамкою
+      // UV рахуємо в координатах усієї моделі (Y — вгору, екран дивиться в -z),
+      // а не самої деталі — у різних моделей деталь екрана може лежати в будь-якій площині
       const geo = screenMesh.geometry;
-      geo.computeBoundingBox();
-      const bb = geo.boundingBox;
+      model.updateMatrixWorld(true);
       const pos = geo.attributes.position;
+      const v3 = new THREE.Vector3();
+      const pts = new Float32Array(pos.count * 2);
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (let i = 0; i < pos.count; i++) {
+        v3.fromBufferAttribute(pos, i).applyMatrix4(screenMesh.matrixWorld);
+        pts[i * 2] = v3.x; pts[i * 2 + 1] = v3.y;
+        minX = Math.min(minX, v3.x); maxX = Math.max(maxX, v3.x); minY = Math.min(minY, v3.y); maxY = Math.max(maxY, v3.y);
+      }
       const uv = new Float32Array(pos.count * 2);
       for (let i = 0; i < pos.count; i++) {
-        uv[i * 2] = 1 - (pos.getX(i) - bb.min.x) / (bb.max.x - bb.min.x);  // екран дивиться в -z, тож дзеркалимо
-        uv[i * 2 + 1] = (pos.getY(i) - bb.min.y) / (bb.max.y - bb.min.y);
+        uv[i * 2] = 1 - (pts[i * 2] - minX) / (maxX - minX);   // екран дивиться в -z, тож дзеркалимо
+        uv[i * 2 + 1] = (pts[i * 2 + 1] - minY) / (maxY - minY);
       }
       geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-      screenMesh.material = new THREE.MeshBasicMaterial({ map: screenTexture(), toneMapped: false });
+      screenMesh.material = new THREE.MeshBasicMaterial({ map: screenTexture(), toneMapped: false, side: THREE.DoubleSide });   // у деяких моделей полотно екрана "вивернуте"
     }
 
     // Центруємо, масштабуємо і повертаємо екраном до камери
@@ -474,7 +473,7 @@
 
   function resize() {
     if (!renderer) return;
-    const w = window.innerWidth, h = window.innerHeight;
+    const w = canvas.clientWidth || window.innerWidth, h = canvas.clientHeight || window.innerHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -793,7 +792,9 @@
 
   // ---------- Дотики ----------
   function ray(clientX, clientY) {
-    const ndc = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+    // Координати рахуємо від реального розміру полотна, а не вікна
+    const r = canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
     return raycaster;
   }
